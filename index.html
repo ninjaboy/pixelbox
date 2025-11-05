@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PixelBox - Particle Aquarium</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        #element-selector {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+        .element-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .element-btn:hover {
+            transform: scale(1.1);
+        }
+        .element-btn.active {
+            border-width: 3px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        #stats {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="element-selector">
+        <button class="element-btn active" data-element="sand" style="background: #c2b280;">S</button>
+        <button class="element-btn" data-element="water" style="background: #4a90e2;">W</button>
+        <button class="element-btn" data-element="stone" style="background: #666;">R</button>
+        <button class="element-btn" data-element="fire" style="background: #ff6b35;">F</button>
+        <button class="element-btn" data-element="wood" style="background: #8b4513;">W</button>
+        <button class="element-btn" data-element="oil" style="background: #3d3d1a;">O</button>
+        <button class="element-btn" data-element="gunpowder" style="background: #333;">💣</button>
+        <button class="element-btn" data-element="fossil" style="background: #8b7355;">🦴</button>
+        <button class="element-btn" data-element="fish" style="background: #4a90e2;">🐟</button>
+        <button class="element-btn" data-element="tree_seed" style="background: #654321;">🌱</button>
+        <button class="element-btn" data-element="eraser" style="background: #222;">E</button>
+    </div>
+
+    <div id="stats">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>Particles: <span id="particles">0</span></div>
+    </div>
+
+    <!-- Phaser 3 from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
+
+    <!-- Main game script (ES6 Module) -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

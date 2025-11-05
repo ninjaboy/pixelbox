@@ -1,0 +1,19 @@
+// Export all element classes
+export { default as EmptyElement } from './EmptyElement.js';
+export { default as SandElement } from './SandElement.js';
+export { default as WaterElement } from './WaterElement.js';
+export { default as StoneElement } from './StoneElement.js';
+export { default as FireElement } from './FireElement.js';
+export { default as WoodElement } from './WoodElement.js';
+export { default as SteamElement } from './SteamElement.js';
+export { default as OilElement } from './OilElement.js';
+export { default as SmokeElement } from './SmokeElement.js';
+export { default as BurningWoodElement } from './BurningWoodElement.js';
+export { default as TreeSeedElement } from './TreeSeedElement.js';
+export { default as TreeTrunkElement } from './TreeTrunkElement.js';
+export { default as TreeBranchElement } from './TreeBranchElement.js';
+export { default as LeafElement } from './LeafElement.js';
+export { default as GunpowderElement } from './GunpowderElement.js';
+export { default as FossilElement } from './FossilElement.js';
+export { default as AshElement } from './AshElement.js';
+export { default as FishElement } from './FishElement.js';

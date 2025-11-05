@@ -1,0 +1,27 @@
+# Claude settings
+.claude/
+
+# Documentation
+*.md
+README.md
+ARCHITECTURE.md
+
+# Git
+.git
+.gitignore
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Legacy files
+game.js
+elements.js
