@@ -216,12 +216,12 @@ class PixelGrid {
             // If target is part of same boulder, OK (boulder occupies multiple rows)
             if (targetCell.data.boulderId === boulderId) continue;
 
-            // If target has lower density and is movable, can displace it (like water)
-            if (boulderElement.density > targetElement.density && targetElement.movable) {
+            // If target is a liquid (water, oil), can displace it
+            if (targetElement.state === 'liquid' && boulderElement.density > targetElement.density) {
                 continue;
             }
 
-            // Otherwise, boulder is blocked
+            // Otherwise, boulder is blocked (can't fall through solids or powders)
             return false;
         }
 
@@ -247,10 +247,10 @@ class PixelGrid {
             // Skip if target is part of same boulder (already moving)
             if (targetCell.data.boulderId === boulderId) continue;
 
-            // Check if target needs to be displaced (water, oil, etc.)
+            // Check if target needs to be displaced (only liquids like water, oil)
             const shouldDisplace = targetElement.id !== 0 &&
-                                   boulderElement.density > targetElement.density &&
-                                   targetElement.movable;
+                                   targetElement.state === 'liquid' &&
+                                   boulderElement.density > targetElement.density;
 
             if (shouldDisplace) {
                 // Swap: displaced element moves up, boulder moves down
