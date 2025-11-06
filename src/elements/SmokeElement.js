@@ -13,18 +13,29 @@ class SmokeElement extends Element {
     }
 
     update(x, y, grid) {
-        // Smoke rises but drifts more than steam
-        const driftChance = Math.random();
+        // Smoke rises slower than steam and spreads more (50/50 rise vs spread)
+        const shouldRise = Math.random() > 0.5;
 
-        if (driftChance > 0.3) {
+        if (shouldRise) {
             // Try to rise
             if (grid.isEmpty(x, y - 1)) {
                 grid.swap(x, y, x, y - 1);
                 return true;
             }
+
+            // Try diagonal rise
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            if (grid.isEmpty(x + dir, y - 1)) {
+                grid.swap(x, y, x + dir, y - 1);
+                return true;
+            }
+            if (grid.isEmpty(x - dir, y - 1)) {
+                grid.swap(x, y, x - dir, y - 1);
+                return true;
+            }
         }
 
-        // Drift sideways more frequently
+        // Spread sideways aggressively (billowing effect)
         const dir = Math.random() > 0.5 ? 1 : -1;
         if (grid.isEmpty(x + dir, y)) {
             grid.swap(x, y, x + dir, y);
@@ -32,16 +43,6 @@ class SmokeElement extends Element {
         }
         if (grid.isEmpty(x - dir, y)) {
             grid.swap(x, y, x - dir, y);
-            return true;
-        }
-
-        // Try diagonal rise
-        if (grid.isEmpty(x + dir, y - 1)) {
-            grid.swap(x, y, x + dir, y - 1);
-            return true;
-        }
-        if (grid.isEmpty(x - dir, y - 1)) {
-            grid.swap(x, y, x - dir, y - 1);
             return true;
         }
 

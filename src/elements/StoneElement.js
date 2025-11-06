@@ -4,7 +4,7 @@ import { STATE } from '../ElementProperties.js';
 class StoneElement extends Element {
     constructor() {
         super(3, 'stone', 0x666666, {
-            density: 10,
+            density: 6, // Reduced from 10 for more realistic physics
             state: STATE.SOLID,
             movable: true, // Stone can now fall
             tags: [],

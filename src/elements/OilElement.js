@@ -90,8 +90,8 @@ class OilElement extends Element {
             return true;
         }
 
-        // Flow sideways (less than water)
-        if (Math.random() > 0.3) { // Only flow 70% of the time
+        // Flow sideways (much more viscous than water - flows ~40% of the time)
+        if (Math.random() > 0.6) {
             const flowDir = Math.random() > 0.5 ? 1 : -1;
             if (grid.canMoveTo(x, y, x + flowDir, y)) {
                 grid.swap(x, y, x + flowDir, y);

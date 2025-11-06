@@ -97,6 +97,57 @@ class InteractionManager {
                 return false;
             }
         });
+
+        // WET SAND: water + sand → wet sand
+        this.registerInteraction({
+            name: 'wet_sand_formation',
+            check: (element1, element2) => {
+                return (element1.name === 'water' && element2.name === 'sand') ||
+                       (element1.name === 'sand' && element2.name === 'water');
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
+                // Determine which is sand
+                const [sandX, sandY] = element1.name === 'sand'
+                    ? [x1, y1]
+                    : [x2, y2];
+
+                // 30% chance to convert sand to wet sand
+                if (Math.random() > 0.7) {
+                    const wetSandElement = registry.get('wet_sand');
+                    if (wetSandElement) {
+                        grid.setElement(sandX, sandY, wetSandElement);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+
+        // STEAM CONDENSATION: steam + cool surfaces → water
+        this.registerInteraction({
+            name: 'steam_condensation',
+            check: (element1, element2) => {
+                const coolSurfaces = ['stone', 'wood', 'sand', 'wet_sand'];
+                return (element1.name === 'steam' && coolSurfaces.includes(element2.name)) ||
+                       (element2.name === 'steam' && coolSurfaces.includes(element1.name));
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
+                // Determine which is steam
+                const [steamX, steamY] = element1.name === 'steam'
+                    ? [x1, y1]
+                    : [x2, y2];
+
+                // 5% chance to condense back to water
+                if (Math.random() > 0.95) {
+                    const waterElement = registry.get('water');
+                    if (waterElement) {
+                        grid.setElement(steamX, steamY, waterElement);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     // Check and apply interactions between two elements

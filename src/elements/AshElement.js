@@ -32,19 +32,23 @@ class AshElement extends Element {
             return false;
         }
 
-        // Ash falls like very light powder
+        // Ash falls like very light powder with angle of repose
         if (grid.canMoveTo(x, y, x, y + 1)) {
             grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        // Try diagonal fall
+        // Ash is lighter and more stable than sand (higher stability threshold)
         const dir = Math.random() > 0.5 ? -1 : 1;
-        if (grid.canMoveTo(x, y, x + dir, y + 1)) {
+
+        const hasSupport = !grid.isEmpty(x + dir, y + 2);
+        const shouldSlide = !hasSupport || Math.random() > 0.90; // More stable than sand
+
+        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
             grid.swap(x, y, x + dir, y + 1);
             return true;
         }
-        if (grid.canMoveTo(x, y, x - dir, y + 1)) {
+        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
             grid.swap(x, y, x - dir, y + 1);
             return true;
         }

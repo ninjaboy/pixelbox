@@ -15,9 +15,9 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
-        // Try to fall multiple cells in one frame (faster falling)
+        // Try to fall multiple cells in one frame (fast falling liquid)
         let fallDistance = 0;
-        const maxFallDistance = 3; // Fall up to 3 cells per frame
+        const maxFallDistance = 4; // Increased from 3 for more fluid behavior
 
         // Keep falling while possible
         while (fallDistance < maxFallDistance && grid.canMoveTo(x, y + fallDistance, x, y + fallDistance + 1)) {
@@ -40,15 +40,17 @@ class WaterElement extends Element {
             return true;
         }
 
-        // Flow sideways (water spreads more than sand)
-        const flowDir = Math.random() > 0.5 ? 1 : -1;
-        if (grid.canMoveTo(x, y, x + flowDir, y)) {
-            grid.swap(x, y, x + flowDir, y);
-            return true;
-        }
-        if (grid.canMoveTo(x, y, x - flowDir, y)) {
-            grid.swap(x, y, x - flowDir, y);
-            return true;
+        // Flow sideways aggressively (water spreads fast - 95% chance)
+        if (Math.random() > 0.05) {
+            const flowDir = Math.random() > 0.5 ? 1 : -1;
+            if (grid.canMoveTo(x, y, x + flowDir, y)) {
+                grid.swap(x, y, x + flowDir, y);
+                return true;
+            }
+            if (grid.canMoveTo(x, y, x - flowDir, y)) {
+                grid.swap(x, y, x - flowDir, y);
+                return true;
+            }
         }
 
         return false;

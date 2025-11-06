@@ -70,44 +70,40 @@ class FishElement extends Element {
             }
         }
 
-        // Swimming behavior
+        // Swimming behavior - smooth, directional movement
         cell.data.swimTimer++;
 
-        // Change direction occasionally
-        if (cell.data.swimTimer > 30 && Math.random() > 0.95) {
+        // Change direction occasionally (every 60-120 frames)
+        if (cell.data.swimTimer > 60 && Math.random() > 0.97) {
             cell.data.swimDirection *= -1;
             cell.data.swimTimer = 0;
         }
 
-        // Swim through water (25% movement chance - slower swimming)
-        if (Math.random() > 0.75) {
+        // Swim through water more frequently (70% movement chance)
+        if (Math.random() > 0.3) {
             const dir = cell.data.swimDirection;
 
-            // Try to swim horizontally (reduced probability - 30% of movement attempts)
-            if (Math.random() > 0.7) {
+            // Primarily swim horizontally (70% of the time)
+            if (Math.random() > 0.3) {
                 const newX = x + dir;
                 const targetElement = grid.getElement(newX, y);
                 if (targetElement && targetElement.name === 'water') {
                     grid.swap(x, y, newX, y);
                     return true;
                 }
-            }
 
-            // Try to swim diagonally (prefer downward - 80% down, 20% up)
-            if (Math.random() > 0.7) {
-                const verticalDir = Math.random() > 0.2 ? 1 : -1;
-                const newX = x + dir;
-                const newY = y + verticalDir;
-                const targetElement = grid.getElement(newX, newY);
-                if (targetElement && targetElement.name === 'water') {
-                    grid.swap(x, y, newX, newY);
+                // If blocked horizontally, try diagonal
+                const verticalDir = Math.random() > 0.5 ? 1 : -1;
+                const diagonalElement = grid.getElement(newX, y + verticalDir);
+                if (diagonalElement && diagonalElement.name === 'water') {
+                    grid.swap(x, y, newX, y + verticalDir);
                     return true;
                 }
             }
 
-            // Try vertical swimming (40% chance - 85% down, 15% up)
-            if (Math.random() > 0.6) {
-                const verticalDir = Math.random() > 0.15 ? 1 : -1;
+            // Gentle vertical drift (prefer staying at current depth)
+            if (Math.random() > 0.8) {
+                const verticalDir = Math.random() > 0.5 ? 1 : -1;
                 const newY = y + verticalDir;
                 const targetElement = grid.getElement(x, newY);
                 if (targetElement && targetElement.name === 'water') {

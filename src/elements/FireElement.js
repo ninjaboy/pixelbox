@@ -17,7 +17,7 @@ class FireElement extends Element {
 
     update(x, y, grid) {
         // Emit smoke occasionally
-        if (Math.random() > 0.9) {
+        if (Math.random() > 0.85) {
             // Try to spawn smoke above
             const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
             const smokeY = y - 1;
@@ -26,16 +26,30 @@ class FireElement extends Element {
             }
         }
 
-        // Fire rises with some randomness
+        // Fire rises chaotically with flickering (70% upward movement)
         if (Math.random() > 0.3) {
             if (grid.isEmpty(x, y - 1)) {
                 grid.swap(x, y, x, y - 1);
                 return true;
             }
 
+            // Diagonal flickering
             const dir = Math.random() > 0.5 ? 1 : -1;
             if (grid.isEmpty(x + dir, y - 1)) {
                 grid.swap(x, y, x + dir, y - 1);
+                return true;
+            }
+            if (grid.isEmpty(x - dir, y - 1)) {
+                grid.swap(x, y, x - dir, y - 1);
+                return true;
+            }
+        }
+
+        // Occasionally spread sideways (dancing flames)
+        if (Math.random() > 0.8) {
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            if (grid.isEmpty(x + dir, y)) {
+                grid.swap(x, y, x + dir, y);
                 return true;
             }
         }

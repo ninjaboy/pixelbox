@@ -4,7 +4,7 @@ import { STATE, TAG } from '../ElementProperties.js';
 class GunpowderElement extends Element {
     constructor() {
         super(14, 'gunpowder', 0x333333, { // Dark gray/black
-            density: 2.5,
+            density: 3, // Same as sand for consistent powder behavior
             state: STATE.POWDER,
             dispersion: 1,
             ignitionResistance: 0.0, // EXTREMELY easy to ignite (15% chance)
@@ -16,19 +16,23 @@ class GunpowderElement extends Element {
     }
 
     update(x, y, grid) {
-        // Gunpowder falls like sand
+        // Gunpowder falls like sand with angle of repose
         if (grid.canMoveTo(x, y, x, y + 1)) {
             grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        // Try diagonal fall
+        // Angle of repose: stable piles like sand
         const dir = Math.random() > 0.5 ? -1 : 1;
-        if (grid.canMoveTo(x, y, x + dir, y + 1)) {
+
+        const hasSupport = !grid.isEmpty(x + dir, y + 2);
+        const shouldSlide = !hasSupport || Math.random() > 0.85;
+
+        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
             grid.swap(x, y, x + dir, y + 1);
             return true;
         }
-        if (grid.canMoveTo(x, y, x - dir, y + 1)) {
+        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
             grid.swap(x, y, x - dir, y + 1);
             return true;
         }

@@ -20,13 +20,21 @@ class SandElement extends Element {
             return true;
         }
 
-        // Try diagonal fall with slight randomness
+        // Angle of repose: only slide diagonally if there's space below diagonal
+        // This creates realistic pile formation at ~45° (adjustable with probability)
         const dir = Math.random() > 0.5 ? -1 : 1;
-        if (grid.canMoveTo(x, y, x + dir, y + 1)) {
+
+        // Check if diagonal slide would be stable (has support)
+        const hasSupport = !grid.isEmpty(x + dir, y + 2);
+
+        // Only slide if moving to unstable position or with low probability when stable
+        const shouldSlide = !hasSupport || Math.random() > 0.85;
+
+        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
             grid.swap(x, y, x + dir, y + 1);
             return true;
         }
-        if (grid.canMoveTo(x, y, x - dir, y + 1)) {
+        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
             grid.swap(x, y, x - dir, y + 1);
             return true;
         }
