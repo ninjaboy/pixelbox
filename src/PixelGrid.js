@@ -197,6 +197,9 @@ class PixelGrid {
         const pixels = this.getBoulderPixels(boulderId);
         if (pixels.length === 0) return false;
 
+        // Get boulder element (stone) to check its density
+        const boulderElement = this.registry.get('stone');
+
         // Check every pixel in the boulder
         for (const { x, y } of pixels) {
             const targetY = y + 1;
@@ -205,14 +208,20 @@ class PixelGrid {
             if (targetY >= this.height) return false;
 
             const targetCell = this.grid[targetY][x];
+            const targetElement = targetCell.element;
 
             // If target is empty, OK
-            if (targetCell.element.id === 0) continue;
+            if (targetElement.id === 0) continue;
 
             // If target is part of same boulder, OK (boulder occupies multiple rows)
             if (targetCell.data.boulderId === boulderId) continue;
 
-            // If target is something else, boulder is blocked
+            // If target has lower density and is movable, can displace it (like water)
+            if (boulderElement.density > targetElement.density && targetElement.movable) {
+                continue;
+            }
+
+            // Otherwise, boulder is blocked
             return false;
         }
 
@@ -226,37 +235,58 @@ class PixelGrid {
         pixels.sort((a, b) => b.y - a.y);
 
         const emptyElement = this.registry.get('empty');
+        const boulderElement = this.registry.get('stone');
         const cache = this.boulderCache.get(boulderId);
 
         // Move each pixel down
         for (const { x, y } of pixels) {
             const cell = this.grid[y][x];
             const targetCell = this.grid[y + 1][x];
+            const targetElement = targetCell.element;
 
             // Skip if target is part of same boulder (already moving)
             if (targetCell.data.boulderId === boulderId) continue;
 
-            // Update cache: remove old position, add new position
+            // Check if target needs to be displaced (water, oil, etc.)
+            const shouldDisplace = targetElement.id !== 0 &&
+                                   boulderElement.density > targetElement.density &&
+                                   targetElement.movable;
+
+            if (shouldDisplace) {
+                // Swap: displaced element moves up, boulder moves down
+                this.grid[y + 1][x] = {
+                    element: cell.element,
+                    lifetime: cell.lifetime,
+                    updated: true,
+                    data: { boulderId: boulderId }
+                };
+                this.grid[y][x] = {
+                    element: targetElement,
+                    lifetime: targetCell.lifetime,
+                    updated: true,
+                    data: targetCell.data // Preserve target's data
+                };
+            } else {
+                // Normal move into empty space
+                this.grid[y + 1][x] = {
+                    element: cell.element,
+                    lifetime: cell.lifetime,
+                    updated: true,
+                    data: { boulderId: boulderId }
+                };
+                this.grid[y][x] = {
+                    element: emptyElement,
+                    lifetime: -1,
+                    updated: false,
+                    data: {}
+                };
+            }
+
+            // Update cache
             if (cache) {
                 cache.delete(`${x},${y}`);
                 cache.add(`${x},${y + 1}`);
             }
-
-            // Move pixel to target
-            this.grid[y + 1][x] = {
-                element: cell.element,
-                lifetime: cell.lifetime,
-                updated: true, // Mark as updated
-                data: { boulderId: boulderId } // Preserve boulder ID
-            };
-
-            // Clear source
-            this.grid[y][x] = {
-                element: emptyElement,
-                lifetime: -1,
-                updated: false,
-                data: {}
-            };
         }
     }
 }
