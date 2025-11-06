@@ -7,6 +7,7 @@ class PixelGrid {
         this.registry = registry;
         this.grid = [];
         this.particleCount = 0;
+        this.frameCount = 0; // Track frames for alternating scan direction
 
         // Initialize empty grid
         const emptyElement = this.registry.get('empty');
@@ -96,6 +97,10 @@ class PixelGrid {
     }
 
     update() {
+        // Increment frame counter and determine scan direction for THIS FRAME
+        this.frameCount++;
+        const startLeft = this.frameCount % 2 === 0; // Alternate each frame, not each row!
+
         // Reset processed boulders tracking for stone element
         const stoneElement = this.registry.get('stone');
         if (stoneElement && stoneElement.processedBoulders) {
@@ -109,10 +114,8 @@ class PixelGrid {
             }
         }
 
-        // Update from bottom to top, randomize left-right order
+        // Update from bottom to top, use consistent scan direction for entire frame
         for (let y = this.height - 1; y >= 0; y--) {
-            const startLeft = Math.random() > 0.5;
-
             for (let i = 0; i < this.width; i++) {
                 const x = startLeft ? i : this.width - 1 - i;
                 const cell = this.grid[y][x];
