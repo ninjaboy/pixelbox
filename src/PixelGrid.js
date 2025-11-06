@@ -33,7 +33,7 @@ class PixelGrid {
         return cell ? cell.element : null;
     }
 
-    setElement(x, y, element, preserveData = false) {
+    setElement(x, y, element, preserveData = false, boulderId = null) {
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
         if (!element) {
             console.error('PixelGrid.setElement: element is undefined at position', x, y);
@@ -54,6 +54,10 @@ class PixelGrid {
         // Reset data unless explicitly preserving it
         if (!preserveData) {
             cell.data = {};
+            // Store boulder ID if provided (for stone elements)
+            if (boulderId !== null) {
+                cell.data.boulderId = boulderId;
+            }
         }
     }
 
@@ -92,6 +96,12 @@ class PixelGrid {
     }
 
     update() {
+        // Reset processed boulders tracking for stone element
+        const stoneElement = this.registry.get('stone');
+        if (stoneElement && stoneElement.processedBoulders) {
+            stoneElement.processedBoulders.clear();
+        }
+
         // Reset updated flags
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
@@ -145,6 +155,80 @@ class PixelGrid {
                     return; // Interaction occurred, stop checking
                 }
             }
+        }
+    }
+
+    // Boulder system methods
+    getBoulderPixels(boulderId) {
+        const pixels = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const cell = this.grid[y][x];
+                if (cell.data.boulderId === boulderId) {
+                    pixels.push({ x, y, cell });
+                }
+            }
+        }
+        return pixels;
+    }
+
+    canBoulderMoveDown(boulderId) {
+        const pixels = this.getBoulderPixels(boulderId);
+        if (pixels.length === 0) return false;
+
+        // Check every pixel in the boulder
+        for (const { x, y } of pixels) {
+            const targetY = y + 1;
+
+            // Check if target is out of bounds
+            if (targetY >= this.height) return false;
+
+            const targetCell = this.grid[targetY][x];
+
+            // If target is empty, OK
+            if (targetCell.element.id === 0) continue;
+
+            // If target is part of same boulder, OK (boulder occupies multiple rows)
+            if (targetCell.data.boulderId === boulderId) continue;
+
+            // If target is something else, boulder is blocked
+            return false;
+        }
+
+        return true;
+    }
+
+    moveBoulderDown(boulderId) {
+        const pixels = this.getBoulderPixels(boulderId);
+
+        // Sort by Y descending (bottom to top) to avoid overwriting
+        pixels.sort((a, b) => b.y - a.y);
+
+        const emptyElement = this.registry.get('empty');
+
+        // Move each pixel down
+        for (const { x, y } of pixels) {
+            const cell = this.grid[y][x];
+            const targetCell = this.grid[y + 1][x];
+
+            // Skip if target is part of same boulder (already moving)
+            if (targetCell.data.boulderId === boulderId) continue;
+
+            // Move pixel to target
+            this.grid[y + 1][x] = {
+                element: cell.element,
+                lifetime: cell.lifetime,
+                updated: true, // Mark as updated
+                data: { boulderId: boulderId } // Preserve boulder ID
+            };
+
+            // Clear source
+            this.grid[y][x] = {
+                element: emptyElement,
+                lifetime: -1,
+                updated: false,
+                data: {}
+            };
         }
     }
 }

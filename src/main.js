@@ -8,6 +8,7 @@ class GameScene extends Phaser.Scene {
         this.selectedElement = 'sand';
         this.isDrawing = false;
         this.elementRegistry = registry; // Use elementRegistry to avoid Phaser's built-in registry
+        this.nextBoulderId = 1; // Unique ID counter for stone boulders
     }
 
     create() {
@@ -96,13 +97,16 @@ class GameScene extends Phaser.Scene {
         const brushSize = element.brushSize;
         const emissionDensity = element.emissionDensity;
 
+        // Generate unique boulder ID for stone elements (element.id === 3)
+        const boulderId = element.id === 3 ? this.nextBoulderId++ : null;
+
         // Draw in a circle around the cursor
         for (let dy = -brushSize; dy <= brushSize; dy++) {
             for (let dx = -brushSize; dx <= brushSize; dx++) {
                 if (dx * dx + dy * dy <= brushSize * brushSize) {
                     // Apply emission density (probability of spawning)
                     if (Math.random() < emissionDensity) {
-                        this.pixelGrid.setElement(gridX + dx, gridY + dy, element);
+                        this.pixelGrid.setElement(gridX + dx, gridY + dy, element, false, boulderId);
                     }
                 }
             }
