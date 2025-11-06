@@ -7,7 +7,7 @@ class SteamElement extends Element {
             density: 0,
             state: STATE.GAS,
             dispersion: 2,
-            lifetime: 120,
+            lifetime: 240, // Steam dissipates after 4 seconds
             condensesInto: 'water',  // Could condense back to water (future feature)
             tags: [TAG.CONDENSES]
         });

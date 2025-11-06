@@ -15,9 +15,17 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
-        // Try to fall down
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
+        // Try to fall multiple cells in one frame (faster falling)
+        let fallDistance = 0;
+        const maxFallDistance = 3; // Fall up to 3 cells per frame
+
+        // Keep falling while possible
+        while (fallDistance < maxFallDistance && grid.canMoveTo(x, y + fallDistance, x, y + fallDistance + 1)) {
+            fallDistance++;
+        }
+
+        if (fallDistance > 0) {
+            grid.swap(x, y, x, y + fallDistance);
             return true;
         }
 

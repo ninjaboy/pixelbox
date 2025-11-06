@@ -8,7 +8,7 @@ class FireElement extends Element {
             state: STATE.GAS,
             temperature: TEMPERATURE.VERY_HOT,
             dispersion: 2,
-            lifetime: 50, // Ephemeral flames - dissipate quickly
+            lifetime: 60, // Ephemeral flames - dissipate after 1 second
             tags: [TAG.HEAT_SOURCE],
             brushSize: 2, // Small controlled brush
             emissionDensity: 0.5 // Moderate sparse placement
