@@ -11,8 +11,9 @@ const TREE_CONFIG = {
     minBranchAngle: 20 * Math.PI / 180,
     maxBranchAngle: 45 * Math.PI / 180,
     asymmetryVariation: 15 * Math.PI / 180,
-    segmentsPerFrame: 2,
-    initialDelay: 30,
+    segmentsPerFrame: 1,  // Grow 1 segment at a time
+    initialDelay: 120,  // 2 seconds before germination
+    growthDelay: 4,  // Grow every 4 frames (slow evolutionary process)
     minLeafDepth: 5,
     leavesPerTerminal: 4
 };
@@ -37,14 +38,22 @@ class TreeSeedElement extends Element {
         if (!cell.data.treeStructure) {
             cell.data.treeStructure = this.generateFractalTree(x, y);
             cell.data.growthTimer = 0;
+            cell.data.growthFrameCounter = 0;
             return false;
         }
 
-        // Wait initial delay
+        // Wait initial delay (seed germination)
         cell.data.growthTimer++;
         if (cell.data.growthTimer < TREE_CONFIG.initialDelay) {
             return false;
         }
+
+        // Slow growth - only grow every N frames
+        cell.data.growthFrameCounter++;
+        if (cell.data.growthFrameCounter < TREE_CONFIG.growthDelay) {
+            return false;
+        }
+        cell.data.growthFrameCounter = 0;
 
         // Grow tree gradually
         return this.growTreeGradually(x, y, grid, cell);
