@@ -7,7 +7,8 @@ class PixelGrid {
         this.registry = registry;
         this.grid = [];
         this.particleCount = 0;
-        this.frameCount = 0; // Track frames for alternating scan direction
+        this.frameCount = 0; // Track frames
+        this.boulderCache = new Map(); // boulderId → Set of "x,y" position strings
 
         // Initialize empty grid
         const emptyElement = this.registry.get('empty');
@@ -44,6 +45,19 @@ class PixelGrid {
         const cell = this.grid[y][x];
         const wasEmpty = cell.element.id === 0;
         const isEmpty = element.id === 0;
+        const oldBoulderId = cell.data.boulderId;
+        const posKey = `${x},${y}`;
+
+        // Remove from old boulder cache if this cell had a boulder ID
+        if (oldBoulderId !== undefined) {
+            const cache = this.boulderCache.get(oldBoulderId);
+            if (cache) {
+                cache.delete(posKey);
+                if (cache.size === 0) {
+                    this.boulderCache.delete(oldBoulderId);
+                }
+            }
+        }
 
         if (wasEmpty && !isEmpty) this.particleCount++;
         if (!wasEmpty && isEmpty) this.particleCount--;
@@ -55,9 +69,13 @@ class PixelGrid {
         // Reset data unless explicitly preserving it
         if (!preserveData) {
             cell.data = {};
-            // Store boulder ID if provided (for stone elements)
+            // Store boulder ID and add to cache if provided
             if (boulderId !== null) {
                 cell.data.boulderId = boulderId;
+                if (!this.boulderCache.has(boulderId)) {
+                    this.boulderCache.set(boulderId, new Set());
+                }
+                this.boulderCache.get(boulderId).add(posKey);
             }
         }
     }
@@ -97,9 +115,8 @@ class PixelGrid {
     }
 
     update() {
-        // Increment frame counter and determine scan direction for THIS FRAME
+        // Increment frame counter
         this.frameCount++;
-        const startLeft = this.frameCount % 2 === 0; // Alternate each frame, not each row!
 
         // Reset processed boulders tracking for stone element
         const stoneElement = this.registry.get('stone');
@@ -114,8 +131,10 @@ class PixelGrid {
             }
         }
 
-        // Update from bottom to top, use consistent scan direction for entire frame
+        // Update from bottom to top, randomize scan direction PER ROW for even spreading
         for (let y = this.height - 1; y >= 0; y--) {
+            const startLeft = Math.random() > 0.5; // Per-row randomization
+
             for (let i = 0; i < this.width; i++) {
                 const x = startLeft ? i : this.width - 1 - i;
                 const cell = this.grid[y][x];
@@ -163,14 +182,13 @@ class PixelGrid {
 
     // Boulder system methods
     getBoulderPixels(boulderId) {
+        const cache = this.boulderCache.get(boulderId);
+        if (!cache) return [];
+
         const pixels = [];
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                const cell = this.grid[y][x];
-                if (cell.data.boulderId === boulderId) {
-                    pixels.push({ x, y, cell });
-                }
-            }
+        for (const posKey of cache) {
+            const [x, y] = posKey.split(',').map(Number);
+            pixels.push({ x, y, cell: this.grid[y][x] });
         }
         return pixels;
     }
@@ -208,6 +226,7 @@ class PixelGrid {
         pixels.sort((a, b) => b.y - a.y);
 
         const emptyElement = this.registry.get('empty');
+        const cache = this.boulderCache.get(boulderId);
 
         // Move each pixel down
         for (const { x, y } of pixels) {
@@ -216,6 +235,12 @@ class PixelGrid {
 
             // Skip if target is part of same boulder (already moving)
             if (targetCell.data.boulderId === boulderId) continue;
+
+            // Update cache: remove old position, add new position
+            if (cache) {
+                cache.delete(`${x},${y}`);
+                cache.add(`${x},${y + 1}`);
+            }
 
             // Move pixel to target
             this.grid[y + 1][x] = {
