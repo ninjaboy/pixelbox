@@ -13,7 +13,7 @@ const TREE_CONFIG = {
     asymmetryVariation: 15 * Math.PI / 180,
     segmentsPerFrame: 1,  // Grow 1 segment at a time
     initialDelay: 120,  // 2 seconds before germination
-    growthDelay: 4,  // Grow every 4 frames (slow evolutionary process)
+    growthDelay: 40,  // Grow every 40 frames (very slow evolutionary process)
     minLeafDepth: 5,
     leavesPerTerminal: 4
 };
