@@ -15,9 +15,21 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
-        // Try to fall multiple cells in one frame (fast falling liquid)
+        // PRIORITY 1: Try to seep through wet sand below (permeability)
+        const below = grid.getElement(x, y + 1);
+        if (below && below.name === 'wet_sand') {
+            // Check if there's empty space below the wet sand
+            const belowWetSand = grid.getElement(x, y + 2);
+            if (belowWetSand && belowWetSand.id === 0 && Math.random() > 0.93) {
+                // Seep through: swap with the space below wet sand
+                grid.swap(x, y, x, y + 2);
+                return true;
+            }
+        }
+
+        // PRIORITY 2: Try to fall multiple cells in one frame (fast falling liquid)
         let fallDistance = 0;
-        const maxFallDistance = 4; // Increased from 3 for more fluid behavior
+        const maxFallDistance = 4;
 
         // Keep falling while possible
         while (fallDistance < maxFallDistance && grid.canMoveTo(x, y + fallDistance, x, y + fallDistance + 1)) {
@@ -29,7 +41,7 @@ class WaterElement extends Element {
             return true;
         }
 
-        // Try diagonal fall
+        // PRIORITY 3: Try diagonal fall
         const fallDir = Math.random() > 0.5 ? -1 : 1;
         if (grid.canMoveTo(x, y, x + fallDir, y + 1)) {
             grid.swap(x, y, x + fallDir, y + 1);
@@ -40,7 +52,27 @@ class WaterElement extends Element {
             return true;
         }
 
-        // Flow sideways aggressively (water spreads fast - 95% chance)
+        // PRIORITY 4: WATER LEVELING - try to equalize with neighboring water
+        // Check if there's lower water level on either side
+        const leftElement = grid.getElement(x - 1, y);
+        const rightElement = grid.getElement(x + 1, y);
+
+        // Count water depth below this position
+        let depthHere = this.getWaterDepthBelow(x, y, grid);
+        let depthLeft = leftElement && leftElement.id === 0 ? 0 : this.getWaterDepthBelow(x - 1, y, grid);
+        let depthRight = rightElement && rightElement.id === 0 ? 0 : this.getWaterDepthBelow(x + 1, y, grid);
+
+        // Flow toward side with less water depth (leveling behavior)
+        if (depthLeft < depthHere - 1 && grid.canMoveTo(x, y, x - 1, y)) {
+            grid.swap(x, y, x - 1, y);
+            return true;
+        }
+        if (depthRight < depthHere - 1 && grid.canMoveTo(x, y, x + 1, y)) {
+            grid.swap(x, y, x + 1, y);
+            return true;
+        }
+
+        // PRIORITY 5: Flow sideways aggressively (water spreads fast)
         if (Math.random() > 0.05) {
             const flowDir = Math.random() > 0.5 ? 1 : -1;
             if (grid.canMoveTo(x, y, x + flowDir, y)) {
@@ -54,6 +86,25 @@ class WaterElement extends Element {
         }
 
         return false;
+    }
+
+    // Helper method to check water depth below a position
+    getWaterDepthBelow(x, y, grid) {
+        let depth = 0;
+        let checkY = y + 1;
+
+        // Count consecutive water below (up to 10 cells)
+        while (checkY < grid.height && depth < 10) {
+            const element = grid.getElement(x, checkY);
+            if (element && element.name === 'water') {
+                depth++;
+                checkY++;
+            } else {
+                break;
+            }
+        }
+
+        return depth;
     }
 }
 

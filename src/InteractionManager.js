@@ -98,7 +98,7 @@ class InteractionManager {
             }
         });
 
-        // WET SAND: water + sand → wet sand
+        // WET SAND: water + sand → wet sand (happens quickly for realistic saturation)
         this.registerInteraction({
             name: 'wet_sand_formation',
             check: (element1, element2) => {
@@ -111,8 +111,8 @@ class InteractionManager {
                     ? [x1, y1]
                     : [x2, y2];
 
-                // 30% chance to convert sand to wet sand
-                if (Math.random() > 0.7) {
+                // 50% chance to convert sand to wet sand (increased from 30%)
+                if (Math.random() > 0.5) {
                     const wetSandElement = registry.get('wet_sand');
                     if (wetSandElement) {
                         grid.setElement(sandX, sandY, wetSandElement);
