@@ -137,9 +137,12 @@ class GameScene extends Phaser.Scene {
             tooltip.appendChild(tooltipName);
 
             if (element) {
+                const description = this.generateElementDescription(element);
+                console.log(`[${elementName}] Description:`, description);
+
                 const tooltipProps = document.createElement('div');
                 tooltipProps.className = 'tooltip-props';
-                tooltipProps.textContent = this.generateElementDescription(element);
+                tooltipProps.textContent = description;
                 tooltip.appendChild(tooltipProps);
             }
 
@@ -149,6 +152,15 @@ class GameScene extends Phaser.Scene {
             tooltip.appendChild(tooltipKey);
 
             btn.appendChild(tooltip);
+
+            console.log(`Created tooltip for ${elementName}:`, tooltip);
+
+            // Debug hover events
+            btn.addEventListener('mouseenter', () => {
+                console.log(`Hovering over ${elementName}`);
+                console.log('Tooltip element:', btn.querySelector('.tooltip'));
+                console.log('Tooltip computed style:', window.getComputedStyle(btn.querySelector('.tooltip')));
+            });
 
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
