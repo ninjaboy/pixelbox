@@ -172,7 +172,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Combustible
-        if (element.tags && element.tags.includes('combustible')) {
+        if (Array.isArray(element.tags) && element.tags.includes('combustible')) {
             if (element.ignitionResistance > 0.9) {
                 parts.push('fire resistant');
             } else if (element.ignitionResistance > 0.5) {
