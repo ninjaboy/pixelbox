@@ -12,8 +12,8 @@ class SteamElement extends Element {
             tags: [TAG.CONDENSES]
         });
 
-        // Define atmosphere boundary (upper 25% of screen)
-        this.atmosphereThreshold = 0.25;
+        // Define atmosphere boundary (upper 40% of screen)
+        this.atmosphereThreshold = 0.40;
     }
 
     update(x, y, grid) {
