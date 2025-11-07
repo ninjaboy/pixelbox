@@ -3,14 +3,15 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 // Tree configuration
 const TREE_CONFIG = {
-    initialLength: () => 8 + Math.random() * 15,  // 8-23 pixels (varying height)
-    initialThickness: () => 1 + Math.floor(Math.random() * 3),  // 1-3 pixels max
-    maxDepth: () => 3 + Math.floor(Math.random() * 2),  // 3-4 levels (fewer branches)
-    minLength: 3,
+    initialLength: () => 5 + Math.random() * 8,  // 5-13 pixels (miniature trees)
+    initialThickness: 1,  // Always 1 pixel wide
+    maxDepth: () => 3 + Math.floor(Math.random() * 2),  // 3-4 levels
+    minLength: 2,
     lengthReduction: () => 0.50 + Math.random() * 0.25,  // 50-75%
     minBranchAngle: 25 * Math.PI / 180,
     maxBranchAngle: 50 * Math.PI / 180,
     asymmetryVariation: 20 * Math.PI / 180,
+    branchSkipChance: 0.3,  // 30% chance to skip a branch (randomize appearance)
     segmentsPerFrame: 1,  // Grow 1 segment at a time
     initialDelay: 120,  // 2 seconds before germination
     growthDelay: 40,  // Grow every 40 frames (very slow evolutionary process)
@@ -103,17 +104,22 @@ class TreeSeedElement extends Element {
             type: depth <= 1 ? 'tree_trunk' : 'tree_branch'
         });
 
-        // Branching parameters - always 2 branches for simplicity
+        // Branching parameters - 2 branches, but may skip some randomly
         const branchCount = 2;
         const lengthReduction = TREE_CONFIG.lengthReduction();
-        const thicknessReduction = Math.max(1, thickness - 1);
+        const thicknessReduction = 1;  // Always 1 pixel
 
         // Base branch angle spread
         const baseAngleSpread = TREE_CONFIG.minBranchAngle +
                                Math.random() * (TREE_CONFIG.maxBranchAngle - TREE_CONFIG.minBranchAngle);
 
-        // Generate child branches (always 2: left and right)
+        // Generate child branches (2 branches, but randomly skip some)
         for (let i = 0; i < branchCount; i++) {
+            // Randomly skip this branch for variety
+            if (Math.random() < TREE_CONFIG.branchSkipChance) {
+                continue;
+            }
+
             // Two branches: one left, one right with asymmetry
             let branchAngle = angle + (i === 0 ? -baseAngleSpread : baseAngleSpread);
             branchAngle += (Math.random() - 0.5) * TREE_CONFIG.asymmetryVariation;
