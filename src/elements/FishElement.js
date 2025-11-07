@@ -136,7 +136,7 @@ class FishElement extends Element {
                     const foodElement = grid.getElement(foodX, foodY);
                     if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
                         grid.setElement(foodX, foodY, grid.registry.get('empty'));
-                        cell.data.hunger = Math.max(0, cell.data.hunger - 50); // Reduce hunger
+                        cell.data.hunger = Math.max(0, cell.data.hunger - 70); // Reduce hunger significantly
                         cell.data.seekingFood = false;
 
                         // REPRODUCTION: If well-fed and not overcrowded, reproduce
