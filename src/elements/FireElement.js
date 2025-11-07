@@ -3,7 +3,7 @@ import { STATE, TEMPERATURE, TAG } from '../ElementProperties.js';
 
 class FireElement extends Element {
     constructor() {
-        super(4, 'fire', 0xffaa00, { // Brighter orange-yellow for more glow
+        super(4, 'fire', 0xff6600, { // Vibrant orange-red for more intensity
             density: 0,
             state: STATE.GAS,
             temperature: TEMPERATURE.VERY_HOT,

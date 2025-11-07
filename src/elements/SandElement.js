@@ -3,7 +3,7 @@ import { STATE } from '../ElementProperties.js';
 
 class SandElement extends Element {
     constructor() {
-        super(1, 'sand', 0xc2b280, {
+        super(1, 'sand', 0xdaa520, { // Goldenrod - warmer, more saturated
             density: 3,
             state: STATE.POWDER,
             dispersion: 1,

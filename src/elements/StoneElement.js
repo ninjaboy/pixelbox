@@ -3,7 +3,7 @@ import { STATE } from '../ElementProperties.js';
 
 class StoneElement extends Element {
     constructor() {
-        super(3, 'stone', 0x666666, {
+        super(3, 'stone', 0x808080, { // Lighter gray for better visibility
             density: 6,
             state: STATE.SOLID,
             movable: true,

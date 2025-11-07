@@ -3,7 +3,7 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 class PlayerElement extends Element {
     constructor() {
-        super(20, 'player', 0x00ff00, {
+        super(20, 'player', 0x00ffff, { // Bright cyan for visibility
             density: 3.0, // Heavy enough to not be pushed around easily
             state: STATE.SOLID,
             movable: false, // Player controls their own movement

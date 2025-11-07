@@ -413,26 +413,28 @@ class GameScene extends Phaser.Scene {
         // Update moon phase cycle (much slower)
         this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
 
-        // Handle player movement (only in explore mode)
+        // Handle player movement (only in explore mode) - SMOOTH continuous movement
         if (!this.buildMode && this.playerX !== null && this.playerY !== null) {
             const playerElement = this.pixelGrid.getElement(this.playerX, this.playerY);
             if (playerElement && playerElement.name === 'player') {
-                if (this.keys.left && !this.lastKeyLeft) {
-                    const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'left');
-                    if (moved) this.playerX--;
-                    this.lastKeyLeft = true;
-                } else if (!this.keys.left) {
-                    this.lastKeyLeft = false;
+                // Initialize movement timer
+                if (!this.movementTimer) this.movementTimer = 0;
+                this.movementTimer++;
+
+                // Smooth horizontal movement - move every 3 frames (20fps movement = smooth)
+                if (this.movementTimer % 3 === 0) {
+                    if (this.keys.left) {
+                        const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'left');
+                        if (moved) this.playerX--;
+                    }
+
+                    if (this.keys.right) {
+                        const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'right');
+                        if (moved) this.playerX++;
+                    }
                 }
 
-                if (this.keys.right && !this.lastKeyRight) {
-                    const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'right');
-                    if (moved) this.playerX++;
-                    this.lastKeyRight = true;
-                } else if (!this.keys.right) {
-                    this.lastKeyRight = false;
-                }
-
+                // Jump only once per key press
                 if (this.keys.jump && !this.lastKeyJump) {
                     const jumped = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'jump');
                     if (jumped) this.playerY -= 3;

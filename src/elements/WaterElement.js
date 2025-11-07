@@ -3,7 +3,7 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 class WaterElement extends Element {
     constructor() {
-        super(2, 'water', 0x4a90e2, {
+        super(2, 'water', 0x0099ff, { // Brighter, more vibrant blue
             density: 2,
             state: STATE.LIQUID,
             dispersion: 3,
