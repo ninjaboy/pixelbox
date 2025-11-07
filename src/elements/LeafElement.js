@@ -22,51 +22,53 @@ class LeafElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Age the leaf over time
-        cell.data.age++;
-
-        // Leaf lifecycle stages:
-        // 0-1800 frames (30s): Fresh green leaf
-        // 1800-3600 frames (30-60s): Aging, turning brown
-        // 3600+ frames (60s+): Dead, turns to ash/empty
-
-        // Update color based on age (green -> yellow -> brown)
-        if (cell.data.age > 1800) {
-            // Aging phase: transition from green to brown
-            const ageProgress = Math.min((cell.data.age - 1800) / 1800, 1.0); // 0 to 1
-
-            // Color transition: 0x228b22 (green) -> 0x8b4513 (saddle brown)
-            const startR = 0x22, startG = 0x8b, startB = 0x22;
-            const endR = 0x8b, endG = 0x45, endB = 0x13;
-
-            const r = Math.floor(startR + (endR - startR) * ageProgress);
-            const g = Math.floor(startG + (endG - startG) * ageProgress);
-            const b = Math.floor(startB + (endB - startB) * ageProgress);
-
-            cell.element.color = (r << 16) | (g << 8) | b;
-        }
-
-        // After 60 seconds, dead leaves decay into ash
-        if (cell.data.age > 3600) {
-            // 5% chance per frame to decay
-            if (Math.random() > 0.95) {
-                const ashElement = grid.registry.get('ash');
-                if (ashElement) {
-                    grid.setElement(x, y, ashElement);
-                } else {
-                    // Fallback: turn to empty if no ash
-                    grid.setElement(x, y, grid.registry.get('empty'));
-                }
-                return true;
-            }
-        }
-
-        // Leaves sway gently and can fall if not supported
+        // Check if leaf is still on the tree or has fallen
         const hasSupport = this.checkSupport(x, y, grid);
 
+        // CRITICAL: Only age leaves that have FALLEN from the tree
+        // Leaves on the tree stay green forever
         if (!hasSupport) {
-            // Fall slowly if no support (gentle floating down)
-            if (Math.random() > 0.92) { // 8% chance to fall per frame (slow)
+            // Fallen leaf - start aging
+            cell.data.age++;
+
+            // Leaf lifecycle stages (for fallen leaves only):
+            // 0-3600 frames (60s): Fresh green fallen leaf
+            // 3600-7200 frames (60-120s): Aging, turning brown
+            // 7200+ frames (120s+): Dead, turns to ash
+
+            // Update color based on age (green -> yellow -> brown)
+            if (cell.data.age > 3600) {
+                // Aging phase: transition from green to brown
+                const ageProgress = Math.min((cell.data.age - 3600) / 3600, 1.0); // 0 to 1
+
+                // Color transition: 0x228b22 (green) -> 0x8b4513 (saddle brown)
+                const startR = 0x22, startG = 0x8b, startB = 0x22;
+                const endR = 0x8b, endG = 0x45, endB = 0x13;
+
+                const r = Math.floor(startR + (endR - startR) * ageProgress);
+                const g = Math.floor(startG + (endG - startG) * ageProgress);
+                const b = Math.floor(startB + (endB - startB) * ageProgress);
+
+                cell.element.color = (r << 16) | (g << 8) | b;
+            }
+
+            // After 120 seconds on ground, dead leaves decay into ash
+            if (cell.data.age > 7200) {
+                // 2% chance per frame to decay (slower)
+                if (Math.random() > 0.98) {
+                    const ashElement = grid.registry.get('ash');
+                    if (ashElement) {
+                        grid.setElement(x, y, ashElement);
+                    } else {
+                        // Fallback: turn to empty if no ash
+                        grid.setElement(x, y, grid.registry.get('empty'));
+                    }
+                    return true;
+                }
+            }
+
+            // Fall MUCH slower if no support (gentle floating down)
+            if (Math.random() > 0.97) { // 3% chance to fall per frame (much slower)
                 if (grid.isEmpty(x, y + 1)) {
                     grid.swap(x, y, x, y + 1);
                     return true;
@@ -79,10 +81,14 @@ class LeafElement extends Element {
                     return true;
                 }
             }
+        } else {
+            // Leaf is still on tree - keep it green and reset age
+            cell.data.age = 0;
+            cell.element.color = 0x228b22; // Reset to fresh green
         }
 
-        // Gentle sway (very occasional small movement)
-        if (Math.random() > 0.999) {
+        // Gentle sway (very occasional small movement) - only for tree leaves
+        if (hasSupport && Math.random() > 0.999) {
             const dir = Math.random() > 0.5 ? 1 : -1;
             if (grid.isEmpty(x + dir, y)) {
                 grid.swap(x, y, x + dir, y);
@@ -90,8 +96,8 @@ class LeafElement extends Element {
             }
         }
 
-        // Regrow leaves MUCH rarer (0.05% chance per frame)
-        if (hasSupport && Math.random() > 0.9995) {
+        // Regrow leaves ULTRA rare (0.01% chance per frame - 5x rarer than before)
+        if (hasSupport && Math.random() > 0.9999) {
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
