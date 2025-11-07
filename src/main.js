@@ -21,7 +21,7 @@ class GameScene extends Phaser.Scene {
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
-            time: 0.167, // Always start at 4AM (sunrise at 0.25 = 6AM)
+            time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
             speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
