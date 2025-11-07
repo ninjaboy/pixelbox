@@ -117,8 +117,8 @@ class FishElement extends Element {
                 // Apply boids-like behavior
                 const schoolDirection = this.calculateSchoolDirection(x, y, schoolInfo);
 
-                // 40% chance to follow school
-                if (Math.random() > 0.6 && schoolDirection) {
+                // 10% chance to follow school (reduced from 40% to make schooling slower)
+                if (Math.random() > 0.9 && schoolDirection) {
                     const [targetX, targetY] = schoolDirection;
                     const element = grid.getElement(targetX, targetY);
                     if (element && element.name === 'water') {
