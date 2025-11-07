@@ -39,6 +39,7 @@ class FishElement extends Element {
             cell.data.seekingFood = false;
             cell.data.restTimer = 0;
             cell.data.age = 0; // Fish age for natural death
+            cell.data.surfaceTimer = 0; // Time spent at surface after feeding
 
             // Randomize color on spawn - store in cell data (not element)
             const randomColor = this.colorVariants[Math.floor(Math.random() * this.colorVariants.length)];
@@ -94,6 +95,31 @@ class FishElement extends Element {
         // HUNGER SYSTEM
         cell.data.hunger = Math.min(100, cell.data.hunger + 0.05); // Hunger increases slowly
 
+        // Check if at surface (within 20% of water surface)
+        const surfaceY = this.findSurfaceLevel(x, y, grid);
+        const isNearSurface = surfaceY !== null && y <= surfaceY + 10;
+
+        // Surface timer management
+        if (isNearSurface && cell.data.hunger < 30) {
+            // Well-fed and at surface - increment timer
+            cell.data.surfaceTimer++;
+        } else {
+            // Reset timer when hungry or away from surface
+            cell.data.surfaceTimer = 0;
+        }
+
+        // PRIORITY 0: Descend after 15 seconds at surface when well-fed
+        if (cell.data.surfaceTimer > 900) { // 15 seconds at 60fps = 900 frames
+            // Time to go down! Actively swim to deeper water
+            if (Math.random() > 0.3) { // 70% chance to move down
+                const element = grid.getElement(x, y + 1);
+                if (element && element.name === 'water') {
+                    grid.swap(x, y, x, y + 1);
+                    return true;
+                }
+            }
+        }
+
         // PRIORITY 1: Food seeking (when hungry)
         if (cell.data.hunger > 30) { // Start seeking food when moderately hungry
             const foodLocation = this.findNearbyFood(x, y, grid);
@@ -130,7 +156,6 @@ class FishElement extends Element {
                 // No food found - wander toward surface to look for food
                 cell.data.seekingFood = false;
                 if (cell.data.hunger > 60) { // Very hungry - actively swim to surface
-                    const surfaceY = this.findSurfaceLevel(x, y, grid);
                     if (surfaceY !== null && surfaceY < y - 2) {
                         // Swim upward toward surface - FAST when very hungry
                         if (Math.random() > 0.2) { // 80% chance to move
@@ -144,15 +169,8 @@ class FishElement extends Element {
                 }
             }
         } else {
-            // Well-fed - swim down to deeper water
+            // Well-fed - but don't descend here, let surfaceTimer handle it
             cell.data.seekingFood = false;
-            if (Math.random() > 0.95) { // Occasionally drift down when fed
-                const element = grid.getElement(x, y + 1);
-                if (element && element.name === 'water') {
-                    grid.swap(x, y, x, y + 1);
-                    return true;
-                }
-            }
         }
 
         // PRIORITY 2: Schooling behavior (only when not seeking food)
