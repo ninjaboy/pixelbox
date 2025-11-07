@@ -484,7 +484,54 @@ class GameScene extends Phaser.Scene {
     renderAtmosphere(width, height, time) {
         this.overlayGraphics.clear();
 
-        // Atmospheric overlay (subtle tint)
+        // HIGH ATMOSPHERE LAYER (top 15% of screen)
+        const atmosphereHeight = height * 0.15;
+        let atmosphereColor, atmosphereAlpha;
+
+        if (time < 0.2 || time > 0.85) {
+            // Night - deep blue/purple gradient
+            atmosphereColor = 0x0a0a3a;
+            atmosphereAlpha = 0.6;
+        } else if (time < 0.3) {
+            // Dawn - orange/pink gradient
+            const t = (time - 0.2) / 0.1;
+            atmosphereColor = this.lerpColor(0x0a0a3a, 0xff8c42, t);
+            atmosphereAlpha = 0.6;
+        } else if (time < 0.4) {
+            // Morning - light blue
+            const t = (time - 0.3) / 0.1;
+            atmosphereColor = this.lerpColor(0xff8c42, 0x87ceeb, t);
+            atmosphereAlpha = 0.5;
+        } else if (time < 0.65) {
+            // Day - light sky blue
+            atmosphereColor = 0x87ceeb;
+            atmosphereAlpha = 0.4;
+        } else if (time < 0.75) {
+            // Dusk - orange/red gradient
+            const t = (time - 0.65) / 0.1;
+            atmosphereColor = this.lerpColor(0x87ceeb, 0xff6b35, t);
+            atmosphereAlpha = 0.5;
+        } else if (time < 0.85) {
+            // Evening - purple/blue
+            const t = (time - 0.75) / 0.1;
+            atmosphereColor = this.lerpColor(0xff6b35, 0x0a0a3a, t);
+            atmosphereAlpha = 0.6;
+        } else {
+            // Night
+            atmosphereColor = 0x0a0a3a;
+            atmosphereAlpha = 0.6;
+        }
+
+        // Draw atmosphere with gradient fade from top to bottom
+        this.overlayGraphics.fillGradientStyle(
+            atmosphereColor, atmosphereColor,  // Top color
+            atmosphereColor, atmosphereColor,  // Bottom color (will fade with alpha)
+            atmosphereAlpha, atmosphereAlpha,  // Top alpha
+            0, 0                               // Bottom alpha (fades to transparent)
+        );
+        this.overlayGraphics.fillRect(0, 0, width, atmosphereHeight);
+
+        // FULL SCREEN OVERLAY (subtle tint over everything)
         let overlayColor, overlayAlpha;
 
         if (time < 0.2 || time > 0.85) {
