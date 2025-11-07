@@ -38,14 +38,20 @@ class CloudElement extends Element {
             cell.data.rainCooldown = 0;
         }
 
+        // Initialize cloud age (clouds need to mature before raining)
+        if (cell.data.cloudAge === undefined) {
+            cell.data.cloudAge = 0;
+        }
+        cell.data.cloudAge++;
+
         // Check if we're in the atmosphere layer
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
         const isInAtmosphere = y < atmosphereHeight;
 
         // CLOUD ACCUMULATION SYSTEM
 
-        // 1. Absorb nearby steam to increase saturation
-        if (Math.random() > 0.7) { // 30% chance per frame to check for steam
+        // 1. Absorb nearby steam to increase saturation (slowly!)
+        if (Math.random() > 0.85) { // 15% chance per frame to check for steam (slower accumulation)
             const nearbySteam = this.findNearbySteam(x, y, grid);
             if (nearbySteam) {
                 // Absorb the steam
@@ -77,13 +83,17 @@ class CloudElement extends Element {
         }
 
         // 3. RAIN GENERATION - saturated clouds produce rain (but only what they absorbed!)
+        // IMPORTANT: Clouds need to mature for 8-12 seconds before they can rain
+        const minCloudAge = 480 + Math.floor(Math.random() * 240); // 8-12 seconds at 60fps
+        const canRain = cell.data.cloudAge >= minCloudAge;
+
         if (cell.data.rainCooldown > 0) {
             cell.data.rainCooldown--;
-        } else {
+        } else if (canRain) {
             // Check if cloud has water to release
             if (cell.data.waterCapacity > 0) {
                 // Check if cloud is saturated enough to rain
-                if (cell.data.saturation >= 10) {
+                if (cell.data.saturation >= 15) {
                     // RAIN EVENT! Drop multiple water droplets (limited by water capacity)
                     const dropsCreated = this.triggerRainEvent(x, y, grid, cell);
 
@@ -102,9 +112,9 @@ class CloudElement extends Element {
                         grid.setElement(x, y, grid.registry.get('empty'));
                         return true;
                     }
-                } else if (cell.data.saturation >= 5) {
+                } else if (cell.data.saturation >= 10) {
                     // Medium saturation: occasional light rain
-                    if (Math.random() < 0.01) {
+                    if (Math.random() < 0.005) {
                         const dropped = this.dropSingleRain(x, y, grid);
                         if (dropped) {
                             cell.data.saturation -= 1;
