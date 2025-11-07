@@ -3,19 +3,8 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 class FishElement extends Element {
     constructor() {
-        // Multiple color variants for variety
-        const colorVariants = [
-            { name: 'orange', color: 0xff8c42 },    // Clownfish orange
-            { name: 'blue', color: 0x4a90e2 },      // Tropical blue
-            { name: 'gold', color: 0xffd700 },      // Goldfish
-            { name: 'red', color: 0xff4444 },       // Betta red
-            { name: 'silver', color: 0xc0c0c0 },    // Silver
-            { name: 'black', color: 0x2a2a2a }      // Black
-        ];
-
-        const variant = colorVariants[Math.floor(Math.random() * colorVariants.length)];
-
-        super(17, 'fish', variant.color, {
+        // Start with default color, will be randomized on spawn
+        super(17, 'fish', 0xff8c42, {
             density: 2.5, // Denser than water so water can't push fish around
             state: STATE.SOLID,
             movable: true,
@@ -25,13 +14,23 @@ class FishElement extends Element {
             brushSize: 0, // Single pixel placement
             emissionDensity: 0.2 // 20% chance = 1-2 fish per click
         });
+
+        // Store color variants as instance property
+        this.colorVariants = [
+            0xff8c42,    // Orange (clownfish)
+            0x4a90e2,    // Blue (tropical)
+            0xffd700,    // Gold (goldfish)
+            0xff4444,    // Red (betta)
+            0xc0c0c0,    // Silver
+            0x2a2a2a     // Black
+        ];
     }
 
     update(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize fish data
+        // Initialize fish data AND randomize color on first update (spawn)
         if (!cell.data.swimDirection) {
             cell.data.swimDirection = Math.random() > 0.5 ? 1 : -1;
             cell.data.swimTimer = 0;
@@ -39,6 +38,10 @@ class FishElement extends Element {
             cell.data.foodEaten = 0;
             cell.data.seekingFood = false;
             cell.data.restTimer = 0; // Timer for resting behavior
+
+            // Randomize color on spawn
+            const randomColor = this.colorVariants[Math.floor(Math.random() * this.colorVariants.length)];
+            cell.element.color = randomColor;
         }
 
         // Check if in water
@@ -144,9 +147,9 @@ class FishElement extends Element {
             return false;
         }
 
-        // Randomly enter rest state
-        if (Math.random() > 0.98) {
-            cell.data.restTimer = 30 + Math.floor(Math.random() * 60); // Rest 0.5-1.5 seconds
+        // Randomly enter rest state (more frequently)
+        if (Math.random() > 0.96) { // Increased from 0.98 to 0.96 = rest more often
+            cell.data.restTimer = 60 + Math.floor(Math.random() * 120); // Rest 1-3 seconds (longer)
             return false;
         }
 
@@ -156,8 +159,8 @@ class FishElement extends Element {
             cell.data.swimTimer = 0;
         }
 
-        // Swim through water MUCH SLOWER (30% movement chance, down from 70%)
-        if (Math.random() > 0.7) {
+        // Swim through water VERY SLOW (15% movement chance, down from 30%)
+        if (Math.random() > 0.85) {
             const dir = cell.data.swimDirection;
 
             // Primarily swim horizontally (70% of the time)
