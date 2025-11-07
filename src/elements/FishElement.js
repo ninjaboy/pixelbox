@@ -231,13 +231,44 @@ class FishElement extends Element {
             }
         }
 
-        // PRIORITY 3: Regular swimming behavior
+        // PRIORITY 3: Active exploration when not feeding
         cell.data.swimTimer++;
 
-        // Resting behavior
+        // IMPROVED VERTICAL DISTRIBUTION: Fish should spread throughout water column
+        // When on cooldown or well-fed, actively explore different depths
+        if (cell.data.feedingCooldown > 0 || cell.data.hunger < 30) {
+            // Initialize or update exploration target depth
+            if (cell.data.targetDepth === undefined || Math.random() > 0.99) {
+                // Pick a random depth to explore
+                if (surfaceY !== null) {
+                    const waterDepth = grid.height - surfaceY;
+                    cell.data.targetDepth = surfaceY + Math.floor(Math.random() * waterDepth);
+                } else {
+                    cell.data.targetDepth = y;
+                }
+            }
+
+            // Swim toward target depth
+            if (cell.data.targetDepth !== undefined) {
+                const depthDiff = cell.data.targetDepth - y;
+
+                // Move vertically toward target (40% chance)
+                if (Math.abs(depthDiff) > 2 && Math.random() > 0.6) {
+                    const vertDir = depthDiff > 0 ? 1 : -1;
+                    const element = grid.getElement(x, y + vertDir);
+                    if (element && element.name === 'water') {
+                        grid.swap(x, y, x, y + vertDir);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Resting behavior (less frequent)
         if (cell.data.restTimer > 0) {
             cell.data.restTimer--;
-            if (Math.random() > 0.9) {
+            // Even when resting, drift a bit
+            if (Math.random() > 0.85) {
                 const dir = Math.random() > 0.5 ? 1 : -1;
                 const element = grid.getElement(x + dir, y);
                 if (element && element.name === 'water') {
@@ -247,9 +278,9 @@ class FishElement extends Element {
             return false;
         }
 
-        // Randomly enter rest state
-        if (Math.random() > 0.96) {
-            cell.data.restTimer = 60 + Math.floor(Math.random() * 120);
+        // Randomly enter rest state (rarer than before)
+        if (Math.random() > 0.985) {
+            cell.data.restTimer = 30 + Math.floor(Math.random() * 60); // Shorter rest periods
             return false;
         }
 
@@ -259,8 +290,8 @@ class FishElement extends Element {
             cell.data.swimTimer = 0;
         }
 
-        // Swim through water VERY SLOW (15% movement chance)
-        if (Math.random() > 0.85) {
+        // INCREASED SWIMMING ACTIVITY (30% movement chance, up from 15%)
+        if (Math.random() > 0.7) {
             const dir = cell.data.swimDirection;
 
             // Primarily swim horizontally
@@ -281,8 +312,8 @@ class FishElement extends Element {
                 }
             }
 
-            // Gentle vertical drift
-            if (Math.random() > 0.8) {
+            // MORE ACTIVE vertical movement (50% chance, up from 20%)
+            if (Math.random() > 0.5) {
                 const verticalDir = Math.random() > 0.5 ? 1 : -1;
                 const newY = y + verticalDir;
                 const targetElement = grid.getElement(x, newY);
