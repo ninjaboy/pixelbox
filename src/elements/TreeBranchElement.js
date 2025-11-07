@@ -16,7 +16,7 @@ class TreeBranchElement extends Element {
     update(x, y, grid) {
         // Tree branches maintain foliage ONLY if there are no leaves nearby
         // This prevents infinite growth
-        if (Math.random() > 0.9995) { // 0.05% chance per frame (very rare)
+        if (Math.random() > 0.99995) { // 0.005% chance per frame (extremely rare)
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 

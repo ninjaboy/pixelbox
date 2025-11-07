@@ -96,9 +96,9 @@ class LeafElement extends Element {
             }
         }
 
-        // CONTROLLED REGROWTH: Only regrow if there are missing leaves nearby
-        // This prevents infinite blob growth
-        if (hasSupport && Math.random() > 0.998) { // 0.2% chance per frame (slower)
+        // MINIMAL REGROWTH: Only regrow occasionally to fill critical gaps
+        // Much rarer to prevent overgrowth
+        if (hasSupport && Math.random() > 0.9999) { // 0.01% chance per frame (very rare)
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
@@ -120,9 +120,9 @@ class LeafElement extends Element {
                 }
             }
 
-            // Only regrow if there's a gap (fewer than 3 adjacent leaves)
-            // This creates natural sparse foliage instead of solid blobs
-            if (adjacentLeafCount < 3 && emptySpaces.length > 0) {
+            // Only regrow if there's a significant gap (fewer than 2 adjacent leaves)
+            // Even more restrictive to prevent overgrowth
+            if (adjacentLeafCount < 2 && emptySpaces.length > 0) {
                 // Pick one random empty space
                 const [nx, ny] = emptySpaces[Math.floor(Math.random() * emptySpaces.length)];
                 grid.setElement(nx, ny, leafElement);

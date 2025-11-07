@@ -15,7 +15,7 @@ class TreeTrunkElement extends Element {
 
     update(x, y, grid) {
         // Tree trunks maintain minimal foliage ONLY when bare
-        if (Math.random() > 0.9998) { // 0.02% chance per frame (extremely rare)
+        if (Math.random() > 0.99998) { // 0.002% chance per frame (almost never)
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
