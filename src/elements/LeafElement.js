@@ -18,14 +18,14 @@ class LeafElement extends Element {
         const hasSupport = this.checkSupport(x, y, grid);
 
         if (!hasSupport) {
-            // Fall quickly if no support (like sand, but slower)
-            if (Math.random() > 0.3) { // 70% chance to fall per frame
+            // Fall slowly if no support (gentle floating down)
+            if (Math.random() > 0.92) { // 8% chance to fall per frame (slow)
                 if (grid.isEmpty(x, y + 1)) {
                     grid.swap(x, y, x, y + 1);
                     return true;
                 }
 
-                // Drift sideways while falling
+                // Drift sideways while falling (gentle sway)
                 const dir = Math.random() > 0.5 ? 1 : -1;
                 if (grid.isEmpty(x + dir, y + 1)) {
                     grid.swap(x, y, x + dir, y + 1);

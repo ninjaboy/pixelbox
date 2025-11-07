@@ -3,19 +3,19 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 // Tree configuration
 const TREE_CONFIG = {
-    initialLength: () => 15 + Math.random() * 10,  // 15-25 pixels
-    initialThickness: () => 3 + Math.floor(Math.random() * 2),  // 3-4 pixels
-    maxDepth: () => 6 + Math.floor(Math.random() * 2),  // 6-7 levels
-    minLength: 2,
-    lengthReduction: () => 0.60 + Math.random() * 0.20,  // 60-80%
-    minBranchAngle: 20 * Math.PI / 180,
-    maxBranchAngle: 45 * Math.PI / 180,
-    asymmetryVariation: 15 * Math.PI / 180,
+    initialLength: () => 8 + Math.random() * 15,  // 8-23 pixels (varying height)
+    initialThickness: () => 1 + Math.floor(Math.random() * 3),  // 1-3 pixels max
+    maxDepth: () => 3 + Math.floor(Math.random() * 2),  // 3-4 levels (fewer branches)
+    minLength: 3,
+    lengthReduction: () => 0.50 + Math.random() * 0.25,  // 50-75%
+    minBranchAngle: 25 * Math.PI / 180,
+    maxBranchAngle: 50 * Math.PI / 180,
+    asymmetryVariation: 20 * Math.PI / 180,
     segmentsPerFrame: 1,  // Grow 1 segment at a time
     initialDelay: 120,  // 2 seconds before germination
     growthDelay: 40,  // Grow every 40 frames (very slow evolutionary process)
-    minLeafDepth: 5,
-    leavesPerTerminal: 4
+    minLeafDepth: 2,  // Leaves start at shallower depth
+    leavesPerTerminal: 3  // Fewer leaves per branch
 };
 
 class TreeSeedElement extends Element {
@@ -103,8 +103,8 @@ class TreeSeedElement extends Element {
             type: depth <= 1 ? 'tree_trunk' : 'tree_branch'
         });
 
-        // Branching parameters
-        const branchCount = depth < 2 ? 2 : (Math.random() > 0.3 ? 2 : 3);
+        // Branching parameters - always 2 branches for simplicity
+        const branchCount = 2;
         const lengthReduction = TREE_CONFIG.lengthReduction();
         const thicknessReduction = Math.max(1, thickness - 1);
 
@@ -112,19 +112,11 @@ class TreeSeedElement extends Element {
         const baseAngleSpread = TREE_CONFIG.minBranchAngle +
                                Math.random() * (TREE_CONFIG.maxBranchAngle - TREE_CONFIG.minBranchAngle);
 
-        // Generate child branches
+        // Generate child branches (always 2: left and right)
         for (let i = 0; i < branchCount; i++) {
-            let branchAngle;
-            if (branchCount === 2) {
-                // Two branches: one left, one right
-                branchAngle = angle + (i === 0 ? -baseAngleSpread : baseAngleSpread);
-            } else {
-                // Three branches: left, center-ish, right
-                const angleStep = baseAngleSpread * 2 / (branchCount - 1);
-                branchAngle = angle - baseAngleSpread + i * angleStep;
-                // Add asymmetry
-                branchAngle += (Math.random() - 0.5) * TREE_CONFIG.asymmetryVariation;
-            }
+            // Two branches: one left, one right with asymmetry
+            let branchAngle = angle + (i === 0 ? -baseAngleSpread : baseAngleSpread);
+            branchAngle += (Math.random() - 0.5) * TREE_CONFIG.asymmetryVariation;
 
             // Recursive call for child branches
             const childSegments = this.generateFractalTreeRecursive(
@@ -259,8 +251,8 @@ class TreeSeedElement extends Element {
             const x = Math.round(segment.x2);
             const y = Math.round(segment.y2);
 
-            // Spawn 3-5 leaves around terminal point
-            const leafCount = 3 + Math.floor(Math.random() * 3);
+            // Spawn fewer leaves (2-4) around terminal point
+            const leafCount = 2 + Math.floor(Math.random() * TREE_CONFIG.leavesPerTerminal);
             const positions = [
                 [x, y], [x-1, y], [x+1, y], [x, y-1], [x, y+1],
                 [x-1, y-1], [x+1, y-1], [x-1, y+1], [x+1, y+1]
