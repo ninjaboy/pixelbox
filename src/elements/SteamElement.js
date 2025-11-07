@@ -51,34 +51,49 @@ class SteamElement extends Element {
             }
         }
 
-        // Steam rises rapidly (80% chance to prioritize upward movement)
-        if (Math.random() > 0.2) {
-            if (grid.isEmpty(x, y - 1)) {
-                grid.swap(x, y, x, y - 1);
-                return true;
+        // Check if we're in the atmosphere
+        const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
+        const inAtmosphere = y <= atmosphereHeight;
+
+        if (inAtmosphere) {
+            // In atmosphere - stop rising, just drift horizontally
+            if (Math.random() > 0.5) {
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                if (grid.isEmpty(x + dir, y)) {
+                    grid.swap(x, y, x + dir, y);
+                    return true;
+                }
+            }
+        } else {
+            // Below atmosphere - rise rapidly (80% chance to prioritize upward movement)
+            if (Math.random() > 0.2) {
+                if (grid.isEmpty(x, y - 1)) {
+                    grid.swap(x, y, x, y - 1);
+                    return true;
+                }
+
+                // Diagonal rise
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                if (grid.isEmpty(x + dir, y - 1)) {
+                    grid.swap(x, y, x + dir, y - 1);
+                    return true;
+                }
+                if (grid.isEmpty(x - dir, y - 1)) {
+                    grid.swap(x, y, x - dir, y - 1);
+                    return true;
+                }
             }
 
-            // Diagonal rise
+            // Expand sideways to fill space (20% horizontal expansion)
             const dir = Math.random() > 0.5 ? 1 : -1;
-            if (grid.isEmpty(x + dir, y - 1)) {
-                grid.swap(x, y, x + dir, y - 1);
+            if (grid.isEmpty(x + dir, y)) {
+                grid.swap(x, y, x + dir, y);
                 return true;
             }
-            if (grid.isEmpty(x - dir, y - 1)) {
-                grid.swap(x, y, x - dir, y - 1);
+            if (grid.isEmpty(x - dir, y)) {
+                grid.swap(x, y, x - dir, y);
                 return true;
             }
-        }
-
-        // Expand sideways to fill space (20% horizontal expansion)
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        if (grid.isEmpty(x + dir, y)) {
-            grid.swap(x, y, x + dir, y);
-            return true;
-        }
-        if (grid.isEmpty(x - dir, y)) {
-            grid.swap(x, y, x - dir, y);
-            return true;
         }
 
         return false;
