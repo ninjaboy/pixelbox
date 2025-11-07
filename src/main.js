@@ -20,10 +20,14 @@ class GameScene extends Phaser.Scene {
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
-            time: 0, // 0 to 1 (0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset)
+            time: 0.167, // Always start at 4AM (sunrise at 0.25 = 6AM)
             speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
-            sunRadius: 20,
-            moonRadius: 15
+            sunRadius: 25,  // Larger sun
+            moonRadius: 18,  // Larger moon
+
+            // MOON CYCLE - randomized start but cycles faster
+            moonPhase: Math.random(), // Random phase (0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter)
+            moonCycleSpeed: 0.0001 / 4, // Moon changes 7x faster (full cycle = ~40 seconds at 60fps)
         };
 
         // Create graphics layers
@@ -287,6 +291,9 @@ class GameScene extends Phaser.Scene {
         // Update day/night cycle
         this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.speed) % 1.0;
 
+        // Update moon phase cycle (much slower)
+        this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
+
         // Update physics
         this.pixelGrid.update();
 
@@ -418,22 +425,49 @@ class GameScene extends Phaser.Scene {
         const moonX = width / 2 + Math.cos(Math.PI - moonAngle) * width * 0.45;
         const moonY = height - Math.sin(moonAngle) * height * 0.5;
 
-        // Draw sun (visible during day)
+        // Draw sun (visible during day) with better visuals
         if (time > 0.2 && time < 0.8) {
+            // Sun core (bright yellow)
             this.celestialGraphics.fillStyle(0xffff00, 1);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius);
-            // Sun glow
-            this.celestialGraphics.fillStyle(0xffa500, 0.3);
-            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.5);
+
+            // Sun corona (orange glow - multiple layers)
+            this.celestialGraphics.fillStyle(0xffa500, 0.4);
+            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.4);
+            this.celestialGraphics.fillStyle(0xff8c00, 0.2);
+            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.8);
+            this.celestialGraphics.fillStyle(0xff6b35, 0.1);
+            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
-        // Draw moon (visible during night)
+        // Draw moon with phases (visible during night)
         if (time < 0.3 || time > 0.7) {
-            this.celestialGraphics.fillStyle(0xf0f0f0, 0.9);
-            this.celestialGraphics.fillCircle(moonX, moonY, this.dayNightCycle.moonRadius);
+            const moonPhase = this.dayNightCycle.moonPhase;
+            const radius = this.dayNightCycle.moonRadius;
+
+            // Moon base (light gray)
+            this.celestialGraphics.fillStyle(0xf0f0f0, 0.95);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius);
+
+            // Moon phase shadow
+            if (moonPhase < 0.5) {
+                // Waxing (0 to 0.5): shadow on left side
+                const shadowWidth = radius * 2 * (0.5 - moonPhase) * 2;
+                this.celestialGraphics.fillStyle(0x1a1a2e, 0.8);
+                this.celestialGraphics.fillCircle(moonX - shadowWidth / 2, moonY, shadowWidth);
+            } else if (moonPhase > 0.5) {
+                // Waning (0.5 to 1.0): shadow on right side
+                const shadowWidth = radius * 2 * (moonPhase - 0.5) * 2;
+                this.celestialGraphics.fillStyle(0x1a1a2e, 0.8);
+                this.celestialGraphics.fillCircle(moonX + shadowWidth / 2, moonY, shadowWidth);
+            }
+            // moonPhase === 0.5 is full moon (no shadow)
+
             // Moon glow
-            this.celestialGraphics.fillStyle(0xcccccc, 0.2);
-            this.celestialGraphics.fillCircle(moonX, moonY, this.dayNightCycle.moonRadius * 1.3);
+            this.celestialGraphics.fillStyle(0xe8e8ff, 0.3);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.5);
+            this.celestialGraphics.fillStyle(0xd0d0ff, 0.15);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius * 2.0);
         }
     }
 
@@ -444,26 +478,26 @@ class GameScene extends Phaser.Scene {
         let overlayColor, overlayAlpha;
 
         if (time < 0.2 || time > 0.85) {
-            // Night - dark blue overlay
+            // Night - dark blue overlay (reduced from 0.3 to 0.2)
             overlayColor = 0x000033;
-            overlayAlpha = 0.3;
+            overlayAlpha = 0.2;
         } else if (time < 0.3) {
-            // Dawn - orange overlay
+            // Dawn - orange overlay (reduced)
             const t = (time - 0.2) / 0.1;
             overlayColor = 0xff6b35;
-            overlayAlpha = 0.2 * (1 - t);
+            overlayAlpha = 0.15 * (1 - t);
         } else if (time < 0.65) {
             // Day - no overlay
             overlayAlpha = 0;
         } else if (time < 0.75) {
-            // Dusk - orange/red overlay
+            // Dusk - orange/red overlay (reduced)
             const t = (time - 0.65) / 0.1;
             overlayColor = 0xff6b35;
-            overlayAlpha = 0.2 * t;
+            overlayAlpha = 0.15 * t;
         } else {
-            // Transitioning to night
+            // Transitioning to night (reduced)
             overlayColor = 0x000033;
-            overlayAlpha = 0.3 * ((time - 0.75) / 0.1);
+            overlayAlpha = 0.2 * ((time - 0.75) / 0.1);
         }
 
         if (overlayAlpha > 0) {
@@ -473,36 +507,36 @@ class GameScene extends Phaser.Scene {
     }
 
     getLightingColor(time) {
-        // Return RGB multipliers for lighting (1.0 = full brightness, 0.5 = half brightness)
+        // Return RGB multipliers for lighting (more subtle for better visibility)
         if (time < 0.2 || time > 0.85) {
-            // Night - blue-tinted, darker
-            return { r: 0.3, g: 0.3, b: 0.5 };
+            // Night - blue-tinted, but not as dark (increased from 0.3 to 0.5)
+            return { r: 0.5, g: 0.5, b: 0.7 };
         } else if (time < 0.3) {
             // Dawn - warm, getting brighter
             const t = (time - 0.2) / 0.1;
             return {
-                r: 0.3 + 0.5 * t,
-                g: 0.3 + 0.5 * t,
-                b: 0.5 + 0.3 * t
+                r: 0.5 + 0.5 * t,
+                g: 0.5 + 0.5 * t,
+                b: 0.7 + 0.3 * t
             };
         } else if (time < 0.65) {
             // Day - full brightness
             return { r: 1.0, g: 1.0, b: 1.0 };
         } else if (time < 0.75) {
-            // Dusk - warm, getting darker
+            // Dusk - warm, getting darker (less dramatic)
             const t = (time - 0.65) / 0.1;
             return {
-                r: 1.0 - 0.2 * t,
-                g: 1.0 - 0.3 * t,
-                b: 1.0 - 0.3 * t
+                r: 1.0 - 0.15 * t,
+                g: 1.0 - 0.2 * t,
+                b: 1.0 - 0.2 * t
             };
         } else {
-            // Transitioning to night
+            // Transitioning to night (less dramatic)
             const t = (time - 0.75) / 0.1;
             return {
-                r: 0.8 - 0.5 * t,
-                g: 0.7 - 0.4 * t,
-                b: 0.7 - 0.2 * t
+                r: 0.85 - 0.35 * t,
+                g: 0.8 - 0.3 * t,
+                b: 0.8 - 0.1 * t
             };
         }
     }
