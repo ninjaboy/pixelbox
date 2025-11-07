@@ -18,8 +18,19 @@ class GameScene extends Phaser.Scene {
         this.pixelSize = 4;
         this.pixelGrid = new PixelGrid(width, height, this.pixelSize, this.elementRegistry);
 
-        // Create graphics object for rendering
+        // DAY/NIGHT CYCLE SYSTEM
+        this.dayNightCycle = {
+            time: 0, // 0 to 1 (0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset)
+            speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
+            sunRadius: 20,
+            moonRadius: 15
+        };
+
+        // Create graphics layers
+        this.skyGraphics = this.add.graphics();
+        this.celestialGraphics = this.add.graphics();
         this.graphics = this.add.graphics();
+        this.overlayGraphics = this.add.graphics();
 
         // Setup input
         this.input.on('pointerdown', this.startDrawing, this);
@@ -257,10 +268,13 @@ class GameScene extends Phaser.Scene {
     }
 
     update() {
+        // Update day/night cycle
+        this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.speed) % 1.0;
+
         // Update physics
         this.pixelGrid.update();
 
-        // Render the grid
+        // Render everything with atmospheric effects
         this.render();
 
         // Update stats
@@ -269,14 +283,26 @@ class GameScene extends Phaser.Scene {
     }
 
     render() {
-        this.graphics.clear();
+        const { width, height } = this.sys.game.config;
+        const time = this.dayNightCycle.time;
 
-        // Use batched drawing for better performance
+        // 1. RENDER SKY GRADIENT
+        this.renderSky(width, height, time);
+
+        // 2. RENDER SUN/MOON
+        this.renderCelestialBodies(width, height, time);
+
+        // 3. RENDER PIXEL GRID WITH LIGHTING
+        this.graphics.clear();
+        const lightingColor = this.getLightingColor(time);
+
         for (let y = 0; y < this.pixelGrid.height; y++) {
             for (let x = 0; x < this.pixelGrid.width; x++) {
                 const cell = this.pixelGrid.grid[y][x];
                 if (cell.element.id !== 0) {
-                    this.graphics.fillStyle(cell.element.color, 1);
+                    // Apply atmospheric lighting to particle colors
+                    const tintedColor = this.applyLighting(cell.element.color, lightingColor);
+                    this.graphics.fillStyle(tintedColor, 1);
                     this.graphics.fillRect(
                         x * this.pixelSize,
                         y * this.pixelSize,
@@ -286,6 +312,187 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
+
+        // 4. RENDER ATMOSPHERIC OVERLAY
+        this.renderAtmosphere(width, height, time);
+    }
+
+    renderSky(width, height, time) {
+        this.skyGraphics.clear();
+
+        // Sky gradient colors based on time of day
+        let skyColors;
+
+        if (time < 0.2) {
+            // Night (midnight to pre-dawn)
+            skyColors = { top: 0x000033, bottom: 0x000055 };
+        } else if (time < 0.3) {
+            // Dawn
+            const t = (time - 0.2) / 0.1;
+            skyColors = {
+                top: this.lerpColor(0x000033, 0xff6b35, t),
+                bottom: this.lerpColor(0x000055, 0xffa500, t)
+            };
+        } else if (time < 0.4) {
+            // Sunrise to day
+            const t = (time - 0.3) / 0.1;
+            skyColors = {
+                top: this.lerpColor(0xff6b35, 0x87ceeb, t),
+                bottom: this.lerpColor(0xffa500, 0x87ceeb, t)
+            };
+        } else if (time < 0.65) {
+            // Day
+            skyColors = { top: 0x87ceeb, bottom: 0x87ceeb };
+        } else if (time < 0.75) {
+            // Dusk
+            const t = (time - 0.65) / 0.1;
+            skyColors = {
+                top: this.lerpColor(0x87ceeb, 0xff6b35, t),
+                bottom: this.lerpColor(0x87ceeb, 0xff4500, t)
+            };
+        } else if (time < 0.85) {
+            // Sunset to night
+            const t = (time - 0.75) / 0.1;
+            skyColors = {
+                top: this.lerpColor(0xff6b35, 0x000033, t),
+                bottom: this.lerpColor(0xff4500, 0x000055, t)
+            };
+        } else {
+            // Night
+            skyColors = { top: 0x000033, bottom: 0x000055 };
+        }
+
+        // Draw gradient sky
+        this.skyGraphics.fillGradientStyle(skyColors.top, skyColors.top, skyColors.bottom, skyColors.bottom, 1);
+        this.skyGraphics.fillRect(0, 0, width, height);
+    }
+
+    renderCelestialBodies(width, height, time) {
+        this.celestialGraphics.clear();
+
+        // Sun position (rises at 0.25, sets at 0.75)
+        const sunAngle = (time - 0.25) * Math.PI * 2;
+        const sunX = width / 2 + Math.cos(sunAngle) * width * 0.6;
+        const sunY = height / 2 + Math.sin(sunAngle) * height * 0.6;
+
+        // Moon position (opposite of sun)
+        const moonAngle = sunAngle + Math.PI;
+        const moonX = width / 2 + Math.cos(moonAngle) * width * 0.6;
+        const moonY = height / 2 + Math.sin(moonAngle) * height * 0.6;
+
+        // Draw sun (visible during day)
+        if (time > 0.2 && time < 0.8) {
+            this.celestialGraphics.fillStyle(0xffff00, 1);
+            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius);
+            // Sun glow
+            this.celestialGraphics.fillStyle(0xffa500, 0.3);
+            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.5);
+        }
+
+        // Draw moon (visible during night)
+        if (time < 0.3 || time > 0.7) {
+            this.celestialGraphics.fillStyle(0xf0f0f0, 0.9);
+            this.celestialGraphics.fillCircle(moonX, moonY, this.dayNightCycle.moonRadius);
+            // Moon glow
+            this.celestialGraphics.fillStyle(0xcccccc, 0.2);
+            this.celestialGraphics.fillCircle(moonX, moonY, this.dayNightCycle.moonRadius * 1.3);
+        }
+    }
+
+    renderAtmosphere(width, height, time) {
+        this.overlayGraphics.clear();
+
+        // Atmospheric overlay (subtle tint)
+        let overlayColor, overlayAlpha;
+
+        if (time < 0.2 || time > 0.85) {
+            // Night - dark blue overlay
+            overlayColor = 0x000033;
+            overlayAlpha = 0.3;
+        } else if (time < 0.3) {
+            // Dawn - orange overlay
+            const t = (time - 0.2) / 0.1;
+            overlayColor = 0xff6b35;
+            overlayAlpha = 0.2 * (1 - t);
+        } else if (time < 0.65) {
+            // Day - no overlay
+            overlayAlpha = 0;
+        } else if (time < 0.75) {
+            // Dusk - orange/red overlay
+            const t = (time - 0.65) / 0.1;
+            overlayColor = 0xff6b35;
+            overlayAlpha = 0.2 * t;
+        } else {
+            // Transitioning to night
+            overlayColor = 0x000033;
+            overlayAlpha = 0.3 * ((time - 0.75) / 0.1);
+        }
+
+        if (overlayAlpha > 0) {
+            this.overlayGraphics.fillStyle(overlayColor, overlayAlpha);
+            this.overlayGraphics.fillRect(0, 0, width, height);
+        }
+    }
+
+    getLightingColor(time) {
+        // Return RGB multipliers for lighting (1.0 = full brightness, 0.5 = half brightness)
+        if (time < 0.2 || time > 0.85) {
+            // Night - blue-tinted, darker
+            return { r: 0.3, g: 0.3, b: 0.5 };
+        } else if (time < 0.3) {
+            // Dawn - warm, getting brighter
+            const t = (time - 0.2) / 0.1;
+            return {
+                r: 0.3 + 0.5 * t,
+                g: 0.3 + 0.5 * t,
+                b: 0.5 + 0.3 * t
+            };
+        } else if (time < 0.65) {
+            // Day - full brightness
+            return { r: 1.0, g: 1.0, b: 1.0 };
+        } else if (time < 0.75) {
+            // Dusk - warm, getting darker
+            const t = (time - 0.65) / 0.1;
+            return {
+                r: 1.0 - 0.2 * t,
+                g: 1.0 - 0.3 * t,
+                b: 1.0 - 0.3 * t
+            };
+        } else {
+            // Transitioning to night
+            const t = (time - 0.75) / 0.1;
+            return {
+                r: 0.8 - 0.5 * t,
+                g: 0.7 - 0.4 * t,
+                b: 0.7 - 0.2 * t
+            };
+        }
+    }
+
+    applyLighting(color, lighting) {
+        // Extract RGB from hex color
+        const r = ((color >> 16) & 0xFF) * lighting.r;
+        const g = ((color >> 8) & 0xFF) * lighting.g;
+        const b = (color & 0xFF) * lighting.b;
+
+        // Reconstruct color
+        return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
+    }
+
+    lerpColor(color1, color2, t) {
+        const r1 = (color1 >> 16) & 0xFF;
+        const g1 = (color1 >> 8) & 0xFF;
+        const b1 = color1 & 0xFF;
+
+        const r2 = (color2 >> 16) & 0xFF;
+        const g2 = (color2 >> 8) & 0xFF;
+        const b2 = color2 & 0xFF;
+
+        const r = Math.floor(r1 + (r2 - r1) * t);
+        const g = Math.floor(g1 + (g2 - g1) * t);
+        const b = Math.floor(b1 + (b2 - b1) * t);
+
+        return (r << 16) | (g << 8) | b;
     }
 }
 
