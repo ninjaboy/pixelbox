@@ -32,14 +32,14 @@ class LeafElement extends Element {
             cell.data.age++;
 
             // Leaf lifecycle stages (for fallen leaves only):
-            // 0-3600 frames (60s): Fresh green fallen leaf
-            // 3600-7200 frames (60-120s): Aging, turning brown
-            // 7200+ frames (120s+): Dead, turns to ash
+            // 0-300 frames (5s): Fresh green fallen leaf
+            // 300-900 frames (5-15s): Aging, turning brown
+            // 900+ frames (15s+): Dead, turns to ash
 
             // Update color based on age (green -> yellow -> brown)
-            if (cell.data.age > 3600) {
+            if (cell.data.age > 300) {
                 // Aging phase: transition from green to brown
-                const ageProgress = Math.min((cell.data.age - 3600) / 3600, 1.0); // 0 to 1
+                const ageProgress = Math.min((cell.data.age - 300) / 600, 1.0); // 0 to 1
 
                 // Color transition: 0x228b22 (green) -> 0x8b4513 (saddle brown)
                 const startR = 0x22, startG = 0x8b, startB = 0x22;
@@ -52,10 +52,10 @@ class LeafElement extends Element {
                 cell.element.color = (r << 16) | (g << 8) | b;
             }
 
-            // After 120 seconds on ground, dead leaves decay into ash
-            if (cell.data.age > 7200) {
-                // 2% chance per frame to decay (slower)
-                if (Math.random() > 0.98) {
+            // After 15 seconds on ground, dead leaves decay into ash
+            if (cell.data.age > 900) {
+                // 5% chance per frame to decay
+                if (Math.random() > 0.95) {
                     const ashElement = grid.registry.get('ash');
                     if (ashElement) {
                         grid.setElement(x, y, ashElement);
