@@ -53,6 +53,14 @@ class GameScene extends Phaser.Scene {
         // Set version once
         this.versionText.textContent = VERSION;
 
+        // Debug: Log renderer info
+        console.log('PixelBox initialized:', {
+            renderer: this.sys.game.renderer.type === 0 ? 'HEADLESS' : this.sys.game.renderer.type === 1 ? 'CANVAS' : 'WEBGL',
+            resolution: window.devicePixelRatio,
+            size: `${width}x${height}`,
+            pixelSize: this.pixelSize
+        });
+
         // Add some initial borders (stone walls)
         this.createBorders();
     }
@@ -522,8 +530,13 @@ class GameScene extends Phaser.Scene {
             atmosphereAlpha = 0.6;
         }
 
-        // Draw atmosphere with simple fill (no gradient for performance)
-        this.overlayGraphics.fillStyle(atmosphereColor, atmosphereAlpha * 0.3); // Reduced opacity
+        // Draw atmosphere with gradient fade from top to bottom
+        this.overlayGraphics.fillGradientStyle(
+            atmosphereColor, atmosphereColor,  // Top color
+            atmosphereColor, atmosphereColor,  // Bottom color (will fade with alpha)
+            atmosphereAlpha, atmosphereAlpha,  // Top alpha
+            0, 0                               // Bottom alpha (fades to transparent)
+        );
         this.overlayGraphics.fillRect(0, 0, width, atmosphereHeight);
 
         // FULL SCREEN OVERLAY (subtle tint over everything)
@@ -635,8 +648,14 @@ const config = {
     fps: {
         target: 60,
         forceSetTimeOut: false
-    }
+    },
+    // Clamp resolution to prevent high-DPR performance issues
+    resolution: Math.min(window.devicePixelRatio || 1, 2)
 };
 
-// Initialize the game
-const game = new Phaser.Game(config);
+// Initialize the game with duplicate instance protection
+if (window.__pixelboxGame) {
+    console.log('Destroying existing game instance');
+    window.__pixelboxGame.destroy(true);
+}
+window.__pixelboxGame = new Phaser.Game(config);

@@ -151,6 +151,94 @@
     <!-- Phaser 3 from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.86.0/dist/phaser.min.js"></script>
 
+    <!-- Anti-throttling measures -->
+    <script>
+        let wakeLock = null;
+
+        // 1. Wake Lock API - prevents system/browser from sleeping (best method)
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('✅ Wake Lock active - page marked as important');
+
+                    wakeLock.addEventListener('release', () => {
+                        console.log('⚠️ Wake Lock released');
+                    });
+                }
+            } catch (err) {
+                console.log('Wake Lock not available:', err.message);
+            }
+        }
+
+        // Request wake lock when page loads
+        requestWakeLock();
+
+        // Re-request wake lock when tab becomes visible again
+        document.addEventListener('visibilitychange', async () => {
+            if (document.hidden) {
+                console.warn('⚠️ Tab hidden - Chrome may throttle performance');
+            } else {
+                console.log('✅ Tab visible - restoring performance');
+                // Re-acquire wake lock if it was released
+                if (wakeLock !== null && wakeLock.released) {
+                    await requestWakeLock();
+                }
+            }
+        });
+
+        // 2. Silent audio context trick (fallback for older browsers)
+        // This keeps the page "active" by having an audio context running
+        let audioContext = null;
+        let oscillator = null;
+        let gainNode = null;
+
+        function setupSilentAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioContext.createOscillator();
+                gainNode = audioContext.createGain();
+
+                // Set volume to basically silent
+                gainNode.gain.value = 0.001;
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.start();
+
+                console.log('✅ Silent audio context active - maintains page priority');
+            } catch (err) {
+                console.log('Audio context not available:', err.message);
+            }
+        }
+
+        // Start audio context on first user interaction (required by browser policy)
+        let audioStarted = false;
+        function startAudioOnInteraction() {
+            if (!audioStarted) {
+                setupSilentAudio();
+                audioStarted = true;
+                document.removeEventListener('click', startAudioOnInteraction);
+                document.removeEventListener('keydown', startAudioOnInteraction);
+            }
+        }
+        document.addEventListener('click', startAudioOnInteraction);
+        document.addEventListener('keydown', startAudioOnInteraction);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (wakeLock !== null) {
+                wakeLock.release();
+            }
+            if (oscillator !== null) {
+                oscillator.stop();
+            }
+            if (audioContext !== null) {
+                audioContext.close();
+            }
+        });
+    </script>
+
     <!-- Main game script (ES6 Module) -->
     <script type="module" src="src/main.js"></script>
 </body>
