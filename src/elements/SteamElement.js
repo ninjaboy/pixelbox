@@ -24,18 +24,18 @@ class SteamElement extends Element {
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
 
         if (y <= atmosphereHeight) {
-            // Initialize condensation timer when first entering atmosphere
+            // Initialize condensation timer and delay when first entering atmosphere
             if (cell.data.atmosphereTime === undefined) {
                 cell.data.atmosphereTime = 0;
+                // Set a random delay (2-4 seconds) for this specific steam particle
+                cell.data.condensationDelay = 120 + Math.floor(Math.random() * 120); // 2-4 seconds at 60fps
             }
 
             // Increment time spent in atmosphere
             cell.data.atmosphereTime++;
 
-            // Only condense after spending time in atmosphere (3-6 seconds)
-            const condensationDelay = 180 + Math.floor(Math.random() * 180); // 3-6 seconds at 60fps
-
-            if (cell.data.atmosphereTime >= condensationDelay) {
+            // Only condense after spending enough time in atmosphere
+            if (cell.data.atmosphereTime >= cell.data.condensationDelay) {
                 // Condense into cloud
                 const cloudElement = grid.registry.get('cloud');
                 if (cloudElement) {
@@ -46,7 +46,8 @@ class SteamElement extends Element {
         } else {
             // Reset timer if steam drops below atmosphere
             if (cell.data.atmosphereTime !== undefined) {
-                cell.data.atmosphereTime = 0;
+                delete cell.data.atmosphereTime;
+                delete cell.data.condensationDelay;
             }
         }
 

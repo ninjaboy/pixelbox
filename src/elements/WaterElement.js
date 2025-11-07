@@ -23,8 +23,8 @@ class WaterElement extends Element {
             const isAtSurface = this.isAtSurface(x, y, grid);
 
             if (isAtSurface) {
-                // 0.2% chance per frame for surface water to evaporate naturally
-                if (Math.random() < 0.002) {
+                // 0.05% chance per frame for surface water to evaporate naturally (much slower)
+                if (Math.random() < 0.0005) {
                     const steamElement = grid.registry.get('steam');
                     if (steamElement) {
                         grid.setElement(x, y, steamElement);
