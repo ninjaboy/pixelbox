@@ -24,15 +24,17 @@ class PlayerElement extends Element {
             cell.data.isOnGround = false;
         }
 
-        // GRAVITY: Fall when not on ground
+        // SMOOTH GRAVITY AND JUMP PHYSICS
         const below = grid.getElement(x, y + 1);
         if (below && (below.name === 'empty' || below.name === 'water')) {
-            // Apply gravity
-            cell.data.velocityY = Math.min(cell.data.velocityY + 0.5, 3); // Max fall speed
-            const fallDistance = Math.floor(cell.data.velocityY);
+            // Apply gravity with smooth acceleration
+            cell.data.velocityY = Math.min(cell.data.velocityY + 0.3, 2); // Slower gravity for smoother jumps
 
-            if (fallDistance > 0) {
-                const targetY = y + fallDistance;
+            // Handle upward velocity (jump arc)
+            if (cell.data.velocityY < 0) {
+                // Moving upward - check if we can move up
+                const moveUp = Math.ceil(Math.abs(cell.data.velocityY));
+                const targetY = y - moveUp;
                 const targetElement = grid.getElement(x, targetY);
 
                 if (targetElement && (targetElement.name === 'empty' || targetElement.name === 'water')) {
@@ -40,12 +42,28 @@ class PlayerElement extends Element {
                     cell.data.isOnGround = false;
                     return true;
                 } else {
-                    // Hit something, try to fall 1 pixel
-                    const oneDown = grid.getElement(x, y + 1);
-                    if (oneDown && (oneDown.name === 'empty' || oneDown.name === 'water')) {
-                        grid.swap(x, y, x, y + 1);
+                    // Hit ceiling, stop upward motion
+                    cell.data.velocityY = 0;
+                }
+            } else if (cell.data.velocityY > 0) {
+                // Moving downward
+                const fallDistance = Math.floor(cell.data.velocityY);
+                if (fallDistance > 0) {
+                    const targetY = y + fallDistance;
+                    const targetElement = grid.getElement(x, targetY);
+
+                    if (targetElement && (targetElement.name === 'empty' || targetElement.name === 'water')) {
+                        grid.swap(x, y, x, targetY);
                         cell.data.isOnGround = false;
                         return true;
+                    } else {
+                        // Hit something, try to fall 1 pixel
+                        const oneDown = grid.getElement(x, y + 1);
+                        if (oneDown && (oneDown.name === 'empty' || oneDown.name === 'water')) {
+                            grid.swap(x, y, x, y + 1);
+                            cell.data.isOnGround = false;
+                            return true;
+                        }
                     }
                 }
             }
@@ -99,17 +117,15 @@ class PlayerElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell || !cell.data.isOnGround) return false;
 
-        // Jump up 3 pixels
-        for (let jumpHeight = 3; jumpHeight >= 1; jumpHeight--) {
-            const targetY = y - jumpHeight;
-            const targetElement = grid.getElement(x, targetY);
+        // Set strong upward velocity for higher jump
+        cell.data.velocityY = -2.5; // Stronger upward velocity for 5-6 pixel jump
+        cell.data.isOnGround = false;
 
-            if (targetElement && (targetElement.name === 'empty' || targetElement.name === 'water')) {
-                grid.swap(x, y, x, targetY);
-                cell.data.velocityY = -2; // Upward velocity
-                cell.data.isOnGround = false;
-                return true;
-            }
+        // Immediately move up 1 pixel to start jump
+        const targetElement = grid.getElement(x, y - 1);
+        if (targetElement && (targetElement.name === 'empty' || targetElement.name === 'water')) {
+            grid.swap(x, y, x, y - 1);
+            return true;
         }
 
         return false;

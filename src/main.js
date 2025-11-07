@@ -113,7 +113,13 @@ class GameScene extends Phaser.Scene {
             { name: 'gunpowder', key: '8' },
             { name: 'tree_seed', key: '9' },
             { name: 'fish', key: '0' },
-            { name: 'eraser', key: 'E' }
+            { name: 'ice', key: 'I' },
+            { name: 'salt', key: 'S' },
+            { name: 'glass', key: 'G' },
+            { name: 'lava', key: 'L' },
+            { name: 'acid', key: 'A' },
+            { name: 'plant', key: 'T' },
+            { name: 'eraser', key: 'X' }
         ];
 
         // Element visual configs
@@ -130,6 +136,12 @@ class GameScene extends Phaser.Scene {
             fish: { icon: '🐟', color: '#1a5f7a' },
             tree_seed: { icon: '🌱', color: '#654321' },
             ash: { icon: '∴', color: '#666' },
+            ice: { icon: '❄️', color: '#87ceeb' },
+            salt: { icon: '▫', color: '#ffffff' },
+            glass: { icon: '◇', color: '#add8e6' },
+            lava: { icon: '🌋', color: '#ff4500' },
+            acid: { icon: '☢', color: '#7fff00' },
+            plant: { icon: '🌿', color: '#32cd32' },
             eraser: { icon: '✖', color: '#222' }
         };
 
@@ -434,10 +446,10 @@ class GameScene extends Phaser.Scene {
                     }
                 }
 
-                // Jump only once per key press
+                // Jump only once per key press (physics handles the arc)
                 if (this.keys.jump && !this.lastKeyJump) {
-                    const jumped = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'jump');
-                    if (jumped) this.playerY -= 3;
+                    playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'jump');
+                    // Don't manually update playerY - let physics handle it
                     this.lastKeyJump = true;
                 } else if (!this.keys.jump) {
                     this.lastKeyJump = false;
