@@ -96,8 +96,8 @@ class LeafElement extends Element {
             }
         }
 
-        // Regrow leaves ULTRA rare (0.01% chance per frame - 5x rarer than before)
-        if (hasSupport && Math.random() > 0.9999) {
+        // Regrow leaves moderately (0.5% chance per frame - trees maintain foliage)
+        if (hasSupport && Math.random() > 0.995) {
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
@@ -141,6 +141,7 @@ class LeafElement extends Element {
         }
 
         // Check for nearby leaves (clusters stay together)
+        // FIXED: Only need 1 leaf neighbor to prevent cascading holes in foliage
         let leafCount = 0;
         for (const [nx, ny] of neighbors) {
             const neighborElement = grid.getElement(nx, ny);
@@ -149,7 +150,7 @@ class LeafElement extends Element {
             }
         }
 
-        return leafCount >= 2; // Supported if at least 2 leaf neighbors
+        return leafCount >= 1; // Supported if at least 1 leaf neighbor (prevents holes)
     }
 }
 

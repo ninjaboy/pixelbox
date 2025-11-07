@@ -13,8 +13,31 @@ class TreeBranchElement extends Element {
         });
     }
 
-    // Static element - no update logic needed
-    // Tree growth is now handled entirely by TreeSeedElement's fractal algorithm
+    update(x, y, grid) {
+        // Tree branches actively maintain foliage
+        // Very rare chance to spawn a new leaf adjacent to branch
+        if (Math.random() > 0.998) { // 0.2% chance per frame
+            const leafElement = grid.registry.get('leaf');
+            if (!leafElement) return false;
+
+            // Check adjacent spaces for empty spots
+            const positions = [
+                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+            ];
+
+            // Shuffle for randomness
+            positions.sort(() => Math.random() - 0.5);
+
+            for (const [nx, ny] of positions) {
+                if (grid.isEmpty(nx, ny)) {
+                    grid.setElement(nx, ny, leafElement);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
 
 export default TreeBranchElement;

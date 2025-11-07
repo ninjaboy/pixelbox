@@ -14,7 +14,7 @@ const TREE_CONFIG = {
     branchSkipChance: 0.3,  // 30% chance to skip a branch (randomize appearance)
     segmentsPerFrame: 1,  // Grow 1 segment at a time
     initialDelay: 120,  // 2 seconds before germination
-    growthDelay: 40,  // Grow every 40 frames (very slow evolutionary process)
+    growthDelay: 80,  // Grow every 80 frames (slower growth, 2x slower than before)
     minLeafDepth: 2,  // Leaves start at shallower depth
     leavesPerTerminal: 3  // Fewer leaves per branch
 };
