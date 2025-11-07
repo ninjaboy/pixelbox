@@ -17,15 +17,36 @@ class SteamElement extends Element {
     }
 
     update(x, y, grid) {
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+
         // Check if steam has reached the atmosphere layer
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
 
         if (y <= atmosphereHeight) {
-            // Condense into cloud when reaching atmosphere
-            const cloudElement = grid.registry.get('cloud');
-            if (cloudElement) {
-                grid.setElement(x, y, cloudElement);
-                return true;
+            // Initialize condensation timer when first entering atmosphere
+            if (cell.data.atmosphereTime === undefined) {
+                cell.data.atmosphereTime = 0;
+            }
+
+            // Increment time spent in atmosphere
+            cell.data.atmosphereTime++;
+
+            // Only condense after spending time in atmosphere (3-6 seconds)
+            const condensationDelay = 180 + Math.floor(Math.random() * 180); // 3-6 seconds at 60fps
+
+            if (cell.data.atmosphereTime >= condensationDelay) {
+                // Condense into cloud
+                const cloudElement = grid.registry.get('cloud');
+                if (cloudElement) {
+                    grid.setElement(x, y, cloudElement);
+                    return true;
+                }
+            }
+        } else {
+            // Reset timer if steam drops below atmosphere
+            if (cell.data.atmosphereTime !== undefined) {
+                cell.data.atmosphereTime = 0;
             }
         }
 
