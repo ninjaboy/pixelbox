@@ -66,7 +66,7 @@ class TreeSeedElement extends Element {
             rootY,
             -Math.PI / 2,  // Straight up (negative Y)
             TREE_CONFIG.initialLength(),
-            TREE_CONFIG.initialThickness(),
+            TREE_CONFIG.initialThickness,  // Not a function - just a value
             0,  // depth
             TREE_CONFIG.maxDepth()
         );
