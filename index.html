@@ -25,31 +25,82 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.85);
             padding: 15px;
             border-radius: 15px;
             backdrop-filter: blur(10px);
             z-index: 1000;
+            max-width: 90vw;
+        }
+        .element-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .group-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .group-elements {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         .element-btn {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #fff;
-            border-radius: 10px;
+            width: 45px;
+            height: 45px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
-            font-size: 24px;
+            font-size: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
         .element-btn:hover {
             transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.8);
         }
         .element-btn.active {
             border-width: 3px;
+            border-color: #fff;
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: rgba(0, 0, 0, 0.95);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 2000;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .element-btn:hover .tooltip {
+            opacity: 1;
+        }
+        .tooltip-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .tooltip-props {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
         }
         #stats {
             position: fixed;
@@ -68,17 +119,7 @@
     <div id="game-container"></div>
 
     <div id="element-selector">
-        <button class="element-btn active" data-element="sand" style="background: #c2b280;">S</button>
-        <button class="element-btn" data-element="water" style="background: #4a90e2;">W</button>
-        <button class="element-btn" data-element="stone" style="background: #666;">R</button>
-        <button class="element-btn" data-element="fire" style="background: #ff6b35;">F</button>
-        <button class="element-btn" data-element="wood" style="background: #8b4513;">W</button>
-        <button class="element-btn" data-element="oil" style="background: #3d3d1a;">O</button>
-        <button class="element-btn" data-element="gunpowder" style="background: #333;">💣</button>
-        <button class="element-btn" data-element="fossil" style="background: #8b7355;">🦴</button>
-        <button class="element-btn" data-element="fish" style="background: #4a90e2;">🐟</button>
-        <button class="element-btn" data-element="tree_seed" style="background: #654321;">🌱</button>
-        <button class="element-btn" data-element="eraser" style="background: #222;">E</button>
+        <!-- Will be populated dynamically by JavaScript -->
     </div>
 
     <div id="stats">

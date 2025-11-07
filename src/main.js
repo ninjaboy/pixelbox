@@ -38,38 +38,151 @@ class GameScene extends Phaser.Scene {
     }
 
     createBorders() {
-        const stoneElement = this.elementRegistry.get('stone');
+        const wallElement = this.elementRegistry.get('wall');
 
-        if (!stoneElement) {
-            console.error('Stone element not found in registry!');
+        if (!wallElement) {
+            console.error('Wall element not found in registry!');
             return;
         }
 
         // Bottom border
         for (let x = 0; x < this.pixelGrid.width; x++) {
             for (let i = 0; i < 3; i++) {
-                this.pixelGrid.setElement(x, this.pixelGrid.height - 1 - i, stoneElement);
+                this.pixelGrid.setElement(x, this.pixelGrid.height - 1 - i, wallElement);
             }
         }
 
         // Side borders
         for (let y = 0; y < this.pixelGrid.height; y++) {
             for (let i = 0; i < 3; i++) {
-                this.pixelGrid.setElement(i, y, stoneElement);
-                this.pixelGrid.setElement(this.pixelGrid.width - 1 - i, y, stoneElement);
+                this.pixelGrid.setElement(i, y, wallElement);
+                this.pixelGrid.setElement(this.pixelGrid.width - 1 - i, y, wallElement);
             }
         }
     }
 
     setupElementSelector() {
-        const buttons = document.querySelectorAll('.element-btn');
-        buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                buttons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.selectedElement = btn.dataset.element;
+        const selector = document.getElementById('element-selector');
+
+        // Define element groups
+        const groups = {
+            'Powders': ['sand', 'gunpowder', 'ash'],
+            'Liquids': ['water', 'oil'],
+            'Solids': ['stone', 'wall', 'wood', 'fossil'],
+            'Nature': ['tree_seed', 'fish'],
+            'Energy': ['fire'],
+            'Tools': ['eraser']
+        };
+
+        // Element visual configs
+        const elementConfigs = {
+            sand: { icon: '⋅', color: '#c2b280' },
+            water: { icon: '≈', color: '#4a90e2' },
+            stone: { icon: '●', color: '#666' },
+            wall: { icon: '█', color: '#444' },
+            fire: { icon: '🔥', color: '#ff6b35' },
+            wood: { icon: '▓', color: '#8b4513' },
+            oil: { icon: '○', color: '#3d3d1a' },
+            gunpowder: { icon: '💣', color: '#333' },
+            fossil: { icon: '🦴', color: '#8b7355' },
+            fish: { icon: '🐟', color: '#1a5f7a' },
+            tree_seed: { icon: '🌱', color: '#654321' },
+            ash: { icon: '∴', color: '#666' },
+            eraser: { icon: '✖', color: '#222' }
+        };
+
+        // Build UI
+        Object.entries(groups).forEach(([groupName, elements]) => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'element-group';
+
+            const label = document.createElement('div');
+            label.className = 'group-label';
+            label.textContent = groupName;
+            groupDiv.appendChild(label);
+
+            const elementsDiv = document.createElement('div');
+            elementsDiv.className = 'group-elements';
+
+            elements.forEach(elementName => {
+                const element = this.elementRegistry.get(elementName);
+                if (!element && elementName !== 'eraser') return;
+
+                const config = elementConfigs[elementName];
+                const btn = document.createElement('button');
+                btn.className = 'element-btn';
+                if (elementName === 'sand') btn.classList.add('active');
+                btn.dataset.element = elementName;
+                btn.style.background = config.color;
+                btn.textContent = config.icon;
+
+                // Create tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+
+                const tooltipName = document.createElement('div');
+                tooltipName.className = 'tooltip-name';
+                tooltipName.textContent = elementName.replace(/_/g, ' ').toUpperCase();
+                tooltip.appendChild(tooltipName);
+
+                if (element) {
+                    const tooltipProps = document.createElement('div');
+                    tooltipProps.className = 'tooltip-props';
+                    tooltipProps.textContent = this.generateElementDescription(element);
+                    tooltip.appendChild(tooltipProps);
+                }
+
+                btn.appendChild(tooltip);
+
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.selectedElement = elementName;
+                });
+
+                elementsDiv.appendChild(btn);
             });
+
+            groupDiv.appendChild(elementsDiv);
+            selector.appendChild(groupDiv);
         });
+    }
+
+    generateElementDescription(element) {
+        const parts = [];
+
+        // State
+        if (element.state) {
+            parts.push(element.state);
+        }
+
+        // Density
+        if (element.density !== undefined) {
+            if (element.density === 0) parts.push('weightless');
+            else if (element.density < 2) parts.push('light');
+            else if (element.density < 5) parts.push('medium');
+            else parts.push('heavy');
+        }
+
+        // Movable
+        if (element.movable === false) {
+            parts.push('static');
+        } else if (element.movable === true) {
+            parts.push('movable');
+        }
+
+        // Combustible
+        if (element.tags && element.tags.includes('combustible')) {
+            if (element.ignitionResistance > 0.9) {
+                parts.push('fire resistant');
+            } else if (element.ignitionResistance > 0.5) {
+                parts.push('flammable');
+            } else {
+                parts.push('very flammable');
+            }
+        }
+
+        return parts.join(' • ');
     }
 
     startDrawing(pointer) {
