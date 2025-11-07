@@ -13,7 +13,54 @@ class LeafElement extends Element {
         });
     }
 
+    // Initialize leaf with age tracking
+    initializeCell(data) {
+        data.age = 0;
+    }
+
     update(x, y, grid) {
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+
+        // Age the leaf over time
+        cell.data.age++;
+
+        // Leaf lifecycle stages:
+        // 0-1800 frames (30s): Fresh green leaf
+        // 1800-3600 frames (30-60s): Aging, turning brown
+        // 3600+ frames (60s+): Dead, turns to ash/empty
+
+        // Update color based on age (green -> yellow -> brown)
+        if (cell.data.age > 1800) {
+            // Aging phase: transition from green to brown
+            const ageProgress = Math.min((cell.data.age - 1800) / 1800, 1.0); // 0 to 1
+
+            // Color transition: 0x228b22 (green) -> 0x8b4513 (saddle brown)
+            const startR = 0x22, startG = 0x8b, startB = 0x22;
+            const endR = 0x8b, endG = 0x45, endB = 0x13;
+
+            const r = Math.floor(startR + (endR - startR) * ageProgress);
+            const g = Math.floor(startG + (endG - startG) * ageProgress);
+            const b = Math.floor(startB + (endB - startB) * ageProgress);
+
+            cell.element.color = (r << 16) | (g << 8) | b;
+        }
+
+        // After 60 seconds, dead leaves decay into ash
+        if (cell.data.age > 3600) {
+            // 5% chance per frame to decay
+            if (Math.random() > 0.95) {
+                const ashElement = grid.registry.get('ash');
+                if (ashElement) {
+                    grid.setElement(x, y, ashElement);
+                } else {
+                    // Fallback: turn to empty if no ash
+                    grid.setElement(x, y, grid.registry.get('empty'));
+                }
+                return true;
+            }
+        }
+
         // Leaves sway gently and can fall if not supported
         const hasSupport = this.checkSupport(x, y, grid);
 

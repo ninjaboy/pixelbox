@@ -35,14 +35,21 @@ class FishElement extends Element {
             cell.data.swimDirection = Math.random() > 0.5 ? 1 : -1;
             cell.data.swimTimer = 0;
             cell.data.outOfWaterTime = 0;
-            cell.data.foodEaten = 0;
+            cell.data.hunger = 0; // Hunger level (0-100, higher = hungrier)
             cell.data.seekingFood = false;
-            cell.data.restTimer = 0; // Timer for resting behavior
+            cell.data.restTimer = 0;
+            cell.data.age = 0; // Fish age for natural death
 
             // Randomize color on spawn - store in cell data (not element)
-            // This ensures each fish has its own unique color
             const randomColor = this.colorVariants[Math.floor(Math.random() * this.colorVariants.length)];
             cell.data.fishColor = randomColor;
+        }
+
+        // Age and natural death
+        cell.data.age++;
+        if (cell.data.age > 3600) { // Die after 60 seconds (natural lifespan)
+            grid.setElement(x, y, grid.registry.get('ash'));
+            return true;
         }
 
         // Check if in water
@@ -54,7 +61,6 @@ class FishElement extends Element {
 
             // Die after 300 frames (5 seconds) out of water
             if (cell.data.outOfWaterTime > 300) {
-                // Turn into ash (dried fish)
                 grid.setElement(x, y, grid.registry.get('ash'));
                 return true;
             }
@@ -75,49 +81,89 @@ class FishElement extends Element {
         // In water - reset death timer
         cell.data.outOfWaterTime = 0;
 
-        // PRIORITY 1: Check for food at surface (leaves or ash/dead fish)
-        const foodLocation = this.findNearbyFood(x, y, grid);
-        if (foodLocation) {
-            // Found food nearby - try to move toward it and eat it
-            const [foodX, foodY] = foodLocation;
+        // OVERPOPULATION CONTROL: Die if too crowded
+        const nearbyFishCount = this.countNearbyFish(x, y, grid, 3);
+        if (nearbyFishCount > 8) { // More than 8 fish within 3 pixels = overcrowding
+            // 5% chance per frame to die from stress/competition
+            if (Math.random() < 0.05) {
+                grid.setElement(x, y, grid.registry.get('ash'));
+                return true;
+            }
+        }
 
-            // Check if food is adjacent (can eat it)
-            if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
-                // Eat the food
-                const foodElement = grid.getElement(foodX, foodY);
-                if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
-                    grid.setElement(foodX, foodY, grid.registry.get('empty'));
-                    cell.data.foodEaten++;
-                    cell.data.seekingFood = false;
+        // HUNGER SYSTEM
+        cell.data.hunger = Math.min(100, cell.data.hunger + 0.05); // Hunger increases slowly
 
-                    // After eating 2 pieces of food, reproduce
-                    if (cell.data.foodEaten >= 2) {
-                        this.reproduce(x, y, grid);
-                        cell.data.foodEaten = 0; // Reset counter
+        // PRIORITY 1: Food seeking (when hungry)
+        if (cell.data.hunger > 30) { // Start seeking food when moderately hungry
+            const foodLocation = this.findNearbyFood(x, y, grid);
+
+            if (foodLocation) {
+                // Found food - swim toward it
+                const [foodX, foodY] = foodLocation;
+
+                // Check if food is adjacent (can eat it)
+                if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
+                    // Eat the food
+                    const foodElement = grid.getElement(foodX, foodY);
+                    if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
+                        grid.setElement(foodX, foodY, grid.registry.get('empty'));
+                        cell.data.hunger = Math.max(0, cell.data.hunger - 50); // Reduce hunger
+                        cell.data.seekingFood = false;
+
+                        // REPRODUCTION: If well-fed and not overcrowded, reproduce
+                        if (cell.data.hunger < 20 && nearbyFishCount < 5) {
+                            if (Math.random() < 0.3) { // 30% chance to reproduce when conditions are good
+                                this.reproduce(x, y, grid);
+                            }
+                        }
+                        return true;
                     }
-                    return true;
+                } else {
+                    // Food is not adjacent - swim toward it
+                    cell.data.seekingFood = true;
+                    if (this.swimToward(x, y, foodX, foodY, grid)) {
+                        return true;
+                    }
                 }
             } else {
-                // Food is not adjacent - swim toward it (higher priority than schooling)
-                cell.data.seekingFood = true;
-                if (this.swimToward(x, y, foodX, foodY, grid)) {
-                    return true;
+                // No food found - wander toward surface to look for food
+                cell.data.seekingFood = false;
+                if (cell.data.hunger > 60) { // Very hungry - actively swim to surface
+                    const surfaceY = this.findSurfaceLevel(x, y, grid);
+                    if (surfaceY !== null && surfaceY < y - 2) {
+                        // Swim upward toward surface
+                        if (Math.random() > 0.7) {
+                            const element = grid.getElement(x, y - 1);
+                            if (element && element.name === 'water') {
+                                grid.swap(x, y, x, y - 1);
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
         } else {
+            // Well-fed - swim down to deeper water
             cell.data.seekingFood = false;
+            if (Math.random() > 0.95) { // Occasionally drift down when fed
+                const element = grid.getElement(x, y + 1);
+                if (element && element.name === 'water') {
+                    grid.swap(x, y, x, y + 1);
+                    return true;
+                }
+            }
         }
 
         // PRIORITY 2: Schooling behavior (only when not seeking food)
         if (!cell.data.seekingFood) {
-            // Find nearby fish for schooling
             const schoolInfo = this.analyzeSchool(x, y, grid);
 
             if (schoolInfo.nearbyFish > 0) {
                 // Apply boids-like behavior
                 const schoolDirection = this.calculateSchoolDirection(x, y, schoolInfo);
 
-                // 10% chance to follow school (reduced from 40% to make schooling slower)
+                // 10% chance to follow school
                 if (Math.random() > 0.9 && schoolDirection) {
                     const [targetX, targetY] = schoolDirection;
                     const element = grid.getElement(targetX, targetY);
@@ -131,13 +177,12 @@ class FishElement extends Element {
             }
         }
 
-        // PRIORITY 3: Regular swimming behavior (slower than before)
+        // PRIORITY 3: Regular swimming behavior
         cell.data.swimTimer++;
 
-        // Resting behavior: fish sometimes just float (20% of the time)
+        // Resting behavior
         if (cell.data.restTimer > 0) {
             cell.data.restTimer--;
-            // Just drift slightly while resting
             if (Math.random() > 0.9) {
                 const dir = Math.random() > 0.5 ? 1 : -1;
                 const element = grid.getElement(x + dir, y);
@@ -148,23 +193,23 @@ class FishElement extends Element {
             return false;
         }
 
-        // Randomly enter rest state (more frequently)
-        if (Math.random() > 0.96) { // Increased from 0.98 to 0.96 = rest more often
-            cell.data.restTimer = 60 + Math.floor(Math.random() * 120); // Rest 1-3 seconds (longer)
+        // Randomly enter rest state
+        if (Math.random() > 0.96) {
+            cell.data.restTimer = 60 + Math.floor(Math.random() * 120);
             return false;
         }
 
-        // Change direction occasionally (every 60-120 frames)
+        // Change direction occasionally
         if (cell.data.swimTimer > 60 && Math.random() > 0.97) {
             cell.data.swimDirection *= -1;
             cell.data.swimTimer = 0;
         }
 
-        // Swim through water VERY SLOW (15% movement chance, down from 30%)
+        // Swim through water VERY SLOW (15% movement chance)
         if (Math.random() > 0.85) {
             const dir = cell.data.swimDirection;
 
-            // Primarily swim horizontally (70% of the time)
+            // Primarily swim horizontally
             if (Math.random() > 0.3) {
                 const newX = x + dir;
                 const targetElement = grid.getElement(newX, y);
@@ -182,7 +227,7 @@ class FishElement extends Element {
                 }
             }
 
-            // Gentle vertical drift (prefer staying at current depth)
+            // Gentle vertical drift
             if (Math.random() > 0.8) {
                 const verticalDir = Math.random() > 0.5 ? 1 : -1;
                 const newY = y + verticalDir;
@@ -195,6 +240,32 @@ class FishElement extends Element {
         }
 
         return false;
+    }
+
+    // Count nearby fish for population control
+    countNearbyFish(x, y, grid, radius) {
+        let count = 0;
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'fish') {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // Find surface level (where water meets air/empty)
+    findSurfaceLevel(x, y, grid) {
+        for (let checkY = y; checkY >= 0; checkY--) {
+            const element = grid.getElement(x, checkY);
+            if (!element || element.name !== 'water') {
+                return checkY + 1; // Return water level just below surface
+            }
+        }
+        return null;
     }
 
     // Analyze nearby fish for schooling behavior
@@ -240,20 +311,18 @@ class FishElement extends Element {
 
     // Calculate direction to move based on school behavior (boids algorithm)
     calculateSchoolDirection(x, y, schoolInfo) {
-        // Cohesion: Move toward center of school
         let targetX = x;
         let targetY = y;
 
         const dx = schoolInfo.centerX - x;
         const dy = schoolInfo.centerY - y;
 
-        // Don't get too close (separation)
+        // IMPROVED SEPARATION: Don't get too close (avoid clumping)
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < 2) {
-            // Too close, move away
+        if (distance < 3) { // Too close - MOVE AWAY to avoid clumping
             targetX = x - Math.sign(dx);
             targetY = y - Math.sign(dy);
-        } else if (distance > 3) {
+        } else if (distance > 5) {
             // Far from school, move toward center (cohesion)
             targetX = x + Math.sign(dx);
             targetY = y + Math.sign(dy);
@@ -310,9 +379,6 @@ class FishElement extends Element {
         // Calculate direction to target
         const dx = targetX - x;
         const dy = targetY - y;
-
-        // Prioritize movement toward food
-        let moved = false;
 
         // Move vertically if needed (toward surface usually)
         if (Math.abs(dy) > 0 && Math.random() > 0.3) {
