@@ -160,40 +160,59 @@ class GameScene extends Phaser.Scene {
     }
 
     generateElementDescription(element) {
-        const parts = [];
+        const lines = [];
 
-        // State
-        if (element.state) {
-            parts.push(element.state);
-        }
+        // State and basic properties
+        const basicProps = [];
+        if (element.state) basicProps.push(element.state);
 
         // Density
         if (element.density !== undefined) {
-            if (element.density === 0) parts.push('weightless');
-            else if (element.density < 2) parts.push('light');
-            else if (element.density < 5) parts.push('medium');
-            else parts.push('heavy');
+            if (element.density === 0) basicProps.push('weightless');
+            else if (element.density < 2) basicProps.push('light');
+            else if (element.density < 5) basicProps.push('medium');
+            else if (element.density < 8) basicProps.push('heavy');
+            else basicProps.push('very heavy');
         }
 
         // Movable
         if (element.movable === false) {
-            parts.push('static');
+            basicProps.push('static');
         } else if (element.movable === true) {
-            parts.push('movable');
+            basicProps.push('movable');
+        }
+
+        if (basicProps.length > 0) {
+            lines.push(basicProps.join(' • '));
         }
 
         // Combustible
         if (Array.isArray(element.tags) && element.tags.includes('combustible')) {
             if (element.ignitionResistance > 0.9) {
-                parts.push('fire resistant');
+                lines.push('🔥 fire resistant');
             } else if (element.ignitionResistance > 0.5) {
-                parts.push('flammable');
+                lines.push('🔥 flammable');
             } else {
-                parts.push('very flammable');
+                lines.push('🔥 very flammable');
+            }
+
+            if (element.burnsInto) {
+                lines.push(`→ burns into ${element.burnsInto}`);
             }
         }
 
-        return parts.join(' • ');
+        // Explosive
+        if (Array.isArray(element.tags) && element.tags.includes('explosive')) {
+            lines.push('💥 explosive');
+        }
+
+        // Brush properties
+        if (element.brushSize !== undefined) {
+            const brushText = element.brushSize === 0 ? 'single pixel' : `${element.brushSize}px brush`;
+            lines.push(`🖌️ ${brushText}`);
+        }
+
+        return lines.join('\n');
     }
 
     startDrawing(pointer) {
@@ -221,8 +240,8 @@ class GameScene extends Phaser.Scene {
         const brushSize = element.brushSize;
         const emissionDensity = element.emissionDensity;
 
-        // Generate unique boulder ID for stone elements (element.id === 3)
-        const boulderId = element.id === 3 ? this.nextBoulderId++ : null;
+        // Don't generate boulder IDs for user-drawn stones - let them fall individually
+        const boulderId = null;
 
         // Draw in a circle around the cursor
         for (let dy = -brushSize; dy <= brushSize; dy++) {

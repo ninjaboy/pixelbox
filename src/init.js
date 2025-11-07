@@ -19,7 +19,8 @@ import {
     AshElement,
     FishElement,
     WetSandElement,
-    WallElement
+    WallElement,
+    WetGunpowderElement
 } from './elements/index.js';
 
 // Create and initialize the global element registry
@@ -46,6 +47,7 @@ registry.register(new AshElement());
 registry.register(new FishElement());
 registry.register(new WetSandElement());
 registry.register(new WallElement());
+registry.register(new WetGunpowderElement());
 
 // Export the initialized registry
 export default registry;

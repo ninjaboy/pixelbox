@@ -16,6 +16,22 @@ class GunpowderElement extends Element {
     }
 
     update(x, y, grid) {
+        // Check if touching water or wet_sand - become wet gunpowder
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && (neighbor.name === 'water' || neighbor.name === 'wet_sand')) {
+                const wetGunpowder = grid.registry.get('wet_gunpowder');
+                if (wetGunpowder) {
+                    grid.setElement(x, y, wetGunpowder);
+                    return true;
+                }
+            }
+        }
+
         // Gunpowder falls like sand with angle of repose
         if (grid.canMoveTo(x, y, x, y + 1)) {
             grid.swap(x, y, x, y + 1);
@@ -55,31 +71,66 @@ class GunpowderElement extends Element {
     }
 
     explode(x, y, grid) {
-        // Create fire at this position
-        grid.setElement(x, y, grid.registry.get('fire'));
+        const fireElement = grid.registry.get('fire');
+        const smokeElement = grid.registry.get('smoke');
+        const emptyElement = grid.registry.get('empty');
 
-        // Rapidly ignite adjacent gunpowder (chain reaction)
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y],
-            [x - 1, y - 1], [x + 1, y - 1], [x - 1, y + 1], [x + 1, y + 1]
-        ];
+        // Explosion radius
+        const explosionRadius = 2;
 
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && neighbor.name === 'gunpowder') {
-                // High chance to ignite neighboring gunpowder (70%)
-                if (Math.random() > 0.3) {
-                    grid.setElement(nx, ny, grid.registry.get('fire'));
+        // Get all particles in explosion radius
+        const affectedCells = [];
+        for (let dy = -explosionRadius; dy <= explosionRadius; dy++) {
+            for (let dx = -explosionRadius; dx <= explosionRadius; dx++) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= explosionRadius) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (grid.isInBounds(nx, ny)) {
+                        affectedCells.push({ x: nx, y: ny, dist, dx, dy });
+                    }
                 }
             }
         }
 
-        // Also create some smoke from the explosion
-        if (Math.random() > 0.5) {
-            const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
-            const smokeY = y - 1;
-            if (grid.isEmpty(smokeX, smokeY)) {
-                grid.setElement(smokeX, smokeY, grid.registry.get('smoke'));
+        // Process explosion effects
+        for (const cell of affectedCells) {
+            const element = grid.getElement(cell.x, cell.y);
+            if (!element) continue;
+
+            const strength = 1.0 - (cell.dist / explosionRadius);
+
+            // Center of explosion becomes fire
+            if (cell.dist < 0.5) {
+                grid.setElement(cell.x, cell.y, fireElement);
+                continue;
+            }
+
+            // Ignite nearby gunpowder (chain reaction)
+            if (element.name === 'gunpowder' && Math.random() < 0.8 * strength) {
+                grid.setElement(cell.x, cell.y, fireElement);
+                continue;
+            }
+
+            // Push movable particles away
+            if (element.movable && Math.random() < 0.6 * strength) {
+                const pushDist = Math.floor(2 + Math.random() * 3); // Push 2-4 cells
+                const pushX = cell.x + Math.sign(cell.dx) * pushDist;
+                const pushY = cell.y + Math.sign(cell.dy) * pushDist;
+
+                if (grid.isInBounds(pushX, pushY)) {
+                    const targetElement = grid.getElement(pushX, pushY);
+                    // Only push into empty space or less dense materials
+                    if (targetElement && (targetElement.id === 0 ||
+                        (targetElement.density < element.density && targetElement.movable))) {
+                        grid.swap(cell.x, cell.y, pushX, pushY);
+                    }
+                }
+            }
+
+            // Create smoke at outer edges
+            if (cell.dist > 1.0 && cell.dist < 1.8 && element.id === 0 && Math.random() < 0.4) {
+                grid.setElement(cell.x, cell.y, smokeElement);
             }
         }
     }
