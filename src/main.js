@@ -64,15 +64,20 @@ class GameScene extends Phaser.Scene {
     setupElementSelector() {
         const selector = document.getElementById('element-selector');
 
-        // Define element groups
-        const groups = {
-            'Powders': ['sand', 'gunpowder', 'ash'],
-            'Liquids': ['water', 'oil'],
-            'Solids': ['stone', 'wall', 'wood', 'fossil'],
-            'Nature': ['tree_seed', 'fish'],
-            'Energy': ['fire'],
-            'Tools': ['eraser']
-        };
+        // Define elements with keybindings
+        const elements = [
+            { name: 'sand', key: '1' },
+            { name: 'water', key: '2' },
+            { name: 'stone', key: '3' },
+            { name: 'wall', key: '4' },
+            { name: 'wood', key: '5' },
+            { name: 'fire', key: '6' },
+            { name: 'oil', key: '7' },
+            { name: 'gunpowder', key: '8' },
+            { name: 'tree_seed', key: '9' },
+            { name: 'fish', key: '0' },
+            { name: 'eraser', key: 'E' }
+        ];
 
         // Element visual configs
         const elementConfigs = {
@@ -92,59 +97,65 @@ class GameScene extends Phaser.Scene {
         };
 
         // Build UI
-        Object.entries(groups).forEach(([groupName, elements]) => {
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'element-group';
+        elements.forEach(({ name: elementName, key }) => {
+            const element = this.elementRegistry.get(elementName);
+            if (!element && elementName !== 'eraser') return;
 
-            const label = document.createElement('div');
-            label.className = 'group-label';
-            label.textContent = groupName;
-            groupDiv.appendChild(label);
+            const config = elementConfigs[elementName];
+            const btn = document.createElement('button');
+            btn.className = 'element-btn';
+            if (elementName === 'sand') btn.classList.add('active');
+            btn.dataset.element = elementName;
+            btn.dataset.key = key;
+            btn.style.background = config.color;
+            btn.textContent = config.icon;
 
-            const elementsDiv = document.createElement('div');
-            elementsDiv.className = 'group-elements';
+            // Add keybind indicator
+            const keybind = document.createElement('div');
+            keybind.className = 'keybind';
+            keybind.textContent = key;
+            btn.appendChild(keybind);
 
-            elements.forEach(elementName => {
-                const element = this.elementRegistry.get(elementName);
-                if (!element && elementName !== 'eraser') return;
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
 
-                const config = elementConfigs[elementName];
-                const btn = document.createElement('button');
-                btn.className = 'element-btn';
-                if (elementName === 'sand') btn.classList.add('active');
-                btn.dataset.element = elementName;
-                btn.style.background = config.color;
-                btn.textContent = config.icon;
+            const tooltipName = document.createElement('div');
+            tooltipName.className = 'tooltip-name';
+            tooltipName.textContent = elementName.replace(/_/g, ' ').toUpperCase();
+            tooltip.appendChild(tooltipName);
 
-                // Create tooltip
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
+            if (element) {
+                const tooltipProps = document.createElement('div');
+                tooltipProps.className = 'tooltip-props';
+                tooltipProps.textContent = this.generateElementDescription(element);
+                tooltip.appendChild(tooltipProps);
+            }
 
-                const tooltipName = document.createElement('div');
-                tooltipName.className = 'tooltip-name';
-                tooltipName.textContent = elementName.replace(/_/g, ' ').toUpperCase();
-                tooltip.appendChild(tooltipName);
+            const tooltipKey = document.createElement('div');
+            tooltipKey.className = 'tooltip-key';
+            tooltipKey.textContent = `Press ${key}`;
+            tooltip.appendChild(tooltipKey);
 
-                if (element) {
-                    const tooltipProps = document.createElement('div');
-                    tooltipProps.className = 'tooltip-props';
-                    tooltipProps.textContent = this.generateElementDescription(element);
-                    tooltip.appendChild(tooltipProps);
-                }
+            btn.appendChild(tooltip);
 
-                btn.appendChild(tooltip);
-
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    this.selectedElement = elementName;
-                });
-
-                elementsDiv.appendChild(btn);
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.selectedElement = elementName;
             });
 
-            groupDiv.appendChild(elementsDiv);
-            selector.appendChild(groupDiv);
+            selector.appendChild(btn);
+        });
+
+        // Add keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            const btn = document.querySelector(`.element-btn[data-key="${key}"]`);
+            if (btn) {
+                btn.click();
+                e.preventDefault();
+            }
         });
     }
 

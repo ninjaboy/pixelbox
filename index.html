@@ -21,57 +21,57 @@
         }
         #element-selector {
             position: fixed;
-            bottom: 20px;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            gap: 4px;
             background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 15px;
+            padding: 8px;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
             z-index: 1000;
-            max-width: 90vw;
-        }
-        .element-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .group-label {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-        .group-elements {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            max-width: 95vw;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
         .element-btn {
-            width: 45px;
-            height: 45px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 20px;
+            transition: all 0.15s;
+            font-size: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+            flex-shrink: 0;
         }
         .element-btn:hover {
-            transform: scale(1.1);
-            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
         .element-btn.active {
-            border-width: 3px;
+            border-width: 2px;
             border-color: #fff;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        .keybind {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1px 3px;
+            border-radius: 2px;
+            line-height: 1;
         }
         .tooltip {
             position: absolute;
@@ -80,9 +80,9 @@
             transform: translateX(-50%) translateY(-8px);
             background: rgba(0, 0, 0, 0.95);
             color: #fff;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 6px;
-            font-size: 11px;
+            font-size: 10px;
             white-space: nowrap;
             pointer-events: none;
             opacity: 0;
@@ -95,12 +95,18 @@
         }
         .tooltip-name {
             font-weight: 600;
-            margin-bottom: 4px;
-            font-size: 12px;
+            margin-bottom: 3px;
+            font-size: 11px;
         }
         .tooltip-props {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 9px;
+            margin-bottom: 2px;
+        }
+        .tooltip-key {
+            color: rgba(255, 200, 100, 0.9);
+            font-size: 9px;
+            font-weight: 600;
         }
         #stats {
             position: fixed;
