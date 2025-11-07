@@ -21,43 +21,79 @@ class CloudElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize rain timer and water capacity if not set
-        if (cell.data.rainTimer === undefined) {
-            // Random initial delay before cloud can produce rain (2-8 seconds)
-            cell.data.rainTimer = Math.floor(Math.random() * 360) + 120;
-            // Each cloud can only produce 1-2 water droplets (reduced from infinite)
-            cell.data.waterCapacity = Math.random() > 0.5 ? 2 : 1;
+        // Initialize saturation level if not set
+        if (cell.data.saturation === undefined) {
+            cell.data.saturation = 1; // Default small cloud
+        }
+
+        // Initialize rain cooldown timer
+        if (cell.data.rainCooldown === undefined) {
+            cell.data.rainCooldown = 0;
         }
 
         // Check if we're in the atmosphere layer
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
         const isInAtmosphere = y < atmosphereHeight;
 
-        // RAIN GENERATION - check if cloud should release water
-        if (cell.data.rainTimer > 0) {
-            cell.data.rainTimer--;
+        // CLOUD ACCUMULATION SYSTEM
+
+        // 1. Absorb nearby steam to increase saturation
+        if (Math.random() > 0.7) { // 30% chance per frame to check for steam
+            const nearbySteam = this.findNearbySteam(x, y, grid);
+            if (nearbySteam) {
+                // Absorb the steam
+                grid.setElement(nearbySteam[0], nearbySteam[1], grid.registry.get('empty'));
+                cell.data.saturation += 1;
+                // Update color based on saturation
+                this.updateCloudColor(cell);
+            }
+        }
+
+        // 2. Merge with adjacent clouds
+        if (Math.random() > 0.8) { // 20% chance per frame to check for merge
+            const nearbyCloud = this.findAdjacentCloud(x, y, grid);
+            if (nearbyCloud) {
+                const [cloudX, cloudY] = nearbyCloud;
+                const otherCell = grid.getCell(cloudX, cloudY);
+                if (otherCell && otherCell.data.saturation !== undefined) {
+                    // Merge: combine saturation and remove the other cloud
+                    cell.data.saturation += otherCell.data.saturation;
+                    grid.setElement(cloudX, cloudY, grid.registry.get('empty'));
+                    this.updateCloudColor(cell);
+                }
+            }
+        }
+
+        // 3. RAIN GENERATION - saturated clouds produce rain
+        if (cell.data.rainCooldown > 0) {
+            cell.data.rainCooldown--;
         } else {
-            // Only produce rain if cloud still has water capacity
-            if (cell.data.waterCapacity > 0) {
-                // Check density of clouds nearby to determine if it should rain
-                const cloudDensity = this.getCloudDensity(x, y, grid);
+            // Check if cloud is saturated enough to rain
+            if (cell.data.saturation >= 10) {
+                // RAIN EVENT! Drop multiple water droplets
+                this.triggerRainEvent(x, y, grid, cell);
 
-                // Higher chance of rain with more clouds nearby
-                const rainChance = cloudDensity > 5 ? 0.02 : cloudDensity > 3 ? 0.01 : 0.005;
+                // Reduce saturation after raining
+                cell.data.saturation -= 5;
 
-                if (Math.random() < rainChance) {
-                    // Release water droplet below
-                    const below = grid.getCell(x, y + 1);
-                    if (below && below.element.id === 0) {
-                        const waterElement = grid.registry.get('water');
-                        if (waterElement) {
-                            grid.setElement(x, y + 1, waterElement);
-                            // Decrease water capacity
-                            cell.data.waterCapacity--;
-                        }
-                    }
-                    // Reset timer
-                    cell.data.rainTimer = Math.floor(Math.random() * 180) + 60;
+                // Set cooldown before next rain (1-2 seconds)
+                cell.data.rainCooldown = 60 + Math.floor(Math.random() * 60);
+
+                // Update color after losing saturation
+                this.updateCloudColor(cell);
+
+                // If saturation drops too low, cloud dissipates
+                if (cell.data.saturation <= 0) {
+                    grid.setElement(x, y, grid.registry.get('empty'));
+                    return true;
+                }
+            } else if (cell.data.saturation >= 5) {
+                // Medium saturation: occasional light rain
+                if (Math.random() < 0.01) {
+                    this.dropSingleRain(x, y, grid);
+                    cell.data.saturation -= 1;
+                    cell.data.rainCooldown = 30;
+                    this.updateCloudColor(cell);
                 }
             }
         }
@@ -111,23 +147,86 @@ class CloudElement extends Element {
         }
     }
 
-    // Count nearby clouds to determine local density
-    getCloudDensity(x, y, grid) {
-        let count = 0;
+    // Find nearby steam to absorb
+    findNearbySteam(x, y, grid) {
         const radius = 3;
-
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 if (dx === 0 && dy === 0) continue;
 
                 const element = grid.getElement(x + dx, y + dy);
-                if (element && element.name === 'cloud') {
-                    count++;
+                if (element && element.name === 'steam') {
+                    return [x + dx, y + dy];
                 }
             }
         }
+        return null;
+    }
 
-        return count;
+    // Find adjacent cloud for merging
+    findAdjacentCloud(x, y, grid) {
+        const adjacent = [
+            [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
+        ];
+
+        for (const [cx, cy] of adjacent) {
+            const element = grid.getElement(cx, cy);
+            if (element && element.name === 'cloud') {
+                return [cx, cy];
+            }
+        }
+        return null;
+    }
+
+    // Trigger dramatic rain event for saturated clouds
+    triggerRainEvent(x, y, grid, cell) {
+        // Drop 3-6 water droplets in burst
+        const rainAmount = 3 + Math.floor(Math.random() * 4);
+        const waterElement = grid.registry.get('water');
+        if (!waterElement) return;
+
+        let dropsCreated = 0;
+        // Try to create rain drops below and around the cloud
+        for (let dy = 1; dy <= 3 && dropsCreated < rainAmount; dy++) {
+            for (let dx = -1; dx <= 1 && dropsCreated < rainAmount; dx++) {
+                const targetCell = grid.getCell(x + dx, y + dy);
+                if (targetCell && targetCell.element.id === 0) {
+                    grid.setElement(x + dx, y + dy, waterElement);
+                    dropsCreated++;
+                }
+            }
+        }
+    }
+
+    // Drop single rain droplet
+    dropSingleRain(x, y, grid) {
+        const waterElement = grid.registry.get('water');
+        if (!waterElement) return;
+
+        const below = grid.getCell(x, y + 1);
+        if (below && below.element.id === 0) {
+            grid.setElement(x, y + 1, waterElement);
+        }
+    }
+
+    // Update cloud color based on saturation (darker = more saturated)
+    updateCloudColor(cell) {
+        const saturation = cell.data.saturation;
+
+        // Color gradient: light grey (1) -> dark grey (10+)
+        // 0xf0f0f0 (light) -> 0x808080 (dark)
+        let brightness;
+        if (saturation <= 1) {
+            brightness = 0xf0; // Very light
+        } else if (saturation <= 5) {
+            brightness = 0xd0; // Light
+        } else if (saturation <= 10) {
+            brightness = 0xb0; // Medium
+        } else {
+            brightness = 0x90; // Dark (heavy rain cloud)
+        }
+
+        cell.element.color = (brightness << 16) | (brightness << 8) | brightness;
     }
 }
 
