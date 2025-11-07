@@ -522,13 +522,8 @@ class GameScene extends Phaser.Scene {
             atmosphereAlpha = 0.6;
         }
 
-        // Draw atmosphere with gradient fade from top to bottom
-        this.overlayGraphics.fillGradientStyle(
-            atmosphereColor, atmosphereColor,  // Top color
-            atmosphereColor, atmosphereColor,  // Bottom color (will fade with alpha)
-            atmosphereAlpha, atmosphereAlpha,  // Top alpha
-            0, 0                               // Bottom alpha (fades to transparent)
-        );
+        // Draw atmosphere with simple fill (no gradient for performance)
+        this.overlayGraphics.fillStyle(atmosphereColor, atmosphereAlpha * 0.3); // Reduced opacity
         this.overlayGraphics.fillRect(0, 0, width, atmosphereHeight);
 
         // FULL SCREEN OVERLAY (subtle tint over everything)
