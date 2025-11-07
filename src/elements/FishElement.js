@@ -39,8 +39,8 @@ class FishElement extends Element {
             // Out of water - dying!
             cell.data.outOfWaterTime++;
 
-            // Die after 60 frames (1 second) out of water
-            if (cell.data.outOfWaterTime > 60) {
+            // Die after 300 frames (5 seconds) out of water
+            if (cell.data.outOfWaterTime > 300) {
                 // Turn into ash (dried fish)
                 grid.setElement(x, y, grid.registry.get('ash'));
                 return true;
@@ -95,15 +95,7 @@ class FishElement extends Element {
             cell.data.seekingFood = false;
         }
 
-        // Check for nearby fish and occasionally kill each other (keep population scarce)
-        if (Math.random() > 0.995) { // 0.5% chance per frame
-            const nearbyFish = this.findNearbyFish(x, y, grid);
-            if (nearbyFish) {
-                // Kill the other fish
-                grid.setElement(nearbyFish[0], nearbyFish[1], grid.registry.get('ash'));
-                return true;
-            }
-        }
+        // REMOVED: Fish no longer kill each other
 
         // Swimming behavior - smooth, directional movement
         cell.data.swimTimer++;
@@ -221,7 +213,8 @@ class FishElement extends Element {
         if (Math.abs(dy) > 0 && Math.random() > 0.3) {
             const vertDir = dy > 0 ? 1 : -1;
             const element = grid.getElement(x, y + vertDir);
-            if (element && (element.name === 'water' || element.name === 'empty')) {
+            // ONLY move into water, never into empty space (prevents jumping out)
+            if (element && element.name === 'water') {
                 grid.swap(x, y, x, y + vertDir);
                 return true;
             }
@@ -231,7 +224,8 @@ class FishElement extends Element {
         if (Math.abs(dx) > 0 && Math.random() > 0.3) {
             const horizDir = dx > 0 ? 1 : -1;
             const element = grid.getElement(x + horizDir, y);
-            if (element && (element.name === 'water' || element.name === 'empty')) {
+            // ONLY move into water, never into empty space (prevents jumping out)
+            if (element && element.name === 'water') {
                 grid.swap(x, y, x + horizDir, y);
                 return true;
             }
@@ -242,7 +236,8 @@ class FishElement extends Element {
             const horizDir = dx > 0 ? 1 : -1;
             const vertDir = dy > 0 ? 1 : -1;
             const element = grid.getElement(x + horizDir, y + vertDir);
-            if (element && (element.name === 'water' || element.name === 'empty')) {
+            // ONLY move into water, never into empty space (prevents jumping out)
+            if (element && element.name === 'water') {
                 grid.swap(x, y, x + horizDir, y + vertDir);
                 return true;
             }
