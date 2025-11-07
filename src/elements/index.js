@@ -20,3 +20,4 @@ export { default as FishElement } from './FishElement.js';
 export { default as WetSandElement } from './WetSandElement.js';
 export { default as WallElement } from './WallElement.js';
 export { default as WetGunpowderElement } from './WetGunpowderElement.js';
+export { default as CloudElement } from './CloudElement.js';

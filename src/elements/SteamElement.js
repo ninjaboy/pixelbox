@@ -8,12 +8,27 @@ class SteamElement extends Element {
             state: STATE.GAS,
             dispersion: 2,
             lifetime: 240, // Steam dissipates after 4 seconds
-            condensesInto: 'water',  // Could condense back to water (future feature)
+            condensesInto: 'cloud',  // Condenses into clouds at atmosphere
             tags: [TAG.CONDENSES]
         });
+
+        // Define atmosphere boundary (upper 25% of screen)
+        this.atmosphereThreshold = 0.25;
     }
 
     update(x, y, grid) {
+        // Check if steam has reached the atmosphere layer
+        const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
+
+        if (y <= atmosphereHeight) {
+            // Condense into cloud when reaching atmosphere
+            const cloudElement = grid.registry.get('cloud');
+            if (cloudElement) {
+                grid.setElement(x, y, cloudElement);
+                return true;
+            }
+        }
+
         // Steam rises rapidly (80% chance to prioritize upward movement)
         if (Math.random() > 0.2) {
             if (grid.isEmpty(x, y - 1)) {
