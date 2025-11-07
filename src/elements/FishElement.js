@@ -46,12 +46,8 @@ class FishElement extends Element {
             cell.data.fishColor = randomColor;
         }
 
-        // Age and natural death
+        // Age tracking (no natural death - only starvation kills fish)
         cell.data.age++;
-        if (cell.data.age > 3600) { // Die after 60 seconds (natural lifespan)
-            grid.setElement(x, y, grid.registry.get('ash'));
-            return true;
-        }
 
         // Check if in water
         const inWater = this.isInWater(x, y, grid);
@@ -95,6 +91,12 @@ class FishElement extends Element {
         // HUNGER SYSTEM
         cell.data.hunger = Math.min(100, cell.data.hunger + 0.02); // Hunger increases slowly (50+ seconds between meals)
 
+        // STARVATION DEATH: Die if hunger reaches 100
+        if (cell.data.hunger >= 100) {
+            grid.setElement(x, y, grid.registry.get('ash'));
+            return true;
+        }
+
         // Check if at surface (within 20% of water surface)
         const surfaceY = this.findSurfaceLevel(x, y, grid);
         const isNearSurface = surfaceY !== null && y <= surfaceY + 10;
@@ -121,7 +123,7 @@ class FishElement extends Element {
         }
 
         // PRIORITY 1: Food seeking (when hungry)
-        if (cell.data.hunger > 30) { // Start seeking food when moderately hungry
+        if (cell.data.hunger > 20) { // Start seeking food early to prevent starvation
             const foodLocation = this.findNearbyFood(x, y, grid);
 
             if (foodLocation) {
