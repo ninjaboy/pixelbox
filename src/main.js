@@ -409,7 +409,16 @@ class GameScene extends Phaser.Scene {
                 if (dx * dx + dy * dy <= brushSize * brushSize) {
                     // Apply emission density (probability of spawning)
                     if (Math.random() < emissionDensity) {
-                        this.pixelGrid.setElement(gridX + dx, gridY + dy, element, false, boulderId);
+                        const targetX = gridX + dx;
+                        const targetY = gridY + dy;
+
+                        // Don't erase or overwrite the player character
+                        const existingElement = this.pixelGrid.getElement(targetX, targetY);
+                        if (existingElement && existingElement.name === 'player') {
+                            continue; // Skip this cell, don't affect player
+                        }
+
+                        this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
                     }
                 }
             }
