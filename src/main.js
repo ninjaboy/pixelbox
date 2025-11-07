@@ -331,8 +331,11 @@ class GameScene extends Phaser.Scene {
             const cell = this.pixelGrid.grid[y]?.[x];
 
             if (cell && cell.element.id !== 0) {
+                // Use per-cell color if available (for fish), otherwise use element color
+                const baseColor = cell.data.fishColor || cell.element.color;
+
                 // Apply atmospheric lighting to particle colors
-                const tintedColor = this.applyLighting(cell.element.color, lightingColor);
+                const tintedColor = this.applyLighting(baseColor, lightingColor);
 
                 if (!particlesByColor.has(tintedColor)) {
                     particlesByColor.set(tintedColor, []);
