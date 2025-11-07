@@ -421,7 +421,7 @@ class GameScene extends Phaser.Scene {
         const horizontalScale = 0.35; // Reduced from 0.45 to make arc narrower
 
         const sunX = width / 2 + baseX * width * horizontalScale;
-        const sunY = height - verticalProgress * height * 0.7; // Increased from 0.5 to 0.7 for higher arc
+        const sunY = height - verticalProgress * height * 0.95; // Go almost to the very top (95% of height)
 
         // Moon position (opposite of sun - 12 hours offset = +0.5 time)
         const moonTime = (time + 0.5) % 1.0;
@@ -433,7 +433,7 @@ class GameScene extends Phaser.Scene {
         const moonVerticalProgress = Math.pow(moonBaseSin, 0.6);
 
         const moonX = width / 2 + moonBaseX * width * horizontalScale;
-        const moonY = height - moonVerticalProgress * height * 0.7;
+        const moonY = height - moonVerticalProgress * height * 0.95; // Go almost to the very top (95% of height)
 
         // Draw sun (visible during day) with better visuals
         if (time > 0.2 && time < 0.8) {
