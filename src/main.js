@@ -13,7 +13,7 @@ class GameScene extends Phaser.Scene {
         this.nextBoulderId = 1; // Unique ID counter for stone boulders
         this.playerX = null; // Player position
         this.playerY = null;
-        this.buildMode = false; // Build mode toggle (B key)
+        this.buildMode = true; // Start in build mode (press B to switch to explore mode)
         this.keys = {}; // Track key states
     }
 
