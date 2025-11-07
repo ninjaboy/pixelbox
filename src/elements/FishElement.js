@@ -62,7 +62,15 @@ class FishElement extends Element {
                 return true;
             }
 
-            // Flop around on land (minimal movement)
+            // FALL DOWN when in air (gravity)
+            const below = grid.getElement(x, y + 1);
+            if (below && below.name === 'empty') {
+                // Fall through air
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
+
+            // On solid ground - flop around desperately
             if (Math.random() > 0.95) {
                 const dir = Math.random() > 0.5 ? 1 : -1;
                 const newX = x + dir;
