@@ -56,10 +56,15 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
         .element-btn.active {
-            border-width: 2px;
-            border-color: #fff;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+            border-width: 3px;
+            border-color: #00ffff;  /* Bright cyan */
+            box-shadow:
+                0 0 30px rgba(0, 255, 255, 0.9),  /* Strong outer glow */
+                0 0 15px rgba(0, 255, 255, 0.6),  /* Medium glow */
+                inset 0 0 15px rgba(0, 255, 255, 0.4);  /* Inner glow */
+            transform: scale(1.1);
+            position: relative;
+            z-index: 10;  /* Bring active button to front */
         }
         .keybind {
             position: absolute;
