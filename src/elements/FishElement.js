@@ -84,16 +84,16 @@ class FishElement extends Element {
 
         // OVERPOPULATION CONTROL: Die if too crowded
         const nearbyFishCount = this.countNearbyFish(x, y, grid, 3);
-        if (nearbyFishCount > 8) { // More than 8 fish within 3 pixels = overcrowding
-            // 5% chance per frame to die from stress/competition
-            if (Math.random() < 0.05) {
+        if (nearbyFishCount > 12) { // More than 12 fish within 3 pixels = overcrowding
+            // 1% chance per frame to die from stress/competition (gentle control)
+            if (Math.random() < 0.01) {
                 grid.setElement(x, y, grid.registry.get('ash'));
                 return true;
             }
         }
 
         // HUNGER SYSTEM
-        cell.data.hunger = Math.min(100, cell.data.hunger + 0.05); // Hunger increases slowly
+        cell.data.hunger = Math.min(100, cell.data.hunger + 0.02); // Hunger increases slowly (50+ seconds between meals)
 
         // Check if at surface (within 20% of water surface)
         const surfaceY = this.findSurfaceLevel(x, y, grid);
@@ -138,8 +138,8 @@ class FishElement extends Element {
                         cell.data.seekingFood = false;
 
                         // REPRODUCTION: If well-fed and not overcrowded, reproduce
-                        if (cell.data.hunger < 20 && nearbyFishCount < 5) {
-                            if (Math.random() < 0.3) { // 30% chance to reproduce when conditions are good
+                        if (cell.data.hunger < 40 && nearbyFishCount < 8) {
+                            if (Math.random() < 0.5) { // 50% chance to reproduce when conditions are good
                                 this.reproduce(x, y, grid);
                             }
                         }
