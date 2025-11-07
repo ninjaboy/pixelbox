@@ -7,7 +7,7 @@ class WoodElement extends Element {
             density: 5,
             state: STATE.SOLID,
             movable: false,
-            ignitionResistance: 0.93, // Extremely hard to ignite (93% resistance = 1.05% chance)
+            ignitionResistance: 0.65, // Moderately flammable (65% resistance = 5.25% chance, 5x more than before)
             burnsInto: 'burning_wood',  // Transforms to burning_wood when ignited
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
             brushSize: 3, // Medium brush for building

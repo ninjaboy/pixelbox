@@ -7,7 +7,7 @@ class TreeTrunkElement extends Element {
             density: 6,
             state: STATE.SOLID,
             movable: false,
-            ignitionResistance: 0.94, // Extremely hard to burn (living wood)
+            ignitionResistance: 0.75, // Trunk is hardest to burn but still flammable (living wood core)
             burnsInto: 'burning_wood',
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC]
         });

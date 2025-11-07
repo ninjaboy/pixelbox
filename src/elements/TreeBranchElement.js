@@ -7,7 +7,7 @@ class TreeBranchElement extends Element {
             density: 5,
             state: STATE.SOLID,
             movable: false,
-            ignitionResistance: 0.92, // Harder to burn (living wood)
+            ignitionResistance: 0.70, // Moderately flammable (living wood slightly harder than dead wood)
             burnsInto: 'burning_wood',
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC]
         });
