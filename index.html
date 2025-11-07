@@ -79,45 +79,40 @@
             line-height: 1;
             pointer-events: none;
         }
-        .tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(-8px);
+        #global-tooltip {
+            position: fixed;
             background: rgba(0, 0, 0, 0.95);
             color: #fff;
-            padding: 8px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            white-space: pre-line;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 2000;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            min-width: 120px;
-        }
-        .element-btn:hover .tooltip {
-            opacity: 1;
-        }
-        .tooltip-name {
-            font-weight: 600;
-            margin-bottom: 3px;
+            padding: 10px 12px;
+            border-radius: 8px;
             font-size: 11px;
+            pointer-events: none;
+            z-index: 10000;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            min-width: 140px;
+            max-width: 250px;
         }
-        .tooltip-props {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 9px;
-            margin-bottom: 4px;
-            line-height: 1.3;
+        #tooltip-name {
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #00ffff;
+            text-transform: uppercase;
         }
-        .tooltip-key {
-            color: rgba(255, 200, 100, 0.9);
-            font-size: 9px;
+        #tooltip-props {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 10px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+            white-space: pre-line;
+        }
+        #tooltip-key {
+            color: rgba(255, 200, 100, 1);
+            font-size: 10px;
             font-weight: 600;
-            margin-top: 4px;
-            padding-top: 4px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
         #stats {
             position: fixed;
@@ -137,6 +132,12 @@
 
     <div id="element-selector">
         <!-- Will be populated dynamically by JavaScript -->
+    </div>
+
+    <div id="global-tooltip" style="display: none;">
+        <div id="tooltip-name"></div>
+        <div id="tooltip-props"></div>
+        <div id="tooltip-key"></div>
     </div>
 
     <div id="stats">

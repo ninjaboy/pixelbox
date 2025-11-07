@@ -78,8 +78,12 @@ class GameScene extends Phaser.Scene {
 
     setupElementSelector() {
         const selector = document.getElementById('element-selector');
+        const globalTooltip = document.getElementById('global-tooltip');
+        const tooltipName = document.getElementById('tooltip-name');
+        const tooltipProps = document.getElementById('tooltip-props');
+        const tooltipKey = document.getElementById('tooltip-key');
 
-        // Define elements with keybindings
+        // Define elements with keybindings (fossil removed)
         const elements = [
             { name: 'sand', key: '1' },
             { name: 'water', key: '2' },
@@ -131,43 +135,30 @@ class GameScene extends Phaser.Scene {
             keybind.textContent = key;
             btn.appendChild(keybind);
 
-            // Create tooltip
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
+            // Handle tooltip with global tooltip element
+            btn.addEventListener('mouseenter', (e) => {
+                // Update tooltip content
+                tooltipName.textContent = elementName.replace(/_/g, ' ');
 
-            const tooltipName = document.createElement('div');
-            tooltipName.className = 'tooltip-name';
-            tooltipName.textContent = elementName.replace(/_/g, ' ').toUpperCase();
-            tooltip.appendChild(tooltipName);
+                if (element) {
+                    const description = this.generateElementDescription(element);
+                    tooltipProps.textContent = description;
+                } else {
+                    tooltipProps.textContent = 'Tool';
+                }
 
-            if (element) {
-                const description = this.generateElementDescription(element);
-                console.log(`[${elementName}] Description:`, description);
+                tooltipKey.textContent = `Press ${key}`;
 
-                const tooltipProps = document.createElement('div');
-                tooltipProps.className = 'tooltip-props';
-                tooltipProps.textContent = description;
-                tooltip.appendChild(tooltipProps);
-            }
-
-            const tooltipKey = document.createElement('div');
-            tooltipKey.className = 'tooltip-key';
-            tooltipKey.textContent = `Press ${key}`;
-            tooltip.appendChild(tooltipKey);
-
-            btn.appendChild(tooltip);
-
-            console.log(`Created tooltip for ${elementName}:`, tooltip);
-
-            // Handle tooltip visibility with JavaScript
-            btn.addEventListener('mouseenter', () => {
-                const tooltipEl = btn.querySelector('.tooltip');
-                tooltipEl.style.opacity = '1';
+                // Position tooltip above button
+                const rect = btn.getBoundingClientRect();
+                globalTooltip.style.left = `${rect.left + rect.width / 2}px`;
+                globalTooltip.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                globalTooltip.style.transform = 'translateX(-50%)';
+                globalTooltip.style.display = 'block';
             });
 
             btn.addEventListener('mouseleave', () => {
-                const tooltipEl = btn.querySelector('.tooltip');
-                tooltipEl.style.opacity = '0';
+                globalTooltip.style.display = 'none';
             });
 
             btn.addEventListener('click', () => {
