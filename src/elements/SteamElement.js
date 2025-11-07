@@ -22,8 +22,9 @@ class SteamElement extends Element {
 
         // Check if steam has reached the atmosphere layer
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
+        const inAtmosphere = y <= atmosphereHeight;
 
-        if (y <= atmosphereHeight) {
+        if (inAtmosphere) {
             // Initialize condensation timer and delay when first entering atmosphere
             if (cell.data.atmosphereTime === undefined) {
                 cell.data.atmosphereTime = 0;
@@ -50,10 +51,6 @@ class SteamElement extends Element {
                 delete cell.data.condensationDelay;
             }
         }
-
-        // Check if we're in the atmosphere
-        const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
-        const inAtmosphere = y <= atmosphereHeight;
 
         if (inAtmosphere) {
             // In atmosphere - stop rising, just drift horizontally
