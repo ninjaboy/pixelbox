@@ -419,20 +419,21 @@ class GameScene extends Phaser.Scene {
         const sunPhase = (time - 0.25) / 0.5; // 0 to 1 for sunrise to sunset
         const sunAngle = sunPhase * Math.PI; // 0 to π (half circle from left to right)
 
-        // Create a steeper arc that rises faster initially and moves faster at the top
-        // Use an exponential curve for the vertical component
+        // Use smooth sine curve for both X and Y (no easing = smooth motion throughout)
         const baseX = Math.cos(Math.PI - sunAngle);
-        const baseSin = Math.sin(sunAngle);
+        const baseY = Math.sin(sunAngle);
 
-        // Apply easing to vertical movement: faster at horizon, slower at peak
-        // Use a power curve to make it rise steeply
-        const verticalProgress = Math.pow(baseSin, 0.6); // Power < 1 = faster initial rise
+        // Wider arc with smooth movement
+        const horizontalScale = 0.5; // Increased from 0.35 to make arc wider
 
-        // X movement is faster near the top
-        const horizontalScale = 0.35; // Reduced from 0.45 to make arc narrower
+        // Vertical range: from 20% of height (entry point) to 95% of height (peak)
+        // This makes sun/moon enter screen at 20% not at bottom
+        const minHeight = 0.20; // Enter at 20% of height from bottom
+        const maxHeight = 0.95; // Peak at 95% of height
+        const verticalRange = maxHeight - minHeight;
 
         const sunX = width / 2 + baseX * width * horizontalScale;
-        const sunY = height - verticalProgress * height * 0.95; // Go almost to the very top (95% of height)
+        const sunY = height - (minHeight + baseY * verticalRange) * height;
 
         // Moon position (opposite of sun - 12 hours offset = +0.5 time)
         const moonTime = (time + 0.5) % 1.0;
@@ -440,11 +441,10 @@ class GameScene extends Phaser.Scene {
         const moonAngle = moonPhase * Math.PI;
 
         const moonBaseX = Math.cos(Math.PI - moonAngle);
-        const moonBaseSin = Math.sin(moonAngle);
-        const moonVerticalProgress = Math.pow(moonBaseSin, 0.6);
+        const moonBaseY = Math.sin(moonAngle);
 
         const moonX = width / 2 + moonBaseX * width * horizontalScale;
-        const moonY = height - moonVerticalProgress * height * 0.95; // Go almost to the very top (95% of height)
+        const moonY = height - (minHeight + moonBaseY * verticalRange) * height;
 
         // Draw sun (visible during day) with better visuals
         if (time > 0.2 && time < 0.8) {
