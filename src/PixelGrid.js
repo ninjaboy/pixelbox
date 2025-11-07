@@ -10,6 +10,9 @@ class PixelGrid {
         this.frameCount = 0; // Track frames
         this.boulderCache = new Map(); // boulderId → Set of "x,y" position strings
 
+        // CRITICAL FIX: Track only non-empty cells to prevent FPS degradation
+        this.activeCells = new Set(); // Set of "x,y" position strings
+
         // Initialize empty grid
         const emptyElement = this.registry.get('empty');
         for (let y = 0; y < this.height; y++) {
@@ -59,8 +62,15 @@ class PixelGrid {
             }
         }
 
-        if (wasEmpty && !isEmpty) this.particleCount++;
-        if (!wasEmpty && isEmpty) this.particleCount--;
+        // CRITICAL FIX: Update active cells tracking
+        if (wasEmpty && !isEmpty) {
+            this.particleCount++;
+            this.activeCells.add(posKey);
+        }
+        if (!wasEmpty && isEmpty) {
+            this.particleCount--;
+            this.activeCells.delete(posKey);
+        }
 
         cell.element = element;
         cell.lifetime = element.defaultLifetime;
@@ -107,9 +117,28 @@ class PixelGrid {
     swap(x1, y1, x2, y2) {
         if (!this.isInBounds(x1, y1) || !this.isInBounds(x2, y2)) return;
 
-        const temp = this.grid[y1][x1];
-        this.grid[y1][x1] = this.grid[y2][x2];
-        this.grid[y2][x2] = temp;
+        const cell1 = this.grid[y1][x1];
+        const cell2 = this.grid[y2][x2];
+
+        // CRITICAL FIX: Update active cells tracking during swap
+        const pos1Key = `${x1},${y1}`;
+        const pos2Key = `${x2},${y2}`;
+        const cell1Empty = cell1.element.id === 0;
+        const cell2Empty = cell2.element.id === 0;
+
+        if (!cell1Empty && cell2Empty) {
+            // Moving from pos1 to pos2
+            this.activeCells.delete(pos1Key);
+            this.activeCells.add(pos2Key);
+        } else if (cell1Empty && !cell2Empty) {
+            // Moving from pos2 to pos1
+            this.activeCells.delete(pos2Key);
+            this.activeCells.add(pos1Key);
+        }
+        // If both empty or both filled, activeCells doesn't change
+
+        this.grid[y1][x1] = cell2;
+        this.grid[y2][x2] = cell1;
 
         this.grid[y2][x2].updated = true;
     }
@@ -124,19 +153,40 @@ class PixelGrid {
             stoneElement.processedBoulders.clear();
         }
 
-        // Reset updated flags
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                this.grid[y][x].updated = false;
+        // CRITICAL FIX: Only reset updated flags for active cells
+        for (const posKey of this.activeCells) {
+            const [x, y] = posKey.split(',').map(Number);
+            const cell = this.grid[y]?.[x];
+            if (cell) {
+                cell.updated = false;
             }
         }
 
-        // Update from bottom to top, randomize scan direction PER ROW for even spreading
-        for (let y = this.height - 1; y >= 0; y--) {
-            const startLeft = Math.random() > 0.5; // Per-row randomization
+        // CRITICAL FIX: Group active cells by row and sort bottom to top
+        const cellsByRow = new Map();
+        for (const posKey of this.activeCells) {
+            const [x, y] = posKey.split(',').map(Number);
+            if (!cellsByRow.has(y)) {
+                cellsByRow.set(y, []);
+            }
+            cellsByRow.get(y).push(x);
+        }
 
-            for (let i = 0; i < this.width; i++) {
-                const x = startLeft ? i : this.width - 1 - i;
+        // Update from bottom to top
+        const sortedRows = Array.from(cellsByRow.keys()).sort((a, b) => b - a);
+
+        for (const y of sortedRows) {
+            const xPositions = cellsByRow.get(y);
+
+            // Randomize scan direction for even spreading
+            const startLeft = Math.random() > 0.5;
+            if (startLeft) {
+                xPositions.sort((a, b) => a - b);
+            } else {
+                xPositions.sort((a, b) => b - a);
+            }
+
+            for (const x of xPositions) {
                 const cell = this.grid[y][x];
 
                 if (cell.updated || cell.element.id === 0) continue;

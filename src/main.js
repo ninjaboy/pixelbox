@@ -312,20 +312,34 @@ class GameScene extends Phaser.Scene {
         this.graphics.clear();
         const lightingColor = this.getLightingColor(time);
 
-        for (let y = 0; y < this.pixelGrid.height; y++) {
-            for (let x = 0; x < this.pixelGrid.width; x++) {
-                const cell = this.pixelGrid.grid[y][x];
-                if (cell.element.id !== 0) {
-                    // Apply atmospheric lighting to particle colors
-                    const tintedColor = this.applyLighting(cell.element.color, lightingColor);
-                    this.graphics.fillStyle(tintedColor, 1);
-                    this.graphics.fillRect(
-                        x * this.pixelSize,
-                        y * this.pixelSize,
-                        this.pixelSize,
-                        this.pixelSize
-                    );
+        // CRITICAL FIX: Only render active (non-empty) cells, batched by color
+        const particlesByColor = new Map();
+
+        for (const posKey of this.pixelGrid.activeCells) {
+            const [x, y] = posKey.split(',').map(Number);
+            const cell = this.pixelGrid.grid[y]?.[x];
+
+            if (cell && cell.element.id !== 0) {
+                // Apply atmospheric lighting to particle colors
+                const tintedColor = this.applyLighting(cell.element.color, lightingColor);
+
+                if (!particlesByColor.has(tintedColor)) {
+                    particlesByColor.set(tintedColor, []);
                 }
+                particlesByColor.get(tintedColor).push({ x, y });
+            }
+        }
+
+        // Render all particles of the same color in one batch
+        for (const [color, particles] of particlesByColor) {
+            this.graphics.fillStyle(color, 1);
+            for (const { x, y } of particles) {
+                this.graphics.fillRect(
+                    x * this.pixelSize,
+                    y * this.pixelSize,
+                    this.pixelSize,
+                    this.pixelSize
+                );
             }
         }
 
