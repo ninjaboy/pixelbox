@@ -21,7 +21,8 @@ import {
     WetSandElement,
     WallElement,
     WetGunpowderElement,
-    CloudElement
+    CloudElement,
+    PlayerElement
 } from './elements/index.js';
 
 // Create and initialize the global element registry
@@ -50,6 +51,7 @@ registry.register(new WetSandElement());
 registry.register(new WallElement());
 registry.register(new WetGunpowderElement());
 registry.register(new CloudElement());
+registry.register(new PlayerElement());
 
 // Export the initialized registry
 export default registry;

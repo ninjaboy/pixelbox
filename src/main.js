@@ -11,6 +11,10 @@ class GameScene extends Phaser.Scene {
         this.isDrawing = false;
         this.elementRegistry = registry; // Use elementRegistry to avoid Phaser's built-in registry
         this.nextBoulderId = 1; // Unique ID counter for stone boulders
+        this.playerX = null; // Player position
+        this.playerY = null;
+        this.buildMode = false; // Build mode toggle (B key)
+        this.keys = {}; // Track key states
     }
 
     create() {
@@ -188,6 +192,18 @@ class GameScene extends Phaser.Scene {
         window.addEventListener('keydown', (e) => {
             const key = e.key.toUpperCase();
 
+            // Toggle build mode with B key
+            if (key === 'B') {
+                this.buildMode = !this.buildMode;
+                console.log(this.buildMode ? '🔨 Build mode ON' : '🚶 Explore mode ON');
+                const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
+                indicator.textContent = this.buildMode ? '🔨 Build Mode' : '🚶 Explore Mode';
+                indicator.style.display = 'block';
+                setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+                e.preventDefault();
+                return;
+            }
+
             // Toggle profiler with P key
             if (key === 'P') {
                 const enabled = profiler.toggle();
@@ -198,6 +214,25 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
+            // Arrow keys for player movement (only in explore mode)
+            if (!this.buildMode) {
+                if (key === 'ARROWLEFT' || key === 'A') {
+                    this.keys.left = true;
+                    e.preventDefault();
+                    return;
+                }
+                if (key === 'ARROWRIGHT' || key === 'D') {
+                    this.keys.right = true;
+                    e.preventDefault();
+                    return;
+                }
+                if (key === 'ARROWUP' || key === 'W' || key === ' ') {
+                    this.keys.jump = true;
+                    e.preventDefault();
+                    return;
+                }
+            }
+
             const btn = document.querySelector(`.element-btn[data-key="${key}"]`);
             if (btn) {
                 btn.click();
@@ -205,8 +240,68 @@ class GameScene extends Phaser.Scene {
             }
         });
 
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toUpperCase();
+            if (key === 'ARROWLEFT' || key === 'A') this.keys.left = false;
+            if (key === 'ARROWRIGHT' || key === 'D') this.keys.right = false;
+            if (key === 'ARROWUP' || key === 'W' || key === ' ') this.keys.jump = false;
+        });
+
         // Profiler panel reference
         this.profilerPanel = document.getElementById('profiler-content');
+
+        // Spawn initial player at center-top
+        this.spawnPlayer();
+    }
+
+    createModeIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'mode-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        `;
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+
+    spawnPlayer() {
+        const centerX = Math.floor(this.pixelGrid.width / 2);
+        const centerY = Math.floor(this.pixelGrid.height * 0.3); // Spawn in upper middle
+        const playerElement = this.elementRegistry.get('player');
+        this.pixelGrid.setElement(centerX, centerY, playerElement);
+        this.playerX = centerX;
+        this.playerY = centerY;
+        console.log(`🎮 Player spawned at (${centerX}, ${centerY})`);
+    }
+
+    findPlayer() {
+        // Scan around last known position to update player coordinates
+        if (this.playerX === null || this.playerY === null) return;
+
+        const searchRadius = 5;
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const checkX = this.playerX + dx;
+                const checkY = this.playerY + dy;
+                const element = this.pixelGrid.getElement(checkX, checkY);
+                if (element && element.name === 'player') {
+                    this.playerX = checkX;
+                    this.playerY = checkY;
+                    return;
+                }
+            }
+        }
     }
 
     generateElementDescription(element) {
@@ -266,8 +361,11 @@ class GameScene extends Phaser.Scene {
     }
 
     startDrawing(pointer) {
-        this.isDrawing = true;
-        this.draw(pointer);
+        // Only allow drawing in build mode
+        if (this.buildMode) {
+            this.isDrawing = true;
+            this.draw(pointer);
+        }
     }
 
     stopDrawing() {
@@ -315,10 +413,43 @@ class GameScene extends Phaser.Scene {
         // Update moon phase cycle (much slower)
         this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
 
+        // Handle player movement (only in explore mode)
+        if (!this.buildMode && this.playerX !== null && this.playerY !== null) {
+            const playerElement = this.pixelGrid.getElement(this.playerX, this.playerY);
+            if (playerElement && playerElement.name === 'player') {
+                if (this.keys.left && !this.lastKeyLeft) {
+                    const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'left');
+                    if (moved) this.playerX--;
+                    this.lastKeyLeft = true;
+                } else if (!this.keys.left) {
+                    this.lastKeyLeft = false;
+                }
+
+                if (this.keys.right && !this.lastKeyRight) {
+                    const moved = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'right');
+                    if (moved) this.playerX++;
+                    this.lastKeyRight = true;
+                } else if (!this.keys.right) {
+                    this.lastKeyRight = false;
+                }
+
+                if (this.keys.jump && !this.lastKeyJump) {
+                    const jumped = playerElement.handleMovement(this.playerX, this.playerY, this.pixelGrid, 'jump');
+                    if (jumped) this.playerY -= 3;
+                    this.lastKeyJump = true;
+                } else if (!this.keys.jump) {
+                    this.lastKeyJump = false;
+                }
+            }
+        }
+
         // Update physics
         profiler.start('physics:update');
         this.pixelGrid.update();
         profiler.end('physics:update');
+
+        // Update player position after physics update
+        this.findPlayer();
 
         // Render everything with atmospheric effects
         profiler.start('render:total');
