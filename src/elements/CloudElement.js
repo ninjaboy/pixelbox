@@ -7,7 +7,7 @@ class CloudElement extends Element {
             density: 0,
             state: STATE.GAS,
             dispersion: 1,
-            lifetime: 1200, // Clouds last longer - 20 seconds
+            lifetime: 2400, // Clouds last 40 seconds (good balance - visible but not forever)
             tags: [],
             brushSize: 3,
             emissionDensity: 0.5
@@ -57,18 +57,21 @@ class CloudElement extends Element {
             }
         }
 
-        // 2. Merge with adjacent clouds
-        if (Math.random() > 0.8) { // 20% chance per frame to check for merge
+        // 2. Controlled merging with adjacent clouds (prevents total collapse but allows some growth)
+        if (Math.random() > 0.9) { // 10% chance per frame (balanced)
             const nearbyCloud = this.findAdjacentCloud(x, y, grid);
             if (nearbyCloud) {
                 const [cloudX, cloudY] = nearbyCloud;
                 const otherCell = grid.getCell(cloudX, cloudY);
                 if (otherCell && otherCell.data.saturation !== undefined) {
-                    // Merge: combine saturation and water capacity
-                    cell.data.saturation += otherCell.data.saturation;
-                    cell.data.waterCapacity += (otherCell.data.waterCapacity || otherCell.data.saturation);
-                    grid.setElement(cloudX, cloudY, grid.registry.get('empty'));
-                    this.updateCloudColor(cell);
+                    // Limit merge: only merge if combined saturation won't be huge
+                    const combinedSaturation = cell.data.saturation + otherCell.data.saturation;
+                    if (combinedSaturation <= 15) { // Prevent super massive clouds
+                        cell.data.saturation += otherCell.data.saturation;
+                        cell.data.waterCapacity += (otherCell.data.waterCapacity || otherCell.data.saturation);
+                        grid.setElement(cloudX, cloudY, grid.registry.get('empty'));
+                        this.updateCloudColor(cell);
+                    }
                 }
             }
         }
@@ -116,10 +119,10 @@ class CloudElement extends Element {
 
         // Cloud behavior depends on whether it's in atmosphere
         if (isInAtmosphere) {
-            // In atmosphere: spread horizontally and drift slowly
+            // In atmosphere: spread horizontally and drift at moderate pace
 
-            // Slow horizontal drift (60% chance)
-            if (Math.random() > 0.4) {
+            // Moderate horizontal drift (40% chance - balanced between visible movement and stability)
+            if (Math.random() > 0.6) {
                 const dir = Math.random() > 0.5 ? 1 : -1;
 
                 if (grid.isEmpty(x + dir, y)) {
@@ -132,8 +135,8 @@ class CloudElement extends Element {
                 }
             }
 
-            // Occasional gentle rise (10% chance)
-            if (Math.random() > 0.9) {
+            // Gentle rise (8% chance)
+            if (Math.random() > 0.92) {
                 if (grid.isEmpty(x, y - 1)) {
                     grid.swap(x, y, x, y - 1);
                     return true;

@@ -87,6 +87,12 @@ class PixelGrid {
                 }
                 this.boulderCache.get(boulderId).add(posKey);
             }
+
+            // OPTIMIZATION: Call element's initialization hook if it exists
+            // This allows elements (like Fish) to eagerly initialize their state
+            if (element.initializeCell && typeof element.initializeCell === 'function') {
+                element.initializeCell(cell.data);
+            }
         }
     }
 

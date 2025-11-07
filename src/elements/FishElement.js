@@ -39,9 +39,10 @@ class FishElement extends Element {
             cell.data.seekingFood = false;
             cell.data.restTimer = 0; // Timer for resting behavior
 
-            // Randomize color on spawn
+            // Randomize color on spawn - store in cell data (not element)
+            // This ensures each fish has its own unique color
             const randomColor = this.colorVariants[Math.floor(Math.random() * this.colorVariants.length)];
-            cell.element.color = randomColor;
+            cell.data.fishColor = randomColor;
         }
 
         // Check if in water
