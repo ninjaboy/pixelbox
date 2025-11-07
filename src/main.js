@@ -386,15 +386,23 @@ class GameScene extends Phaser.Scene {
     renderCelestialBodies(width, height, time) {
         this.celestialGraphics.clear();
 
-        // Sun position (rises at 0.25, sets at 0.75)
-        const sunAngle = (time - 0.25) * Math.PI * 2;
-        const sunX = width / 2 + Math.cos(sunAngle) * width * 0.6;
-        const sunY = height / 2 + Math.sin(sunAngle) * height * 0.6;
+        // Sun position: rises at 0.25 (dawn), peaks at 0.5 (noon), sets at 0.75 (dusk)
+        // Map time to angle: 0.25→0° (east/left), 0.5→90° (zenith/top), 0.75→180° (west/right)
+        const sunPhase = (time - 0.25) / 0.5; // 0 to 1 for sunrise to sunset
+        const sunAngle = sunPhase * Math.PI; // 0 to π (half circle from left to right)
 
-        // Moon position (opposite of sun)
-        const moonAngle = sunAngle + Math.PI;
-        const moonX = width / 2 + Math.cos(moonAngle) * width * 0.6;
-        const moonY = height / 2 + Math.sin(moonAngle) * height * 0.6;
+        // Arc from left (0) → top (π/2) → right (π)
+        // X: starts at left (negative), peaks at center, ends at right (positive)
+        // Y: starts at horizon (height), peaks at top (0), ends at horizon (height)
+        const sunX = width / 2 + Math.cos(Math.PI - sunAngle) * width * 0.45; // Mirror horizontally
+        const sunY = height - Math.sin(sunAngle) * height * 0.5; // Start from bottom
+
+        // Moon position (opposite of sun - 12 hours offset = +0.5 time)
+        const moonTime = (time + 0.5) % 1.0;
+        const moonPhase = (moonTime - 0.25) / 0.5;
+        const moonAngle = moonPhase * Math.PI;
+        const moonX = width / 2 + Math.cos(Math.PI - moonAngle) * width * 0.45;
+        const moonY = height - Math.sin(moonAngle) * height * 0.5;
 
         // Draw sun (visible during day)
         if (time > 0.2 && time < 0.8) {
