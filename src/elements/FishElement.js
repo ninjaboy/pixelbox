@@ -28,6 +28,8 @@ class FishElement extends Element {
             cell.data.swimDirection = Math.random() > 0.5 ? 1 : -1;
             cell.data.swimTimer = 0;
             cell.data.outOfWaterTime = 0;
+            cell.data.foodEaten = 0; // Track food consumption for reproduction
+            cell.data.seekingFood = false; // Track if actively seeking food
         }
 
         // Check if in water
@@ -59,6 +61,39 @@ class FishElement extends Element {
 
         // In water - reset death timer
         cell.data.outOfWaterTime = 0;
+
+        // Check for food at surface (leaves or ash/dead fish)
+        const foodLocation = this.findNearbyFood(x, y, grid);
+        if (foodLocation) {
+            // Found food nearby - try to move toward it and eat it
+            const [foodX, foodY] = foodLocation;
+
+            // Check if food is adjacent (can eat it)
+            if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
+                // Eat the food
+                const foodElement = grid.getElement(foodX, foodY);
+                if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash')) {
+                    grid.setElement(foodX, foodY, grid.registry.get('empty'));
+                    cell.data.foodEaten++;
+                    cell.data.seekingFood = false;
+
+                    // After eating 2 pieces of food, reproduce
+                    if (cell.data.foodEaten >= 2) {
+                        this.reproduce(x, y, grid);
+                        cell.data.foodEaten = 0; // Reset counter
+                    }
+                    return true;
+                }
+            } else {
+                // Food is not adjacent - swim toward it
+                cell.data.seekingFood = true;
+                if (this.swimToward(x, y, foodX, foodY, grid)) {
+                    return true;
+                }
+            }
+        } else {
+            cell.data.seekingFood = false;
+        }
 
         // Check for nearby fish and occasionally kill each other (keep population scarce)
         if (Math.random() > 0.995) { // 0.5% chance per frame
@@ -152,6 +187,94 @@ class FishElement extends Element {
     isWater(x, y, grid) {
         const element = grid.getElement(x, y);
         return element && element.name === 'water';
+    }
+
+    findNearbyFood(x, y, grid) {
+        // Search in a wider radius for food (leaves or ash)
+        const searchRadius = 8;
+
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && (element.name === 'leaf' || element.name === 'ash')) {
+                    // Check if food is at or near surface (has empty space or water above it)
+                    const above = grid.getElement(x + dx, y + dy - 1);
+                    if (above && (above.name === 'empty' || above.name === 'water')) {
+                        return [x + dx, y + dy];
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    swimToward(x, y, targetX, targetY, grid) {
+        // Calculate direction to target
+        const dx = targetX - x;
+        const dy = targetY - y;
+
+        // Prioritize movement toward food
+        let moved = false;
+
+        // Move vertically if needed (toward surface usually)
+        if (Math.abs(dy) > 0 && Math.random() > 0.3) {
+            const vertDir = dy > 0 ? 1 : -1;
+            const element = grid.getElement(x, y + vertDir);
+            if (element && (element.name === 'water' || element.name === 'empty')) {
+                grid.swap(x, y, x, y + vertDir);
+                return true;
+            }
+        }
+
+        // Move horizontally toward food
+        if (Math.abs(dx) > 0 && Math.random() > 0.3) {
+            const horizDir = dx > 0 ? 1 : -1;
+            const element = grid.getElement(x + horizDir, y);
+            if (element && (element.name === 'water' || element.name === 'empty')) {
+                grid.swap(x, y, x + horizDir, y);
+                return true;
+            }
+        }
+
+        // Try diagonal movement
+        if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
+            const horizDir = dx > 0 ? 1 : -1;
+            const vertDir = dy > 0 ? 1 : -1;
+            const element = grid.getElement(x + horizDir, y + vertDir);
+            if (element && (element.name === 'water' || element.name === 'empty')) {
+                grid.swap(x, y, x + horizDir, y + vertDir);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    reproduce(x, y, grid) {
+        // Spawn a new fish nearby
+        const spawnOffsets = [
+            [0, -1], [0, 1], [-1, 0], [1, 0],
+            [-1, -1], [1, -1], [-1, 1], [1, 1],
+            [0, -2], [0, 2], [-2, 0], [2, 0]
+        ];
+
+        // Shuffle spawn positions
+        spawnOffsets.sort(() => Math.random() - 0.5);
+
+        for (const [dx, dy] of spawnOffsets) {
+            const spawnX = x + dx;
+            const spawnY = y + dy;
+            const element = grid.getElement(spawnX, spawnY);
+
+            // Spawn in water
+            if (element && element.name === 'water') {
+                grid.setElement(spawnX, spawnY, grid.registry.get('fish'));
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

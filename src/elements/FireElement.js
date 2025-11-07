@@ -3,7 +3,7 @@ import { STATE, TEMPERATURE, TAG } from '../ElementProperties.js';
 
 class FireElement extends Element {
     constructor() {
-        super(4, 'fire', 0xff6b35, {
+        super(4, 'fire', 0xffaa00, { // Brighter orange-yellow for more glow
             density: 0,
             state: STATE.GAS,
             temperature: TEMPERATURE.VERY_HOT,
@@ -11,14 +11,24 @@ class FireElement extends Element {
             lifetime: 60, // Ephemeral flames - dissipate after 1 second
             tags: [TAG.HEAT_SOURCE],
             brushSize: 2, // Small controlled brush
-            emissionDensity: 0.5 // Moderate sparse placement
+            emissionDensity: 0.5, // Moderate sparse placement
+            glowing: true // Mark as glowing for special rendering
         });
     }
 
     update(x, y, grid) {
-        // Emit smoke occasionally
-        if (Math.random() > 0.85) {
-            // Try to spawn smoke above
+        // Aggressively emit steam to create cloud vortex (50% chance)
+        if (Math.random() > 0.5) {
+            // Try to spawn steam above and around fire
+            const steamX = x + Math.floor((Math.random() - 0.5) * 3); // -1 to +1 range
+            const steamY = y - 1;
+            if (grid.isEmpty(steamX, steamY)) {
+                grid.setElement(steamX, steamY, grid.registry.get('steam'));
+            }
+        }
+
+        // Also emit some smoke for visual effect (less frequently)
+        if (Math.random() > 0.92) {
             const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
             const smokeY = y - 1;
             if (grid.isEmpty(smokeX, smokeY)) {
