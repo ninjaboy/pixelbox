@@ -40,6 +40,8 @@ class FishElement extends Element {
             cell.data.restTimer = 0;
             cell.data.age = 0; // Fish age for natural death
             cell.data.surfaceTimer = 0; // Time spent at surface after feeding
+            cell.data.feedingStartTime = null; // When fish started feeding
+            cell.data.feedingCooldown = 0; // Frames until can eat again (3 game hours)
 
             // Randomize color on spawn - store in cell data (not element)
             const randomColor = this.colorVariants[Math.floor(Math.random() * this.colorVariants.length)];
@@ -96,6 +98,23 @@ class FishElement extends Element {
             }
         }
 
+        // FEEDING COOLDOWN SYSTEM
+        // Decrement cooldown timer if active
+        if (cell.data.feedingCooldown > 0) {
+            cell.data.feedingCooldown--;
+        }
+
+        // Check if fish has been feeding for too long (7 real seconds = 420 frames)
+        if (cell.data.feedingStartTime !== null) {
+            const feedingDuration = cell.data.age - cell.data.feedingStartTime;
+            if (feedingDuration >= 420) {
+                // Stop feeding - enter 3 game hour cooldown (1250 frames ~21 seconds)
+                cell.data.feedingCooldown = 1250;
+                cell.data.feedingStartTime = null;
+                cell.data.seekingFood = false;
+            }
+        }
+
         // HUNGER SYSTEM
         cell.data.hunger = Math.min(100, cell.data.hunger + 0.02); // Hunger increases slowly (50+ seconds between meals)
 
@@ -130,13 +149,18 @@ class FishElement extends Element {
             }
         }
 
-        // PRIORITY 1: Food seeking (when hungry)
-        if (cell.data.hunger > 20) { // Start seeking food early to prevent starvation
+        // PRIORITY 1: Food seeking (when hungry AND not on cooldown)
+        if (cell.data.hunger > 20 && cell.data.feedingCooldown === 0) { // Can only eat if cooldown is over
             const foodLocation = this.findNearbyFood(x, y, grid);
 
             if (foodLocation) {
                 // Found food - swim toward it
                 const [foodX, foodY] = foodLocation;
+
+                // Start feeding timer when first approaching food
+                if (cell.data.feedingStartTime === null) {
+                    cell.data.feedingStartTime = cell.data.age;
+                }
 
                 // Check if food is adjacent (can eat it)
                 if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
@@ -163,6 +187,8 @@ class FishElement extends Element {
                     }
                 }
             } else {
+                // No food found - reset feeding timer
+                cell.data.feedingStartTime = null;
                 // No food found - wander toward surface to look for food
                 cell.data.seekingFood = false;
                 if (cell.data.hunger > 60) { // Very hungry - actively swim to surface
