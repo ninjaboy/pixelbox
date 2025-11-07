@@ -72,7 +72,7 @@ class FishElement extends Element {
             if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
                 // Eat the food
                 const foodElement = grid.getElement(foodX, foodY);
-                if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash')) {
+                if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
                     grid.setElement(foodX, foodY, grid.registry.get('empty'));
                     cell.data.foodEaten++;
                     cell.data.seekingFood = false;
@@ -190,13 +190,13 @@ class FishElement extends Element {
     }
 
     findNearbyFood(x, y, grid) {
-        // Search in a wider radius for food (leaves or ash)
+        // Search in a wider radius for food (leaves, ash, or seeds)
         const searchRadius = 8;
 
         for (let dy = -searchRadius; dy <= searchRadius; dy++) {
             for (let dx = -searchRadius; dx <= searchRadius; dx++) {
                 const element = grid.getElement(x + dx, y + dy);
-                if (element && (element.name === 'leaf' || element.name === 'ash')) {
+                if (element && (element.name === 'leaf' || element.name === 'ash' || element.name === 'tree_seed')) {
                     // Check if food is at or near surface (has empty space or water above it)
                     const above = grid.getElement(x + dx, y + dy - 1);
                     if (above && (above.name === 'empty' || above.name === 'water')) {

@@ -15,6 +15,25 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
+        // PRIORITY 0: Surface evaporation (water exposed to air evaporates faster)
+        const above = grid.getElement(x, y - 1);
+        if (above && above.id === 0) {
+            // Water at the surface has a higher chance to evaporate
+            // Check if this is at the top edge of a water body
+            const isAtSurface = this.isAtSurface(x, y, grid);
+
+            if (isAtSurface) {
+                // 0.2% chance per frame for surface water to evaporate naturally
+                if (Math.random() < 0.002) {
+                    const steamElement = grid.registry.get('steam');
+                    if (steamElement) {
+                        grid.setElement(x, y, steamElement);
+                        return true;
+                    }
+                }
+            }
+        }
+
         // PRIORITY 1: Try to seep through wet sand below (permeability)
         const below = grid.getElement(x, y + 1);
         if (below && below.name === 'wet_sand') {
@@ -86,6 +105,30 @@ class WaterElement extends Element {
         }
 
         return false;
+    }
+
+    // Check if water is at the surface (top edge of water body)
+    isAtSurface(x, y, grid) {
+        // Water is at surface if there's air above it
+        const above = grid.getElement(x, y - 1);
+        if (!above || above.id !== 0) {
+            return false; // Not at surface if something is above
+        }
+
+        // Also check if there's water or solid below (not floating in air)
+        const below = grid.getElement(x, y + 1);
+        if (!below || below.id === 0) {
+            // Check diagonal support
+            const belowLeft = grid.getElement(x - 1, y + 1);
+            const belowRight = grid.getElement(x + 1, y + 1);
+
+            // At surface if it has support below or to the sides
+            return (below && below.id !== 0) ||
+                   (belowLeft && belowLeft.name === 'water') ||
+                   (belowRight && belowRight.name === 'water');
+        }
+
+        return true;
     }
 
     // Helper method to check water depth below a position

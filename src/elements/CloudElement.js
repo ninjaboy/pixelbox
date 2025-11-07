@@ -21,10 +21,12 @@ class CloudElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize rain timer if not set
+        // Initialize rain timer and water capacity if not set
         if (cell.data.rainTimer === undefined) {
             // Random initial delay before cloud can produce rain (2-8 seconds)
             cell.data.rainTimer = Math.floor(Math.random() * 360) + 120;
+            // Each cloud can only produce 1-2 water droplets (reduced from infinite)
+            cell.data.waterCapacity = Math.random() > 0.5 ? 2 : 1;
         }
 
         // Check if we're in the atmosphere layer
@@ -35,23 +37,28 @@ class CloudElement extends Element {
         if (cell.data.rainTimer > 0) {
             cell.data.rainTimer--;
         } else {
-            // Check density of clouds nearby to determine if it should rain
-            const cloudDensity = this.getCloudDensity(x, y, grid);
+            // Only produce rain if cloud still has water capacity
+            if (cell.data.waterCapacity > 0) {
+                // Check density of clouds nearby to determine if it should rain
+                const cloudDensity = this.getCloudDensity(x, y, grid);
 
-            // Higher chance of rain with more clouds nearby
-            const rainChance = cloudDensity > 5 ? 0.02 : cloudDensity > 3 ? 0.01 : 0.005;
+                // Higher chance of rain with more clouds nearby
+                const rainChance = cloudDensity > 5 ? 0.02 : cloudDensity > 3 ? 0.01 : 0.005;
 
-            if (Math.random() < rainChance) {
-                // Release water droplet below
-                const below = grid.getCell(x, y + 1);
-                if (below && below.element.id === 0) {
-                    const waterElement = grid.registry.get('water');
-                    if (waterElement) {
-                        grid.setElement(x, y + 1, waterElement);
+                if (Math.random() < rainChance) {
+                    // Release water droplet below
+                    const below = grid.getCell(x, y + 1);
+                    if (below && below.element.id === 0) {
+                        const waterElement = grid.registry.get('water');
+                        if (waterElement) {
+                            grid.setElement(x, y + 1, waterElement);
+                            // Decrease water capacity
+                            cell.data.waterCapacity--;
+                        }
                     }
+                    // Reset timer
+                    cell.data.rainTimer = Math.floor(Math.random() * 180) + 60;
                 }
-                // Reset timer
-                cell.data.rainTimer = Math.floor(Math.random() * 180) + 60;
             }
         }
 
