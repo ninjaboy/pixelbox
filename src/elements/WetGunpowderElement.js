@@ -1,5 +1,5 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, TAG } from '../ElementProperties.js';
 
 class WetGunpowderElement extends Element {
     constructor() {
@@ -7,13 +7,35 @@ class WetGunpowderElement extends Element {
             density: 4,  // Heavy when wet
             state: STATE.POWDER,
             movable: true,
-            tags: [],  // Not combustible when wet
+            ignitionResistance: 0.95,  // Very hard to ignite but possible
+            burnsInto: 'fire',
+            tags: [TAG.COMBUSTIBLE],  // Can burn, but slowly
             brushSize: 0,
             emissionDensity: 0
         });
     }
 
     update(x, y, grid) {
+        // Check if touching water or wet_sand - stays completely wet
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        let isTouchingWater = false;
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && (neighbor.name === 'water' || neighbor.name === 'wet_sand')) {
+                isTouchingWater = true;
+                break;
+            }
+        }
+
+        // Store water contact status for interaction
+        const cell = grid.getCell(x, y);
+        if (cell) {
+            cell.data.isTouchingWater = isTouchingWater;
+        }
+
         // Wet gunpowder acts like heavy sand
         // Try to fall down
         if (grid.canMoveTo(x, y, x, y + 1)) {
@@ -32,8 +54,8 @@ class WetGunpowderElement extends Element {
             return true;
         }
 
-        // Slowly dry out (very slow - 0.05% chance per frame)
-        if (Math.random() > 0.9995) {
+        // Slowly dry out ONLY if not touching water (0.05% chance per frame)
+        if (!isTouchingWater && Math.random() > 0.9995) {
             const dryGunpowder = grid.registry.get('gunpowder');
             if (dryGunpowder) {
                 grid.setElement(x, y, dryGunpowder);
@@ -42,6 +64,32 @@ class WetGunpowderElement extends Element {
         }
 
         return false;
+    }
+
+    // Custom interaction to handle burning
+    onInteract(otherElement, grid, x, y, otherX, otherY) {
+        const cell = grid.getCell(x, y);
+
+        // Check if touching a heat source
+        if (otherElement.hasTag && otherElement.hasTag(TAG.HEAT_SOURCE)) {
+            // Wet gunpowder burns slowly (3% chance per frame)
+            // Lower chance if touching water (1% chance)
+            const burnChance = (cell && cell.data.isTouchingWater) ? 0.01 : 0.03;
+
+            if (Math.random() < burnChance) {
+                const fireElement = grid.registry.get('fire');
+                if (fireElement) {
+                    grid.setElement(x, y, fireElement);
+                    return true; // Interaction handled
+                }
+            }
+
+            // Even if it doesn't ignite, return true to prevent default interaction
+            return true;
+        }
+
+        // Let other interactions proceed normally
+        return null;
     }
 }
 
