@@ -35,7 +35,46 @@ class TreeSeedElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize tree structure on first frame
+        // Check if seed has landed (not falling)
+        const hasLanded = !grid.isEmpty(x, y + 1);
+
+        // If not landed, try to fall
+        if (!hasLanded) {
+            // Fall like a particle
+            if (grid.canMoveTo(x, y, x, y + 1)) {
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
+            // Try diagonal falling
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            if (grid.canMoveTo(x, y, x + dir, y + 1)) {
+                grid.swap(x, y, x + dir, y + 1);
+                return true;
+            }
+            if (grid.canMoveTo(x, y, x - dir, y + 1)) {
+                grid.swap(x, y, x - dir, y + 1);
+                return true;
+            }
+        }
+
+        // Seed has landed - check if on valid surface (recheck every time it stops)
+        const surfaceElement = grid.getElement(x, y + 1);
+
+        // Valid surfaces for growth
+        const validSurfaces = ['sand', 'wet_sand', 'stone', 'wall', 'wood', 'tree_trunk', 'tree_branch', 'fossil', 'ash'];
+
+        if (!surfaceElement || !validSurfaces.includes(surfaceElement.name)) {
+            // Invalid surface - seed stays dormant but doesn't start growing
+            // Reset tree structure if surface changed to invalid
+            if (cell.data.treeStructure) {
+                delete cell.data.treeStructure;
+                delete cell.data.growthTimer;
+                delete cell.data.growthFrameCounter;
+            }
+            return false;
+        }
+
+        // Initialize tree structure on valid surface
         if (!cell.data.treeStructure) {
             cell.data.treeStructure = this.generateFractalTree(x, y);
             cell.data.growthTimer = 0;

@@ -54,25 +54,25 @@ class StoneElement extends Element {
 
     updateIndividual(x, y, grid) {
         // Individual stone physics (for borders, etc.)
-        if (grid.canMoveTo(x, y, x, y + 1)) {
+        // Stone is rigid - only falls straight down into empty space or liquids
+        const below = grid.getCell(x, y + 1);
+        if (!below) return false;
+
+        const belowElement = below.element;
+
+        // Can only move into completely empty space
+        if (belowElement.id === 0) {
             grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        const dir = Math.random() > 0.5 ? -1 : 1;
-
-        // Rarely slide diagonally
-        if (Math.random() > 0.98) {
-            if (grid.canMoveTo(x, y, x + dir, y + 1)) {
-                grid.swap(x, y, x + dir, y + 1);
-                return true;
-            }
-            if (grid.canMoveTo(x, y, x - dir, y + 1)) {
-                grid.swap(x, y, x - dir, y + 1);
-                return true;
-            }
+        // Can displace liquids (water, oil, steam) but NOT powders or other solids
+        if (belowElement.state === 'liquid' && this.density > belowElement.density) {
+            grid.swap(x, y, x, y + 1);
+            return true;
         }
 
+        // Stone doesn't slide diagonally or swap with powders/solids
         return false;
     }
 }
