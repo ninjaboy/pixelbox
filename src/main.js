@@ -157,9 +157,14 @@ class GameScene extends Phaser.Scene {
 
             // Debug hover events
             btn.addEventListener('mouseenter', () => {
+                const tooltipEl = btn.querySelector('.tooltip');
+                const styles = window.getComputedStyle(tooltipEl);
                 console.log(`Hovering over ${elementName}`);
-                console.log('Tooltip element:', btn.querySelector('.tooltip'));
-                console.log('Tooltip computed style:', window.getComputedStyle(btn.querySelector('.tooltip')));
+                console.log('Tooltip opacity:', styles.opacity);
+                console.log('Tooltip display:', styles.display);
+                console.log('Tooltip visibility:', styles.visibility);
+                console.log('Tooltip pointer-events:', styles.pointerEvents);
+                console.log('Full tooltip element:', tooltipEl);
             });
 
             btn.addEventListener('click', () => {
