@@ -1,5 +1,6 @@
 import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
+import { VERSION } from '../version.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -47,6 +48,10 @@ class GameScene extends Phaser.Scene {
         // Stats
         this.fpsText = document.getElementById('fps');
         this.particlesText = document.getElementById('particles');
+        this.versionText = document.getElementById('version');
+
+        // Set version once
+        this.versionText.textContent = VERSION;
 
         // Add some initial borders (stone walls)
         this.createBorders();
