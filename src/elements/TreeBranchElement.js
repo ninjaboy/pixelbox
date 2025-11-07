@@ -14,24 +14,38 @@ class TreeBranchElement extends Element {
     }
 
     update(x, y, grid) {
-        // Tree branches actively maintain foliage
-        // Very rare chance to spawn a new leaf adjacent to branch
-        if (Math.random() > 0.998) { // 0.2% chance per frame
+        // Tree branches maintain foliage ONLY if there are no leaves nearby
+        // This prevents infinite growth
+        if (Math.random() > 0.9995) { // 0.05% chance per frame (very rare)
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
-            // Check adjacent spaces for empty spots
-            const positions = [
-                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-            ];
+            // Check if there are already leaves nearby
+            let hasNearbyLeaves = false;
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const neighbor = grid.getElement(x + dx, y + dy);
+                    if (neighbor && neighbor.name === 'leaf') {
+                        hasNearbyLeaves = true;
+                        break;
+                    }
+                }
+                if (hasNearbyLeaves) break;
+            }
 
-            // Shuffle for randomness
-            positions.sort(() => Math.random() - 0.5);
+            // Only spawn leaf if there are NO leaves in 2-pixel radius
+            if (!hasNearbyLeaves) {
+                const positions = [
+                    [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+                ];
 
-            for (const [nx, ny] of positions) {
-                if (grid.isEmpty(nx, ny)) {
-                    grid.setElement(nx, ny, leafElement);
-                    return true;
+                positions.sort(() => Math.random() - 0.5);
+
+                for (const [nx, ny] of positions) {
+                    if (grid.isEmpty(nx, ny)) {
+                        grid.setElement(nx, ny, leafElement);
+                        return true;
+                    }
                 }
             }
         }

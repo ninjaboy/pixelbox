@@ -96,27 +96,37 @@ class LeafElement extends Element {
             }
         }
 
-        // Regrow leaves moderately (0.5% chance per frame - trees maintain foliage)
-        if (hasSupport && Math.random() > 0.995) {
+        // CONTROLLED REGROWTH: Only regrow if there are missing leaves nearby
+        // This prevents infinite blob growth
+        if (hasSupport && Math.random() > 0.998) { // 0.2% chance per frame (slower)
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 
-            // Try to spawn a new leaf in an adjacent empty space
+            // Check if there are gaps in foliage (missing leaves that should be filled)
             const positions = [
                 [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
             ];
 
-            // Shuffle positions for randomness
-            for (let i = positions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [positions[i], positions[j]] = [positions[j], positions[i]];
-            }
+            // Count how many leaves are around this leaf
+            let adjacentLeafCount = 0;
+            let emptySpaces = [];
 
             for (const [nx, ny] of positions) {
-                if (grid.isEmpty(nx, ny)) {
-                    grid.setElement(nx, ny, leafElement);
-                    return true;
+                const neighbor = grid.getElement(nx, ny);
+                if (neighbor && neighbor.name === 'leaf') {
+                    adjacentLeafCount++;
+                } else if (grid.isEmpty(nx, ny)) {
+                    emptySpaces.push([nx, ny]);
                 }
+            }
+
+            // Only regrow if there's a gap (fewer than 3 adjacent leaves)
+            // This creates natural sparse foliage instead of solid blobs
+            if (adjacentLeafCount < 3 && emptySpaces.length > 0) {
+                // Pick one random empty space
+                const [nx, ny] = emptySpaces[Math.floor(Math.random() * emptySpaces.length)];
+                grid.setElement(nx, ny, leafElement);
+                return true;
             }
         }
 
