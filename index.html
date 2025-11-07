@@ -127,6 +127,60 @@
             font-size: 12px;
             font-family: monospace;
         }
+        #profiler-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            min-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid #0f0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        #profiler-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #0ff;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 4px;
+        }
+        #profiler-panel .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+            padding: 2px 4px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+        #profiler-panel .metric.warn {
+            color: #ff0;
+            background: rgba(255, 255, 0, 0.1);
+        }
+        #profiler-panel .metric.critical {
+            color: #f00;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        #profiler-panel .metric-name {
+            flex: 1;
+        }
+        #profiler-panel .metric-value {
+            font-weight: bold;
+            text-align: right;
+        }
+        #profiler-panel .section {
+            margin-top: 10px;
+        }
+        #profiler-panel kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -146,6 +200,11 @@
         <div>FPS: <span id="fps">60</span></div>
         <div>Particles: <span id="particles">0</span></div>
         <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">v<span id="version">-</span></div>
+    </div>
+
+    <div id="profiler-panel" style="display: none;">
+        <h3>⚡ Performance Profiler <kbd>P</kbd> to toggle</h3>
+        <div id="profiler-content"></div>
     </div>
 
     <!-- Phaser 3 from CDN -->

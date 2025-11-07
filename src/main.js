@@ -1,6 +1,7 @@
 import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
+import profiler from './Profiler.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -186,12 +187,26 @@ class GameScene extends Phaser.Scene {
         // Add keyboard shortcuts
         window.addEventListener('keydown', (e) => {
             const key = e.key.toUpperCase();
+
+            // Toggle profiler with P key
+            if (key === 'P') {
+                const enabled = profiler.toggle();
+                const panel = document.getElementById('profiler-panel');
+                panel.style.display = enabled ? 'block' : 'none';
+                console.log(enabled ? '📊 Profiler enabled' : '📊 Profiler disabled');
+                e.preventDefault();
+                return;
+            }
+
             const btn = document.querySelector(`.element-btn[data-key="${key}"]`);
             if (btn) {
                 btn.click();
                 e.preventDefault();
             }
         });
+
+        // Profiler panel reference
+        this.profilerPanel = document.getElementById('profiler-content');
     }
 
     generateElementDescription(element) {
@@ -292,6 +307,8 @@ class GameScene extends Phaser.Scene {
     }
 
     update() {
+        profiler.start('frame:total');
+
         // Update day/night cycle
         this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.speed) % 1.0;
 
@@ -299,14 +316,25 @@ class GameScene extends Phaser.Scene {
         this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
 
         // Update physics
+        profiler.start('physics:update');
         this.pixelGrid.update();
+        profiler.end('physics:update');
 
         // Render everything with atmospheric effects
+        profiler.start('render:total');
         this.render();
+        profiler.end('render:total');
 
         // Update stats
         this.fpsText.textContent = Math.round(this.game.loop.actualFps);
         this.particlesText.textContent = this.pixelGrid.particleCount;
+
+        // Update profiler panel if enabled
+        if (profiler.enabled) {
+            this.updateProfilerPanel();
+        }
+
+        profiler.end('frame:total');
     }
 
     render() {
@@ -314,12 +342,17 @@ class GameScene extends Phaser.Scene {
         const time = this.dayNightCycle.time;
 
         // 1. RENDER SKY GRADIENT
+        profiler.start('render:sky');
         this.renderSky(width, height, time);
+        profiler.end('render:sky');
 
         // 2. RENDER SUN/MOON
+        profiler.start('render:celestial');
         this.renderCelestialBodies(width, height, time);
+        profiler.end('render:celestial');
 
         // 3. RENDER PIXEL GRID WITH LIGHTING
+        profiler.start('render:particles');
         this.graphics.clear();
         const lightingColor = this.getLightingColor(time);
 
@@ -356,9 +389,12 @@ class GameScene extends Phaser.Scene {
                 );
             }
         }
+        profiler.end('render:particles');
 
         // 4. RENDER ATMOSPHERIC OVERLAY
+        profiler.start('render:atmosphere');
         this.renderAtmosphere(width, height, time);
+        profiler.end('render:atmosphere');
     }
 
     renderSky(width, height, time) {
@@ -617,6 +653,112 @@ class GameScene extends Phaser.Scene {
 
         // Reconstruct color
         return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
+    }
+
+    updateProfilerPanel() {
+        if (!this.profilerPanel) return;
+
+        const metrics = profiler.getMetrics();
+        const bottlenecks = profiler.getBottlenecks(10);
+
+        // Helper to format time with color coding
+        const formatTime = (ms) => {
+            const cssClass = ms > 10 ? 'critical' : ms > 5 ? 'warn' : '';
+            return { value: ms.toFixed(3), cssClass };
+        };
+
+        // Build HTML
+        let html = '';
+
+        // Frame timing overview
+        html += '<div class="section">';
+        html += '<h3>Frame Timing</h3>';
+
+        const frameTotal = formatTime(metrics['frame:total']?.avg || 0);
+        const physicsUpdate = formatTime(metrics['physics:update']?.avg || 0);
+        const renderTotal = formatTime(metrics['render:total']?.avg || 0);
+
+        html += `<div class="metric ${frameTotal.cssClass}">
+            <span class="metric-name">Total Frame</span>
+            <span class="metric-value">${frameTotal.value}ms</span>
+        </div>`;
+        html += `<div class="metric ${physicsUpdate.cssClass}">
+            <span class="metric-name">└─ Physics Update</span>
+            <span class="metric-value">${physicsUpdate.value}ms</span>
+        </div>`;
+        html += `<div class="metric ${renderTotal.cssClass}">
+            <span class="metric-name">└─ Render Total</span>
+            <span class="metric-value">${renderTotal.value}ms</span>
+        </div>`;
+        html += '</div>';
+
+        // Render breakdown
+        html += '<div class="section">';
+        html += '<h3>Render Breakdown</h3>';
+
+        const renderSky = formatTime(metrics['render:sky']?.avg || 0);
+        const renderCelestial = formatTime(metrics['render:celestial']?.avg || 0);
+        const renderParticles = formatTime(metrics['render:particles']?.avg || 0);
+        const renderAtmosphere = formatTime(metrics['render:atmosphere']?.avg || 0);
+
+        html += `<div class="metric">
+            <span class="metric-name">Sky</span>
+            <span class="metric-value">${renderSky.value}ms</span>
+        </div>`;
+        html += `<div class="metric">
+            <span class="metric-name">Celestial</span>
+            <span class="metric-value">${renderCelestial.value}ms</span>
+        </div>`;
+        html += `<div class="metric ${renderParticles.cssClass}">
+            <span class="metric-name">Particles</span>
+            <span class="metric-value">${renderParticles.value}ms</span>
+        </div>`;
+        html += `<div class="metric">
+            <span class="metric-name">Atmosphere</span>
+            <span class="metric-value">${renderAtmosphere.value}ms</span>
+        </div>`;
+        html += '</div>';
+
+        // Element updates (if profiled)
+        const elementMetrics = Object.entries(metrics)
+            .filter(([key]) => key.startsWith('element:'))
+            .sort((a, b) => b[1].avg - a[1].avg);
+
+        if (elementMetrics.length > 0) {
+            html += '<div class="section">';
+            html += '<h3>Element Updates (Top 5)</h3>';
+            elementMetrics.slice(0, 5).forEach(([key, data]) => {
+                const name = key.replace('element:', '');
+                const time = formatTime(data.avg);
+                html += `<div class="metric ${time.cssClass}">
+                    <span class="metric-name">${name}</span>
+                    <span class="metric-value">${time.value}ms</span>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        // System info
+        html += '<div class="section">';
+        html += '<h3>System Info</h3>';
+        html += `<div class="metric">
+            <span class="metric-name">Active Cells</span>
+            <span class="metric-value">${this.pixelGrid.activeCells.size}</span>
+        </div>`;
+        html += `<div class="metric">
+            <span class="metric-name">Target FPS</span>
+            <span class="metric-value">60</span>
+        </div>`;
+        const budgetMs = 16.67;
+        const frameMs = metrics['frame:total']?.avg || 0;
+        const budget = formatTime(budgetMs - frameMs);
+        html += `<div class="metric ${budget.cssClass}">
+            <span class="metric-name">Frame Budget</span>
+            <span class="metric-value">${budget.value}ms</span>
+        </div>`;
+        html += '</div>';
+
+        this.profilerPanel.innerHTML = html;
     }
 
     lerpColor(color1, color2, t) {
