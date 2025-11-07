@@ -21,9 +21,16 @@ class CloudElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize saturation level if not set
+        // Initialize saturation level if not set (represents water molecules absorbed)
         if (cell.data.saturation === undefined) {
             cell.data.saturation = 1; // Default small cloud
+        }
+
+        // Initialize water capacity (how many water drops this cloud can produce)
+        // This ensures clouds can't produce more water than was evaporated
+        if (cell.data.waterCapacity === undefined) {
+            // Each saturation point = 1 water molecule that can be returned
+            cell.data.waterCapacity = cell.data.saturation;
         }
 
         // Initialize rain cooldown timer
@@ -44,6 +51,7 @@ class CloudElement extends Element {
                 // Absorb the steam
                 grid.setElement(nearbySteam[0], nearbySteam[1], grid.registry.get('empty'));
                 cell.data.saturation += 1;
+                cell.data.waterCapacity += 1; // Each steam absorbed = 1 water we can return
                 // Update color based on saturation
                 this.updateCloudColor(cell);
             }
@@ -56,44 +64,52 @@ class CloudElement extends Element {
                 const [cloudX, cloudY] = nearbyCloud;
                 const otherCell = grid.getCell(cloudX, cloudY);
                 if (otherCell && otherCell.data.saturation !== undefined) {
-                    // Merge: combine saturation and remove the other cloud
+                    // Merge: combine saturation and water capacity
                     cell.data.saturation += otherCell.data.saturation;
+                    cell.data.waterCapacity += (otherCell.data.waterCapacity || otherCell.data.saturation);
                     grid.setElement(cloudX, cloudY, grid.registry.get('empty'));
                     this.updateCloudColor(cell);
                 }
             }
         }
 
-        // 3. RAIN GENERATION - saturated clouds produce rain
+        // 3. RAIN GENERATION - saturated clouds produce rain (but only what they absorbed!)
         if (cell.data.rainCooldown > 0) {
             cell.data.rainCooldown--;
         } else {
-            // Check if cloud is saturated enough to rain
-            if (cell.data.saturation >= 10) {
-                // RAIN EVENT! Drop multiple water droplets
-                this.triggerRainEvent(x, y, grid, cell);
+            // Check if cloud has water to release
+            if (cell.data.waterCapacity > 0) {
+                // Check if cloud is saturated enough to rain
+                if (cell.data.saturation >= 10) {
+                    // RAIN EVENT! Drop multiple water droplets (limited by water capacity)
+                    const dropsCreated = this.triggerRainEvent(x, y, grid, cell);
 
-                // Reduce saturation after raining
-                cell.data.saturation -= 5;
+                    // Reduce saturation and water capacity by amount actually rained
+                    cell.data.saturation -= dropsCreated;
+                    cell.data.waterCapacity -= dropsCreated;
 
-                // Set cooldown before next rain (1-2 seconds)
-                cell.data.rainCooldown = 60 + Math.floor(Math.random() * 60);
+                    // Set cooldown before next rain (1-2 seconds)
+                    cell.data.rainCooldown = 60 + Math.floor(Math.random() * 60);
 
-                // Update color after losing saturation
-                this.updateCloudColor(cell);
-
-                // If saturation drops too low, cloud dissipates
-                if (cell.data.saturation <= 0) {
-                    grid.setElement(x, y, grid.registry.get('empty'));
-                    return true;
-                }
-            } else if (cell.data.saturation >= 5) {
-                // Medium saturation: occasional light rain
-                if (Math.random() < 0.01) {
-                    this.dropSingleRain(x, y, grid);
-                    cell.data.saturation -= 1;
-                    cell.data.rainCooldown = 30;
+                    // Update color after losing saturation
                     this.updateCloudColor(cell);
+
+                    // If saturation drops too low, cloud dissipates
+                    if (cell.data.saturation <= 0) {
+                        grid.setElement(x, y, grid.registry.get('empty'));
+                        return true;
+                    }
+                } else if (cell.data.saturation >= 5) {
+                    // Medium saturation: occasional light rain
+                    if (Math.random() < 0.01) {
+                        const dropped = this.dropSingleRain(x, y, grid);
+                        if (dropped) {
+                            cell.data.saturation -= 1;
+                            cell.data.waterCapacity -= 1;
+                        }
+                        cell.data.rainCooldown = 30;
+                        this.updateCloudColor(cell);
+                    }
                 }
             }
         }
@@ -180,15 +196,18 @@ class CloudElement extends Element {
 
     // Trigger dramatic rain event for saturated clouds
     triggerRainEvent(x, y, grid, cell) {
-        // Drop 3-6 water droplets in burst
-        const rainAmount = 3 + Math.floor(Math.random() * 4);
+        // Drop water droplets in burst (limited by water capacity)
+        // Target: 3-6 drops, but can't exceed what cloud actually absorbed
+        const desiredRain = 3 + Math.floor(Math.random() * 4);
+        const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
+
         const waterElement = grid.registry.get('water');
-        if (!waterElement) return;
+        if (!waterElement) return 0;
 
         let dropsCreated = 0;
         // Try to create rain drops below and around the cloud
-        for (let dy = 1; dy <= 3 && dropsCreated < rainAmount; dy++) {
-            for (let dx = -1; dx <= 1 && dropsCreated < rainAmount; dx++) {
+        for (let dy = 1; dy <= 3 && dropsCreated < maxRain; dy++) {
+            for (let dx = -1; dx <= 1 && dropsCreated < maxRain; dx++) {
                 const targetCell = grid.getCell(x + dx, y + dy);
                 if (targetCell && targetCell.element.id === 0) {
                     grid.setElement(x + dx, y + dy, waterElement);
@@ -196,17 +215,21 @@ class CloudElement extends Element {
                 }
             }
         }
+
+        return dropsCreated; // Return how many drops were actually created
     }
 
     // Drop single rain droplet
     dropSingleRain(x, y, grid) {
         const waterElement = grid.registry.get('water');
-        if (!waterElement) return;
+        if (!waterElement) return false;
 
         const below = grid.getCell(x, y + 1);
         if (below && below.element.id === 0) {
             grid.setElement(x, y + 1, waterElement);
+            return true; // Successfully dropped water
         }
+        return false; // Could not drop water
     }
 
     // Update cloud color based on saturation (darker = more saturated)
