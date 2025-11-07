@@ -17,18 +17,12 @@ class FireElement extends Element {
     }
 
     update(x, y, grid) {
-        // Aggressively emit steam to create cloud vortex (50% chance)
-        if (Math.random() > 0.5) {
-            // Try to spawn steam above and around fire
-            const steamX = x + Math.floor((Math.random() - 0.5) * 3); // -1 to +1 range
-            const steamY = y - 1;
-            if (grid.isEmpty(steamX, steamY)) {
-                grid.setElement(steamX, steamY, grid.registry.get('steam'));
-            }
-        }
+        // Fire should NOT produce steam from thin air
+        // Steam is only created when fire evaporates water (handled by interaction system)
+        // Fire from burning wood/oil should only produce smoke
 
-        // Also emit some smoke for visual effect (less frequently)
-        if (Math.random() > 0.92) {
+        // Emit smoke for visual effect when burning (30% chance)
+        if (Math.random() > 0.7) {
             const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
             const smokeY = y - 1;
             if (grid.isEmpty(smokeX, smokeY)) {
