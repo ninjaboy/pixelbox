@@ -132,8 +132,8 @@ class FishElement extends Element {
                 if (cell.data.hunger > 60) { // Very hungry - actively swim to surface
                     const surfaceY = this.findSurfaceLevel(x, y, grid);
                     if (surfaceY !== null && surfaceY < y - 2) {
-                        // Swim upward toward surface
-                        if (Math.random() > 0.7) {
+                        // Swim upward toward surface - FAST when very hungry
+                        if (Math.random() > 0.2) { // 80% chance to move
                             const element = grid.getElement(x, y - 1);
                             if (element && element.name === 'water') {
                                 grid.swap(x, y, x, y - 1);
@@ -357,17 +357,15 @@ class FishElement extends Element {
 
     findNearbyFood(x, y, grid) {
         // Search in a wider radius for food (leaves, ash, or seeds)
-        const searchRadius = 8;
+        const searchRadius = 12; // Increased from 8 to 12
 
         for (let dy = -searchRadius; dy <= searchRadius; dy++) {
             for (let dx = -searchRadius; dx <= searchRadius; dx++) {
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && (element.name === 'leaf' || element.name === 'ash' || element.name === 'tree_seed')) {
-                    // Check if food is at or near surface (has empty space or water above it)
-                    const above = grid.getElement(x + dx, y + dy - 1);
-                    if (above && (above.name === 'empty' || above.name === 'water')) {
-                        return [x + dx, y + dy];
-                    }
+                    // Food found! Fish can eat it regardless of position
+                    // (even if it's floating on surface or underwater)
+                    return [x + dx, y + dy];
                 }
             }
         }
@@ -380,8 +378,8 @@ class FishElement extends Element {
         const dx = targetX - x;
         const dy = targetY - y;
 
-        // Move vertically if needed (toward surface usually)
-        if (Math.abs(dy) > 0 && Math.random() > 0.3) {
+        // Move vertically if needed (toward surface usually) - FASTER when seeking food
+        if (Math.abs(dy) > 0 && Math.random() > 0.1) { // 90% chance (was 70%)
             const vertDir = dy > 0 ? 1 : -1;
             const element = grid.getElement(x, y + vertDir);
             // ONLY move into water, never into empty space (prevents jumping out)
@@ -391,8 +389,8 @@ class FishElement extends Element {
             }
         }
 
-        // Move horizontally toward food
-        if (Math.abs(dx) > 0 && Math.random() > 0.3) {
+        // Move horizontally toward food - FASTER when seeking food
+        if (Math.abs(dx) > 0 && Math.random() > 0.1) { // 90% chance (was 70%)
             const horizDir = dx > 0 ? 1 : -1;
             const element = grid.getElement(x + horizDir, y);
             // ONLY move into water, never into empty space (prevents jumping out)
