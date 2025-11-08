@@ -8,7 +8,7 @@ class SmokeElement extends Element {
             density: 0,
             state: STATE.GAS,
             dispersion: 3,
-            lifetime: 1800, // Extended lifetime (30 seconds - 5x longer)
+            lifetime: 300, // Base lifetime (5 seconds)
             tags: new Set()
         });
 
