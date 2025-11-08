@@ -54,9 +54,13 @@ class GameScene extends Phaser.Scene {
         this.fpsText = document.getElementById('fps');
         this.particlesText = document.getElementById('particles');
         this.versionText = document.getElementById('version');
+        this.modeDisplay = document.getElementById('mode-display');
 
         // Set version once
         this.versionText.textContent = VERSION;
+
+        // Initialize mode display
+        this.updateModeDisplay();
 
         // Debug: Log renderer info
         console.log('PixelBox initialized:', {
@@ -208,6 +212,11 @@ class GameScene extends Phaser.Scene {
             if (key === 'B') {
                 this.buildMode = !this.buildMode;
                 console.log(this.buildMode ? '🔨 Build mode ON' : '🚶 Explore mode ON');
+
+                // Update persistent mode display in stats
+                this.updateModeDisplay();
+
+                // Show temporary notification
                 const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
                 indicator.textContent = this.buildMode ? '🔨 Build Mode' : '🚶 Explore Mode';
                 indicator.style.display = 'block';
@@ -285,6 +294,18 @@ class GameScene extends Phaser.Scene {
         `;
         document.body.appendChild(indicator);
         return indicator;
+    }
+
+    updateModeDisplay() {
+        if (this.modeDisplay) {
+            if (this.buildMode) {
+                this.modeDisplay.textContent = '🔨 Build';
+                this.modeDisplay.style.color = '#00ffff'; // Cyan
+            } else {
+                this.modeDisplay.textContent = '🚶 Explore';
+                this.modeDisplay.style.color = '#00ff00'; // Green
+            }
+        }
     }
 
     spawnPlayer() {
