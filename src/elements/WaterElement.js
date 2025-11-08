@@ -25,6 +25,32 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
+        // Check for lava contact FIRST - before any movement
+        // This ensures water-lava interaction happens before water tries to displace lava
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && neighbor.name === 'lava') {
+                // Check if lava is at surface (exposed to water/air above)
+                const aboveLava = grid.getElement(nx, ny - 1);
+                const isSurface = !aboveLava || aboveLava.id === 0 || aboveLava.name === 'water' || aboveLava.name === 'steam';
+
+                if (isSurface) {
+                    // Surface lava + water = instant stone crust
+                    grid.setElement(nx, ny, grid.registry.get('stone'));
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    return true;
+                } else {
+                    // Buried lava just evaporates water
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    return true;
+                }
+            }
+        }
+
         // Surface evaporation (element-specific behavior)
         const above = grid.getElement(x, y - 1);
         if (above && above.id === 0) {
