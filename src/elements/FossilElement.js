@@ -9,7 +9,7 @@ class FossilElement extends Element {
             movable: false,
             ignitionResistance: 1.0, // Cannot burn (it's rock)
             tags: [TAG.ORGANIC], // Ancient organic matter
-            brushSize: 2, // Small brush for placing fossils
+            brushSize: 1, // Single pixel brush
             emissionDensity: 1.0 // Place individual fossils
         });
     }

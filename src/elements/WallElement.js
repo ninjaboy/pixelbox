@@ -8,7 +8,7 @@ class WallElement extends Element {
             state: STATE.SOLID,
             movable: false,  // Static - never moves
             tags: [],
-            brushSize: 3,
+            brushSize: 1,
             emissionDensity: 1.0
         });
     }

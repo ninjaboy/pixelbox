@@ -10,7 +10,7 @@ class WoodElement extends Element {
             ignitionResistance: 0.65, // Moderately flammable (65% resistance = 5.25% chance, 5x more than before)
             burnsInto: 'burning_wood',  // Transforms to burning_wood when ignited
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
-            brushSize: 3, // Medium brush for building
+            brushSize: 1, // Single pixel brush
             emissionDensity: 1.0 // Solid placement
         });
     }

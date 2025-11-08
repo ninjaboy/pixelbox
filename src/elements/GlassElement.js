@@ -8,7 +8,7 @@ class GlassElement extends Element {
             state: STATE.SOLID,
             movable: false,
             tags: [],
-            brushSize: 2,
+            brushSize: 1,
             emissionDensity: 0.8
         });
     }

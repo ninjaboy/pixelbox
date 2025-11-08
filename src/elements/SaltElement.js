@@ -8,7 +8,7 @@ class SaltElement extends Element {
             state: STATE.SOLID,
             movable: true,
             tags: [],
-            brushSize: 2,
+            brushSize: 1,
             emissionDensity: 0.7
         });
     }

@@ -8,7 +8,7 @@ class StoneElement extends Element {
             state: STATE.SOLID,
             movable: false, // Stone is immovable - acts as container for lava
             tags: [],
-            brushSize: 3, // Medium brush for building
+            brushSize: 1, // Single pixel brush
             emissionDensity: 1.0 // Solid placement
         });
 

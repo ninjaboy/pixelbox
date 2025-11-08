@@ -8,7 +8,7 @@ class IceElement extends Element {
             state: STATE.SOLID,
             movable: false,
             tags: [TAG.ORGANIC],
-            brushSize: 2,
+            brushSize: 1,
             emissionDensity: 0.8
         });
     }
