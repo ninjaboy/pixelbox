@@ -83,6 +83,41 @@ class LavaElement extends Element {
             }
         }
 
+        // Before moving, check what we're about to displace
+        // Lava should melt/transform materials it flows through
+        const below = grid.getElement(x, y + 1);
+        if (below && below.name === 'sand') {
+            // Lava flowing into sand: mostly melts to glass, sometimes solidifies lava to stone
+            if (Math.random() > 0.3) { // 70% chance
+                grid.setElement(x, y + 1, grid.registry.get('glass')); // Melt sand to glass
+            } else {
+                grid.setElement(x, y + 1, grid.registry.get('stone')); // Sand cools lava to stone
+            }
+            return true;
+        }
+
+        // Check diagonal positions too (lava flowing diagonally)
+        const belowLeft = grid.getElement(x - 1, y + 1);
+        const belowRight = grid.getElement(x + 1, y + 1);
+
+        if (belowLeft && belowLeft.name === 'sand' && Math.random() > 0.5) {
+            if (Math.random() > 0.3) {
+                grid.setElement(x - 1, y + 1, grid.registry.get('glass'));
+            } else {
+                grid.setElement(x - 1, y + 1, grid.registry.get('stone'));
+            }
+            return true;
+        }
+
+        if (belowRight && belowRight.name === 'sand' && Math.random() > 0.5) {
+            if (Math.random() > 0.3) {
+                grid.setElement(x + 1, y + 1, grid.registry.get('glass'));
+            } else {
+                grid.setElement(x + 1, y + 1, grid.registry.get('stone'));
+            }
+            return true;
+        }
+
         // Delegate to standardized liquid flow behavior
         // Note: LiquidFlowBehavior respects density and will only displace lighter elements
         return this.movement.apply(x, y, grid);
