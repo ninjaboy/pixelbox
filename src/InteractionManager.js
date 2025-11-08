@@ -35,33 +35,31 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
+                // Always evaporate the water first
+                grid.setElement(waterX, waterY, registry.get('steam'));
+
                 const lavaCell = grid.getCell(lavaX, lavaY);
-                if (!lavaCell.state) {
-                    grid.setElement(waterX, waterY, registry.get('steam'));
+                if (!lavaCell || !lavaCell.state) return true;
+
+                // Check if this lava is at the surface (exposed to air/water above)
+                const above = grid.getElement(lavaX, lavaY - 1);
+                const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
+
+                // Only surface lava can form crust
+                if (!isSurface) return true;
+
+                // Track water contacts for THIS specific lava pixel
+                const currentContacts = (lavaCell.state.data.waterContacts || 0) + 1;
+                lavaCell.state.data.waterContacts = currentContacts;
+
+                // After enough water contacts, solidify to stone crust
+                // More aggressive: just 1 contact! Water cools lava surface quickly
+                if (currentContacts >= 1) {
+                    // Turn surface lava into immovable stone crust
+                    grid.setElement(lavaX, lavaY, registry.get('stone'));
                     return true;
                 }
 
-                // Track how many water pixels this lava has contacted
-                const waterContacts = lavaCell.state.incrementTimer('waterContacts', 1);
-
-                // After 2+ water contacts, solidify the LAVA SURFACE to stone
-                // This creates a crust that covers the lava pool
-                if (waterContacts && lavaCell.state.getTimer('waterContacts') >= 2) {
-                    // Check if this lava is at the surface (has empty/water above)
-                    const above = grid.getElement(lavaX, lavaY - 1);
-                    const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
-
-                    if (isSurface) {
-                        // Turn the SURFACE lava pixel into stone (forms crust)
-                        grid.setElement(lavaX, lavaY, registry.get('stone'));
-                        // Water becomes steam
-                        grid.setElement(waterX, waterY, registry.get('steam'));
-                        return true;
-                    }
-                }
-
-                // If not ready to solidify yet, just evaporate the water
-                grid.setElement(waterX, waterY, registry.get('steam'));
                 return true;
             }
         });
