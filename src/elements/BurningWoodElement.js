@@ -56,8 +56,8 @@ class BurningWoodElement extends Element {
                 }
             }
 
-            // Some smoke
-            if (Math.random() > 0.95) {
+            // Reduced smoke emission (5% -> 1%)
+            if (Math.random() > 0.99) {
                 const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
                 if (grid.isEmpty(smokeX, y - 1)) {
                     grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));
@@ -75,8 +75,8 @@ class BurningWoodElement extends Element {
                 }
             }
 
-            // Moderate smoke
-            if (Math.random() > 0.93) {
+            // Reduced smoke emission (7% -> 2%)
+            if (Math.random() > 0.98) {
                 const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
                 if (grid.isEmpty(smokeX, y - 1)) {
                     grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));
@@ -93,8 +93,8 @@ class BurningWoodElement extends Element {
                 }
             }
 
-            // Lots of smoke
-            if (Math.random() > 0.88) {
+            // Reduced smoke emission (12% -> 3%)
+            if (Math.random() > 0.97) {
                 const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
                 if (grid.isEmpty(smokeX, y - 1)) {
                     grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));

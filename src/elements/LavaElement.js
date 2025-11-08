@@ -53,8 +53,8 @@ class LavaElement extends Element {
             }
         }
 
-        // Emit smoke above lava occasionally (10% chance)
-        if (Math.random() > 0.9) {
+        // Emit smoke above lava occasionally (10% -> 2%)
+        if (Math.random() > 0.98) {
             if (grid.isEmpty(x, y - 1)) {
                 grid.setElement(x, y - 1, grid.registry.get('smoke'));
             }
