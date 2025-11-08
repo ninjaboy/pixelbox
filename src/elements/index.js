@@ -28,3 +28,4 @@ export { default as GlassElement } from './GlassElement.js';
 export { default as LavaElement } from './LavaElement.js';
 export { default as AcidElement } from './AcidElement.js';
 export { default as PlantElement } from './PlantElement.js';
+export { default as GrassSeedElement } from './GrassSeedElement.js';

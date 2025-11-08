@@ -28,7 +28,8 @@ import {
     GlassElement,
     LavaElement,
     AcidElement,
-    PlantElement
+    PlantElement,
+    GrassSeedElement
 } from './elements/index.js';
 
 // Create and initialize the global element registry
@@ -64,6 +65,7 @@ registry.register(new GlassElement());
 registry.register(new LavaElement());
 registry.register(new AcidElement());
 registry.register(new PlantElement());
+registry.register(new GrassSeedElement());
 
 // Export the initialized registry
 export default registry;

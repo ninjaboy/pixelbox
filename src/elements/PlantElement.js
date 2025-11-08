@@ -67,14 +67,22 @@ class PlantElement extends Element {
             if (hasWater) break;
         }
 
-        // Grow and mature over time
-        const growthRate = hasWater ? 0.998 : 0.9995; // Faster with water
+        // Grow and mature over time (MUCH FASTER)
+        const growthRate = hasWater ? 0.95 : 0.98; // Very fast growth, even faster with water
         if (Math.random() > growthRate) {
             cell.data.growthStage++;
         }
 
-        // GRASS SPREADING: Grows horizontally on surface layer only
-        if (cell.data.growthStage >= 3 && Math.random() > 0.98) { // 2% chance when mature
+        // Drop seeds occasionally when mature (like trees)
+        if (cell.data.growthStage >= 2 && Math.random() > 0.995) { // 0.5% chance per frame
+            if (grid.isEmpty(x, y - 1)) {
+                grid.setElement(x, y - 1, grid.registry.get('grass_seed'));
+                return true;
+            }
+        }
+
+        // GRASS SPREADING: Grows horizontally on surface layer only (VERY AGGRESSIVE)
+        if (cell.data.growthStage >= 2 && Math.random() > 0.90) { // 10% chance when mature!
             // Only spread left or right (horizontal spreading)
             const spreadDir = Math.random() > 0.5 ? 1 : -1;
             const spreadDistance = Math.floor(Math.random() * 2) + 1; // 1-2 cells away
