@@ -11,7 +11,7 @@ class LavaElement extends Element {
             tags: new Set([TAG.HEAT_SOURCE, TAG.VERY_HOT]),
             brushSize: 3,
             emissionDensity: 0.7,
-            lifetime: 18000 // Very slow cooling: 300 seconds (5 minutes) - nearly eternal
+            lifetime: -1 // Eternal - lava never disappears
         });
 
         // Use standardized liquid flow behavior (very viscous)
@@ -27,15 +27,8 @@ class LavaElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Slow natural cooling (5 minutes to harden into stone)
-        // Use CellState for unified timer management
-        const shouldSolidify = cell.state.incrementTimer('cooling', this.lifetime);
-        if (shouldSolidify) {
-            grid.setElement(x, y, grid.registry.get('stone'));
-            return true;
-        }
-
-        // Lava does NOT melt stone - stone acts as a container for lava
+        // Lava is eternal - no cooling timer!
+        // Water-lava interaction handled by InteractionManager (forms crust on top)
 
         const neighbors = [
             [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
@@ -46,22 +39,8 @@ class LavaElement extends Element {
             const neighbor = grid.getElement(nx, ny);
             if (!neighbor || neighbor.id === 0) continue;
 
-            // Water + Lava = Violent steam explosion + cool lava to stone
-            if (neighbor.name === 'water') {
-                if (Math.random() > 0.7) { // 30% chance per frame
-                    // Create steam explosion (multiple steam particles)
-                    grid.setElement(nx, ny, grid.registry.get('steam'));
-                    if (grid.isEmpty(nx, ny - 1)) {
-                        grid.setElement(nx, ny - 1, grid.registry.get('steam'));
-                    }
-                    // Lava cools rapidly when touching water
-                    if (Math.random() > 0.5) {
-                        grid.setElement(x, y, grid.registry.get('stone'));
-                        return true;
-                    }
-                    return true;
-                }
-            }
+            // Water-lava interaction now handled by InteractionManager (priority 0)
+            // Removed duplicate code to avoid conflicts
 
             // Ice + Lava = Melt ice instantly to water, then evaporate
             if (neighbor.name === 'ice') {

@@ -37,17 +37,24 @@ class InteractionManager {
 
                 const lavaCell = grid.getCell(lavaX, lavaY);
 
-                // Always evaporate the water
+                // Always evaporate the water to steam
                 grid.setElement(waterX, waterY, registry.get('steam'));
 
-                // Track how many water pixels this lava has evaporated
+                // Track how many water pixels this lava has contacted
                 if (!lavaCell.state) return true;
 
-                const waterEvaporated = lavaCell.state.incrementTimer('waterEvaporated', 1);
+                const waterContacts = lavaCell.state.incrementTimer('waterContacts', 1);
 
-                // Only solidify after evaporating 5+ water pixels
-                if (waterEvaporated && lavaCell.state.getTimer('waterEvaporated') >= 5) {
-                    grid.setElement(lavaX, lavaY, registry.get('stone'));
+                // After 3+ water contacts, form stone crust ON TOP of lava
+                if (waterContacts && lavaCell.state.getTimer('waterContacts') >= 3) {
+                    // Try to form stone crust above the lava (realistic surface cooling)
+                    const aboveLava = grid.getElement(lavaX, lavaY - 1);
+                    if (aboveLava && aboveLava.id === 0) {
+                        // Create stone crust on surface
+                        grid.setElement(lavaX, lavaY - 1, registry.get('stone'));
+                        // Reset counter
+                        lavaCell.state.setTimer('waterContacts', 0);
+                    }
                 }
 
                 return true;
