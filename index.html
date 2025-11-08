@@ -299,26 +299,44 @@
             }
         });
 
-        // 2. Silent audio context trick (fallback for older browsers)
-        // This keeps the page "active" by having an audio context running
+        // 2. Ambient mystic drone (keeps page active + creates atmosphere)
         let audioContext = null;
-        let oscillator = null;
+        let oscillators = [];
         let gainNode = null;
 
-        function setupSilentAudio() {
+        function setupAmbientDrone() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                oscillator = audioContext.createOscillator();
                 gainNode = audioContext.createGain();
 
-                // Set volume to basically silent
-                gainNode.gain.value = 0.001;
+                // Very subtle volume for ambient background
+                gainNode.gain.value = 0.03;
 
-                oscillator.connect(gainNode);
+                // Create a mystical chord using multiple oscillators
+                // C2, G2, C3, E3 - creates a mysterious, spacey feeling
+                const frequencies = [
+                    65.41,   // C2 - deep bass foundation
+                    98.00,   // G2 - perfect fifth
+                    130.81,  // C3 - octave
+                    164.81   // E3 - major third (adds warmth)
+                ];
+
+                frequencies.forEach(freq => {
+                    const osc = audioContext.createOscillator();
+                    osc.type = 'sine'; // Smooth, pure tone
+                    osc.frequency.value = freq;
+
+                    // Add slight detuning for chorus effect
+                    osc.detune.value = (Math.random() - 0.5) * 2;
+
+                    osc.connect(gainNode);
+                    osc.start();
+                    oscillators.push(osc);
+                });
+
                 gainNode.connect(audioContext.destination);
-                oscillator.start();
 
-                console.log('✅ Silent audio context active - maintains page priority');
+                console.log('✨ Ambient mystic drone active');
             } catch (err) {
                 console.log('Audio context not available:', err.message);
             }
@@ -328,7 +346,7 @@
         let audioStarted = false;
         function startAudioOnInteraction() {
             if (!audioStarted) {
-                setupSilentAudio();
+                setupAmbientDrone();
                 audioStarted = true;
                 document.removeEventListener('click', startAudioOnInteraction);
                 document.removeEventListener('keydown', startAudioOnInteraction);
@@ -342,9 +360,11 @@
             if (wakeLock !== null) {
                 wakeLock.release();
             }
-            if (oscillator !== null) {
-                oscillator.stop();
-            }
+            oscillators.forEach(osc => {
+                if (osc !== null) {
+                    osc.stop();
+                }
+            });
             if (audioContext !== null) {
                 audioContext.close();
             }
