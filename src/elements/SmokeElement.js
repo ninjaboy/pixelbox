@@ -8,7 +8,7 @@ class SmokeElement extends Element {
             density: 0,
             state: STATE.GAS,
             dispersion: 3,
-            lifetime: 120, // Base lifetime (2 seconds)
+            lifetime: 30, // Base lifetime (0.5 seconds)
             tags: new Set()
         });
 
@@ -38,21 +38,7 @@ class SmokeElement extends Element {
         const atmosphereHeight = Math.floor(grid.height * this.atmosphereThreshold);
         const inAtmosphere = y < atmosphereHeight;
 
-        // EXTENDED LIFETIME IN ATMOSPHERE: Smoke lingers a bit longer at high altitude
-        if (inAtmosphere) {
-            // Initialize atmosphere timer
-            if (cell.data.atmosphereTime === undefined) {
-                cell.data.atmosphereTime = 0;
-                // Extend lifetime to 5-8 seconds when reaching atmosphere
-                cell.lifetime = 300 + Math.floor(Math.random() * 180); // 5-8 seconds
-            }
-            cell.data.atmosphereTime++;
-        } else {
-            // Reset atmosphere data if smoke drops below atmosphere
-            if (cell.data.atmosphereTime !== undefined) {
-                delete cell.data.atmosphereTime;
-            }
-        }
+        // NO LIFETIME EXTENSION - let smoke dissipate naturally at same rate everywhere
 
         // Use different movement behavior based on altitude
         if (inAtmosphere) {
