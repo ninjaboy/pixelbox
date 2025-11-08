@@ -464,6 +464,13 @@ class GameScene extends Phaser.Scene {
                         const targetX = gridX + dx;
                         const targetY = gridY + dy;
 
+                        // Don't allow drawing in the border area (2 pixels from edge)
+                        const borderSize = 2;
+                        if (targetX < borderSize || targetX >= this.pixelGrid.width - borderSize ||
+                            targetY < borderSize || targetY >= this.pixelGrid.height - borderSize) {
+                            continue; // Skip border area
+                        }
+
                         // Don't erase or overwrite the player character
                         const existingElement = this.pixelGrid.getElement(targetX, targetY);
                         if (existingElement && existingElement.name === 'player') {
@@ -597,10 +604,44 @@ class GameScene extends Phaser.Scene {
         }
         profiler.end('render:particles');
 
-        // 4. RENDER ATMOSPHERIC OVERLAY
+        // 4. RENDER WORLD BORDER (visual only, not particles)
+        profiler.start('render:border');
+        this.renderWorldBorder();
+        profiler.end('render:border');
+
+        // 5. RENDER ATMOSPHERIC OVERLAY
         profiler.start('render:atmosphere');
         this.renderAtmosphere(width, height, time);
         profiler.end('render:atmosphere');
+    }
+
+    renderWorldBorder() {
+        const borderThickness = this.pixelSize * 2; // 2 pixels thick
+        const { width, height } = this.sys.game.config;
+
+        // Use a dedicated graphics object for the border
+        if (!this.borderGraphics) {
+            this.borderGraphics = this.add.graphics();
+            this.borderGraphics.setDepth(1000); // Above particles
+        }
+
+        this.borderGraphics.clear();
+
+        // Dark stone-like border color with slight transparency
+        this.borderGraphics.lineStyle(borderThickness, 0x404040, 1);
+
+        // Draw border rectangle (inset by half border thickness)
+        const inset = borderThickness / 2;
+        this.borderGraphics.strokeRect(inset, inset, width - borderThickness, height - borderThickness);
+
+        // Add inner shadow effect for depth
+        this.borderGraphics.lineStyle(this.pixelSize, 0x202020, 0.5);
+        this.borderGraphics.strokeRect(
+            inset + this.pixelSize,
+            inset + this.pixelSize,
+            width - borderThickness - this.pixelSize * 2,
+            height - borderThickness - this.pixelSize * 2
+        );
     }
 
     renderSky(width, height, time) {
