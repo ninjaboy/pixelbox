@@ -1,15 +1,24 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
+import { LiquidFlowBehavior } from '../behaviors/MovementBehaviors.js';
 
 class AcidElement extends Element {
     constructor() {
-        super(23, 'acid', 0x7fff00, { // Bright yellow-green
+        super(ELEMENT_TYPE.ACID, 'acid', 0x7fff00, { // Bright yellow-green
             density: 1.2, // Slightly denser than water
             state: STATE.LIQUID,
             movable: true,
-            tags: [],
+            tags: new Set([TAG.CORROSIVE]),
             brushSize: 2,
             emissionDensity: 0.6
+        });
+
+        // Use standardized liquid flow behavior
+        this.movement = new LiquidFlowBehavior({
+            fallSpeed: 3,
+            dispersionRate: 1,
+            viscosity: 0,
+            levelingEnabled: false
         });
     }
 
@@ -58,45 +67,8 @@ class AcidElement extends Element {
             }
         }
 
-        // Acid flows like liquid
-        const below = grid.getElement(x, y + 1);
-
-        // Flow through lighter materials
-        if (below && below.density < this.density) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Fall straight down if empty
-        if (grid.isEmpty(x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Diagonal fall
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        if (grid.isEmpty(x + dir, y + 1)) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-        if (grid.isEmpty(x - dir, y + 1)) {
-            grid.swap(x, y, x - dir, y + 1);
-            return true;
-        }
-
-        // Flow sideways
-        if (Math.random() > 0.5) {
-            if (grid.isEmpty(x + dir, y)) {
-                grid.swap(x, y, x + dir, y);
-                return true;
-            }
-            if (grid.isEmpty(x - dir, y)) {
-                grid.swap(x, y, x - dir, y);
-                return true;
-            }
-        }
-
-        return false;
+        // Delegate to standardized liquid flow behavior
+        return this.movement.apply(x, y, grid);
     }
 }
 

@@ -1,22 +1,61 @@
 import { TAG } from './ElementProperties.js';
 
 // InteractionManager - handles all element interactions based on properties
+// Now supports priority system: lower priority number = higher priority
 class InteractionManager {
     constructor() {
         this.interactions = [];
         this.registerDefaultInteractions();
     }
 
-    // Register an interaction rule
+    // Register an interaction rule with optional priority (default: 10)
     registerInteraction(rule) {
-        this.interactions.push(rule);
+        const interaction = {
+            ...rule,
+            priority: rule.priority !== undefined ? rule.priority : 10
+        };
+        this.interactions.push(interaction);
+        // Sort by priority (lower number = higher priority)
+        this.interactions.sort((a, b) => a.priority - b.priority);
     }
 
     // Register all default interaction rules
     registerDefaultInteractions() {
-        // COMBUSTION: heat_source + combustible → fire
+        // PRIORITY 0: CRITICAL - Lava + Water solidification
+        this.registerInteraction({
+            name: 'lava_water_solidification',
+            priority: 0,
+            check: (element1, element2) => {
+                return (element1.hasTag(TAG.SOLIDIFIES_LAVA) && element2.hasTag(TAG.VERY_HOT)) ||
+                       (element2.hasTag(TAG.SOLIDIFIES_LAVA) && element1.hasTag(TAG.VERY_HOT));
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
+                // Determine which is water and which is lava
+                const [waterX, waterY, lavaX, lavaY] = element1.hasTag(TAG.SOLIDIFIES_LAVA)
+                    ? [x1, y1, x2, y2]
+                    : [x2, y2, x1, y1];
+
+                // Turn lava into stone
+                grid.setElement(lavaX, lavaY, registry.get('stone'));
+
+                // Turn water into steam
+                grid.setElement(waterX, waterY, registry.get('steam'));
+
+                // Accelerate lava cooling if it has state tracking
+                const lavaCell = grid.getCell(lavaX, lavaY);
+                if (lavaCell?.state) {
+                    const currentCooling = lavaCell.state.getTimer('cooling');
+                    lavaCell.state.setTimer('cooling', currentCooling + 10);
+                }
+
+                return true;
+            }
+        });
+
+        // PRIORITY 5: COMBUSTION - heat_source + combustible → fire
         this.registerInteraction({
             name: 'ignition',
+            priority: 5,
             check: (element1, element2) => {
                 return (element1.hasTag(TAG.HEAT_SOURCE) && element2.hasTag(TAG.COMBUSTIBLE)) ||
                        (element2.hasTag(TAG.HEAT_SOURCE) && element1.hasTag(TAG.COMBUSTIBLE));
@@ -44,9 +83,10 @@ class InteractionManager {
             }
         });
 
-        // EVAPORATION: liquid + heat_source → gas
+        // PRIORITY 10: EVAPORATION - liquid + heat_source → gas
         this.registerInteraction({
             name: 'evaporation',
+            priority: 10,
             check: (element1, element2) => {
                 return (element1.hasTag(TAG.EVAPORATES) && element2.hasTag(TAG.HEAT_SOURCE)) ||
                        (element2.hasTag(TAG.EVAPORATES) && element1.hasTag(TAG.HEAT_SOURCE));

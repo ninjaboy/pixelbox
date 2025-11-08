@@ -1,19 +1,27 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
+import { GasBehavior } from '../behaviors/MovementBehaviors.js';
 
 class SteamElement extends Element {
     constructor() {
-        super(6, 'steam', 0xcccccc, {
+        super(ELEMENT_TYPE.STEAM, 'steam', 0xcccccc, {
             density: 0,
             state: STATE.GAS,
             dispersion: 2,
             lifetime: 240, // Steam dissipates after 4 seconds
             condensesInto: 'cloud',  // Condenses into clouds at atmosphere
-            tags: [TAG.CONDENSES]
+            tags: new Set([TAG.CONDENSES])
         });
 
         // Define atmosphere boundary (upper 40% of screen)
         this.atmosphereThreshold = 0.40;
+
+        // Use standardized gas behavior (fast rise)
+        this.movement = new GasBehavior({
+            riseSpeed: 0.8, // Very fast rise
+            spreadRate: 0.15, // Some sideways expansion
+            dissipation: false // Lifetime handles dissipation
+        });
     }
 
     update(x, y, grid) {
@@ -82,39 +90,11 @@ class SteamElement extends Element {
                     return true;
                 }
             }
+            return false;
         } else {
-            // Below atmosphere - rise rapidly (80% chance to prioritize upward movement)
-            if (Math.random() > 0.2) {
-                if (grid.isEmpty(x, y - 1)) {
-                    grid.swap(x, y, x, y - 1);
-                    return true;
-                }
-
-                // Diagonal rise
-                const dir = Math.random() > 0.5 ? 1 : -1;
-                if (grid.isEmpty(x + dir, y - 1)) {
-                    grid.swap(x, y, x + dir, y - 1);
-                    return true;
-                }
-                if (grid.isEmpty(x - dir, y - 1)) {
-                    grid.swap(x, y, x - dir, y - 1);
-                    return true;
-                }
-            }
-
-            // Expand sideways to fill space (20% horizontal expansion)
-            const dir = Math.random() > 0.5 ? 1 : -1;
-            if (grid.isEmpty(x + dir, y)) {
-                grid.swap(x, y, x + dir, y);
-                return true;
-            }
-            if (grid.isEmpty(x - dir, y)) {
-                grid.swap(x, y, x - dir, y);
-                return true;
-            }
+            // Below atmosphere - use standardized gas behavior
+            return this.movement.apply(x, y, grid);
         }
-
-        return false;
     }
 
     // Count nearby steam particles for clustering detection

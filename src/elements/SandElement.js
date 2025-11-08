@@ -1,45 +1,28 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE, TAG } from '../ElementProperties.js';
+import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class SandElement extends Element {
     constructor() {
-        super(1, 'sand', 0xdaa520, { // Goldenrod - warmer, more saturated
+        super(ELEMENT_TYPE.SAND, 'sand', 0xdaa520, { // Goldenrod - warmer, more saturated
             density: 3,
             state: STATE.POWDER,
             dispersion: 1,
-            tags: [],
+            tags: new Set([TAG.MINERAL]),
             brushSize: 5, // Large pour brush
             emissionDensity: 1.0 // Continuous pour
+        });
+
+        // Use standardized gravity behavior
+        this.movement = new GravityBehavior({
+            fallSpeed: 1,
+            slideAngle: true,
+            slideStability: 0.85 // Creates realistic ~45° pile formation
         });
     }
 
     update(x, y, grid) {
-        // Try to fall down
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Angle of repose: only slide diagonally if there's space below diagonal
-        // This creates realistic pile formation at ~45° (adjustable with probability)
-        const dir = Math.random() > 0.5 ? -1 : 1;
-
-        // Check if diagonal slide would be stable (has support)
-        const hasSupport = !grid.isEmpty(x + dir, y + 2);
-
-        // Only slide if moving to unstable position or with low probability when stable
-        const shouldSlide = !hasSupport || Math.random() > 0.85;
-
-        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
-            grid.swap(x, y, x - dir, y + 1);
-            return true;
-        }
-
-        return false;
+        return this.movement.apply(x, y, grid);
     }
 }
 

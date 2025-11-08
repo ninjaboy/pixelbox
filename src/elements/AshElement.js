@@ -1,14 +1,22 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE, TAG } from '../ElementProperties.js';
+import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class AshElement extends Element {
     constructor() {
-        super(16, 'ash', 0x999999, { // Light gray
+        super(ELEMENT_TYPE.ASH, 'ash', 0x999999, { // Light gray
             density: 1,
             state: STATE.POWDER,
             dispersion: 1,
-            tags: [],
+            tags: new Set([TAG.DISSOLVES]),
             lifetime: 600 // Dissolve after 10 seconds (600 frames at 60fps)
+        });
+
+        // Use standardized gravity behavior (lighter, more stable than sand)
+        this.movement = new GravityBehavior({
+            fallSpeed: 1,
+            slideAngle: true,
+            slideStability: 0.90 // More stable than sand (0.85)
         });
     }
 
@@ -32,28 +40,8 @@ class AshElement extends Element {
             return false;
         }
 
-        // Ash falls like very light powder with angle of repose
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Ash is lighter and more stable than sand (higher stability threshold)
-        const dir = Math.random() > 0.5 ? -1 : 1;
-
-        const hasSupport = !grid.isEmpty(x + dir, y + 2);
-        const shouldSlide = !hasSupport || Math.random() > 0.90; // More stable than sand
-
-        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
-            grid.swap(x, y, x - dir, y + 1);
-            return true;
-        }
-
-        return false;
+        // Delegate to gravity behavior
+        return this.movement.apply(x, y, grid);
     }
 }
 

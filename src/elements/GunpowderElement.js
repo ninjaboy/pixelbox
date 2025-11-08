@@ -1,17 +1,25 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
+import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class GunpowderElement extends Element {
     constructor() {
-        super(14, 'gunpowder', 0x333333, { // Dark gray/black
+        super(ELEMENT_TYPE.GUNPOWDER, 'gunpowder', 0x333333, { // Dark gray/black
             density: 3, // Same as sand for consistent powder behavior
             state: STATE.POWDER,
             dispersion: 1,
             ignitionResistance: 0.0, // EXTREMELY easy to ignite (15% chance)
             burnsInto: 'fire',
-            tags: [TAG.COMBUSTIBLE, TAG.EXPLOSIVE],
+            tags: new Set([TAG.COMBUSTIBLE, TAG.EXPLOSIVE]),
             brushSize: 4, // Medium-large pour brush
             emissionDensity: 1.0 // Pour like sand
+        });
+
+        // Use standardized gravity behavior (same as sand)
+        this.movement = new GravityBehavior({
+            fallSpeed: 1,
+            slideAngle: true,
+            slideStability: 0.85
         });
     }
 
@@ -32,28 +40,8 @@ class GunpowderElement extends Element {
             }
         }
 
-        // Gunpowder falls like sand with angle of repose
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Angle of repose: stable piles like sand
-        const dir = Math.random() > 0.5 ? -1 : 1;
-
-        const hasSupport = !grid.isEmpty(x + dir, y + 2);
-        const shouldSlide = !hasSupport || Math.random() > 0.85;
-
-        if (shouldSlide && grid.canMoveTo(x, y, x + dir, y + 1)) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-        if (shouldSlide && grid.canMoveTo(x, y, x - dir, y + 1)) {
-            grid.swap(x, y, x - dir, y + 1);
-            return true;
-        }
-
-        return false;
+        // Delegate to gravity behavior
+        return this.movement.apply(x, y, grid);
     }
 
     // Custom interaction for explosive chain reactions
