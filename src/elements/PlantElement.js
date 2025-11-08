@@ -24,30 +24,32 @@ class PlantElement extends Element {
             cell.data.growthStage = 0;
         }
 
-        // IVY BEHAVIOR: Check if attached to ANY solid surface (not just ground)
-        const adjacentPositions = [
-            [x, y - 1], [x, y + 1], // above, below
-            [x - 1, y], [x + 1, y]  // left, right
-        ];
+        // GRASS BEHAVIOR: Must be on TOP of suitable ground
+        const below = grid.getElement(x, y + 1);
 
-        let hasSupport = false;
-        const supportingSurfaces = [];
+        // List of surfaces grass can grow on
+        const grassSurfaces = ['sand', 'wet_sand', 'stone', 'wood', 'fossil', 'salt'];
 
-        for (const [nx, ny] of adjacentPositions) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && neighbor.name !== 'empty' && neighbor.state === STATE.SOLID) {
-                hasSupport = true;
-                supportingSurfaces.push([nx, ny]);
-            }
-        }
+        // Check if on valid ground
+        const hasGround = below && grassSurfaces.includes(below.name);
 
-        // Ivy dies VERY slowly without any solid surface to attach to
-        if (!hasSupport) {
-            if (Math.random() > 0.98) { // 2% chance per frame (faster than with support)
-                grid.setElement(x, y, grid.registry.get('ash'));
+        // Grass dies if not on proper ground
+        if (!hasGround) {
+            if (Math.random() > 0.95) { // 5% chance to die per frame
+                grid.setElement(x, y, grid.registry.get('empty'));
                 return true;
             }
             return false;
+        }
+
+        // Check if something is on top (grass only grows as surface layer)
+        const above = grid.getElement(x, y - 1);
+        if (above && above.id !== 0 && above.name !== 'plant') {
+            // If covered, slowly die
+            if (Math.random() > 0.99) {
+                grid.setElement(x, y, grid.registry.get('empty'));
+                return true;
+            }
         }
 
         // Check for moisture (optional, makes growth faster)
@@ -71,41 +73,28 @@ class PlantElement extends Element {
             cell.data.growthStage++;
         }
 
-        // SHRUB/IVY SPREADING: Grows along ANY surface
-        if (cell.data.growthStage >= 3 && Math.random() > 0.97) { // 3% chance when mature
-            // Find all empty spaces adjacent to solid surfaces
-            const growthCandidates = [];
+        // GRASS SPREADING: Grows horizontally on surface layer only
+        if (cell.data.growthStage >= 3 && Math.random() > 0.98) { // 2% chance when mature
+            // Only spread left or right (horizontal spreading)
+            const spreadDir = Math.random() > 0.5 ? 1 : -1;
+            const spreadDistance = Math.floor(Math.random() * 2) + 1; // 1-2 cells away
+            const targetX = x + (spreadDir * spreadDistance);
+            const targetY = y;
 
-            // Check all 8 directions (including diagonals for better coverage)
-            const allDirections = [
-                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y],
-                [x - 1, y - 1], [x + 1, y - 1], [x - 1, y + 1], [x + 1, y + 1]
-            ];
+            // Check if target position is valid
+            if (grid.isEmpty(targetX, targetY)) {
+                const targetBelow = grid.getElement(targetX, targetY + 1);
 
-            for (const [nx, ny] of allDirections) {
-                if (grid.isEmpty(nx, ny)) {
-                    // Check if this empty space is adjacent to a solid surface
-                    const nearbyPositions = [
-                        [nx, ny - 1], [nx, ny + 1],
-                        [nx - 1, ny], [nx + 1, ny]
-                    ];
+                // Can spread to this location if:
+                // 1. There's valid ground below
+                // 2. OR there's water below (rare - can grow over small ponds)
+                const validGround = targetBelow && grassSurfaces.includes(targetBelow.name);
+                const overWater = targetBelow && targetBelow.name === 'water' && Math.random() > 0.95; // 5% chance over water
 
-                    for (const [checkX, checkY] of nearbyPositions) {
-                        const checkElement = grid.getElement(checkX, checkY);
-                        if (checkElement && checkElement.name !== 'empty' && checkElement.state === STATE.SOLID) {
-                            growthCandidates.push([nx, ny]);
-                            break; // Found a surface, this is a valid growth spot
-                        }
-                    }
+                if (validGround || overWater) {
+                    grid.setElement(targetX, targetY, grid.registry.get('plant'));
+                    return true;
                 }
-            }
-
-            // Grow to one random candidate location
-            if (growthCandidates.length > 0) {
-                const randomIndex = Math.floor(Math.random() * growthCandidates.length);
-                const [growX, growY] = growthCandidates[randomIndex];
-                grid.setElement(growX, growY, grid.registry.get('plant'));
-                return true;
             }
         }
 
