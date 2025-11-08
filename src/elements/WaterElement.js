@@ -19,8 +19,8 @@ class WaterElement extends Element {
             fallSpeed: 4,
             dispersionRate: 2,
             viscosity: 0, // Water is not viscous
-            levelingEnabled: true,
-            avoidElements: ['lava'] // Don't flow into lava
+            levelingEnabled: true
+            // Removed avoidElements: water SHOULD touch lava to form crust via InteractionManager
         });
     }
 
