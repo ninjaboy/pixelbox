@@ -554,8 +554,8 @@ class GameScene extends Phaser.Scene {
         // CRITICAL FIX: Only render active (non-empty) cells, batched by color
         const particlesByColor = new Map();
 
-        for (const posKey of this.pixelGrid.activeCells) {
-            const [x, y] = posKey.split(',').map(Number);
+        for (const [numericKey] of this.pixelGrid.activeCells) {
+            const { x, y } = this.pixelGrid.keyToCoord(numericKey);
             const cell = this.pixelGrid.grid[y]?.[x];
 
             if (cell && cell.element.id !== 0) {
