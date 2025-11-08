@@ -317,13 +317,13 @@
                 chordGain.gain.value = 0.025;  // Very subtle chord pad
                 melodyGain.gain.value = 0.015; // Even more subtle melody
 
-                // Deep mystical chord progression (lower octaves for deeper sound)
+                // Mystical chord progression (normal frequencies, warm and deep)
                 // Am9 -> Fmaj9 -> Cmaj9 -> G9 (magical, ethereal progression)
                 const chordProgression = [
-                    [55.00, 82.41, 98.00, 123.47, 146.83],  // Am9 (A1, E2, G2, B2, D3)
-                    [43.65, 65.41, 77.78, 98.00, 130.81],   // Fmaj9 (F1, C2, E2, G2, C3)
-                    [32.70, 65.41, 82.41, 98.00, 123.47],   // Cmaj9 (C1, C2, E2, G2, B2)
-                    [49.00, 73.42, 98.00, 123.47, 146.83]   // G9 (G1, D2, G2, B2, D3)
+                    [110.00, 164.81, 196.00, 246.94, 293.66],  // Am9 (A2, E3, G3, B3, D4)
+                    [87.31, 130.81, 155.56, 196.00, 261.63],   // Fmaj9 (F2, C3, Eb3, G3, C4)
+                    [130.81, 164.81, 196.00, 246.94, 329.63],  // Cmaj9 (C3, E3, G3, B3, E4)
+                    [98.00, 146.83, 196.00, 246.94, 293.66]    // G9 (G2, D3, G3, B3, D4)
                 ];
 
                 let currentChordIndex = 0;
@@ -356,58 +356,92 @@
                     playChord(chordProgression[currentChordIndex]);
                 }, 21000);
 
-                // Fibonacci-based melody (using Fibonacci sequence for timing)
-                // Sequence: 1, 1, 2, 3, 5, 8, 13 (in seconds * 1000)
-                const fibTiming = [1000, 1000, 2000, 3000, 5000, 8000, 13000];
+                // Melodic sequences with long pauses (like wind chimes or distant bells)
+                // Uses A minor pentatonic in normal octave: A4-A5
+                const melodyNotes = [440.00, 523.25, 587.33, 659.25, 783.99, 880.00]; // A4, C5, D5, E5, G5, A5
 
-                // Pentatonic scale for mystical sound (A minor pentatonic - lower octave)
-                const melodyNotes = [55.00, 65.41, 73.42, 82.41, 98.00, 110.00]; // A1-A2
+                // Define melodic sequences (phrases with pauses)
+                const melodySequences = [
+                    [0, 2, 4],        // A, D, G - ascending gentle
+                    [5, 3, 1],        // A5, E, C - descending sparkle
+                    [1, 3, 4, 3],     // C, E, G, E - ethereal pattern
+                    [4, 2, 0],        // G, D, A - grounding descent
+                ];
 
-                let noteIndex = 0;
-                let timingIndex = 0;
+                let sequenceIndex = 0;
 
-                function playMelodyNote() {
-                    // Stop previous melody note
-                    melodyOscillators.forEach(osc => osc.stop());
-                    melodyOscillators = [];
+                function playMelodySequence() {
+                    const sequence = melodySequences[sequenceIndex];
+                    let delay = 0;
 
-                    // Play note with slight harmonic (octave above, very quiet)
-                    const fundamental = audioContext.createOscillator();
-                    fundamental.type = 'sine';
-                    fundamental.frequency.value = melodyNotes[noteIndex];
+                    // Play each note in the sequence
+                    sequence.forEach((noteIdx, i) => {
+                        setTimeout(() => {
+                            // Stop previous melody note
+                            melodyOscillators.forEach(osc => {
+                                try { osc.stop(); } catch(e) {}
+                            });
+                            melodyOscillators = [];
 
-                    const harmonic = audioContext.createOscillator();
-                    harmonic.type = 'sine';
-                    harmonic.frequency.value = melodyNotes[noteIndex] * 2;
+                            // Create bell-like tone (fundamental + harmonics)
+                            const fundamental = audioContext.createOscillator();
+                            fundamental.type = 'sine';
+                            fundamental.frequency.value = melodyNotes[noteIdx];
 
-                    const harmonicGain = audioContext.createGain();
-                    harmonicGain.gain.value = 0.3; // Harmonic is quieter
+                            const harmonic2 = audioContext.createOscillator();
+                            harmonic2.type = 'sine';
+                            harmonic2.frequency.value = melodyNotes[noteIdx] * 2;
 
-                    fundamental.connect(melodyGain);
-                    harmonic.connect(harmonicGain);
-                    harmonicGain.connect(melodyGain);
+                            const harmonic3 = audioContext.createOscillator();
+                            harmonic3.type = 'sine';
+                            harmonic3.frequency.value = melodyNotes[noteIdx] * 3;
 
-                    fundamental.start();
-                    harmonic.start();
+                            const harmonic2Gain = audioContext.createGain();
+                            harmonic2Gain.gain.value = 0.2;
+                            const harmonic3Gain = audioContext.createGain();
+                            harmonic3Gain.gain.value = 0.1;
 
-                    melodyOscillators.push(fundamental, harmonic);
+                            fundamental.connect(melodyGain);
+                            harmonic2.connect(harmonic2Gain);
+                            harmonic2Gain.connect(melodyGain);
+                            harmonic3.connect(harmonic3Gain);
+                            harmonic3Gain.connect(melodyGain);
 
-                    // Fade in and out
-                    const now = audioContext.currentTime;
-                    melodyGain.gain.setValueAtTime(0, now);
-                    melodyGain.gain.linearRampToValueAtTime(0.015, now + 0.5);
-                    melodyGain.gain.linearRampToValueAtTime(0, now + fibTiming[timingIndex] / 1000 - 0.5);
+                            const now = audioContext.currentTime;
 
-                    // Move to next note and timing
-                    noteIndex = (noteIndex + 1) % melodyNotes.length;
-                    timingIndex = (timingIndex + 1) % fibTiming.length;
+                            // Quick attack, long decay (bell-like)
+                            melodyGain.gain.setValueAtTime(0, now);
+                            melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.05);
+                            melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 3);
 
-                    // Schedule next note
-                    setTimeout(playMelodyNote, fibTiming[timingIndex]);
+                            fundamental.start(now);
+                            harmonic2.start(now);
+                            harmonic3.start(now);
+
+                            // Stop after decay
+                            fundamental.stop(now + 3);
+                            harmonic2.stop(now + 3);
+                            harmonic3.stop(now + 3);
+
+                            melodyOscillators.push(fundamental, harmonic2, harmonic3);
+                        }, delay);
+
+                        // Notes within sequence: 1.5-2 seconds apart
+                        delay += 1500 + Math.random() * 500;
+                    });
+
+                    // Move to next sequence
+                    sequenceIndex = (sequenceIndex + 1) % melodySequences.length;
+
+                    // LONG PAUSE between sequences: 8-13 seconds (Fibonacci numbers)
+                    const pauseDurations = [8000, 13000, 21000];
+                    const nextPause = pauseDurations[Math.floor(Math.random() * pauseDurations.length)];
+
+                    setTimeout(playMelodySequence, delay + nextPause);
                 }
 
-                // Start melody after 5 seconds (let chord establish)
-                setTimeout(playMelodyNote, 5000);
+                // Start first melody sequence after 8 seconds (let chord establish + build anticipation)
+                setTimeout(playMelodySequence, 8000);
 
                 // Connect to output
                 chordGain.connect(audioContext.destination);
