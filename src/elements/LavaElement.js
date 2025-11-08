@@ -9,8 +9,8 @@ class LavaElement extends Element {
             movable: true,
             tags: [TAG.HEAT_SOURCE],
             brushSize: 3,
-            emissionDensity: 0.7,
-            lifetime: 600 // Lava cools after 10 seconds
+            emissionDensity: 0.7
+            // No lifetime - lava is nearly eternal like Minecraft
         });
     }
 
@@ -18,19 +18,8 @@ class LavaElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize cooling data
-        if (cell.data.coolingTime === undefined) {
-            cell.data.coolingTime = 0;
-        }
-
-        // Lava cools over time
-        cell.data.coolingTime++;
-
-        // After lifetime, cool into stone
-        if (cell.data.coolingTime >= this.lifetime) {
-            grid.setElement(x, y, grid.registry.get('stone'));
-            return true;
-        }
+        // Lava is nearly eternal - only cools when touching water
+        // No natural cooling like Minecraft lava
 
         // Lava melts adjacent stone (10% chance)
         if (Math.random() > 0.9) {
@@ -63,7 +52,7 @@ class LavaElement extends Element {
             }
         }
 
-        // Lava evaporates water instantly (creates steam)
+        // Lava + Water interaction: creates steam and lava cools to stone
         const neighbors = [
             [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
         ];
@@ -71,9 +60,14 @@ class LavaElement extends Element {
         for (const [nx, ny] of neighbors) {
             const neighbor = grid.getElement(nx, ny);
             if (neighbor && neighbor.name === 'water') {
+                // Water evaporates into steam
                 grid.setElement(nx, ny, grid.registry.get('steam'));
-                // Lava cools faster when touching water
-                cell.data.coolingTime += 5;
+
+                // Lava cools into stone when touching water (like Minecraft obsidian formation)
+                if (Math.random() > 0.5) { // 50% chance to cool per water contact
+                    grid.setElement(x, y, grid.registry.get('stone'));
+                    return true;
+                }
                 return true;
             }
         }
