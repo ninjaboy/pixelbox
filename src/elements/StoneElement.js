@@ -4,9 +4,9 @@ import { STATE } from '../ElementProperties.js';
 class StoneElement extends Element {
     constructor() {
         super(3, 'stone', 0x808080, { // Lighter gray for better visibility
-            density: 6,
+            density: 10, // Higher than lava (8) to prevent displacement
             state: STATE.SOLID,
-            movable: true,
+            movable: false, // Stone is immovable - acts as container for lava
             tags: [],
             brushSize: 3, // Medium brush for building
             emissionDensity: 1.0 // Solid placement
