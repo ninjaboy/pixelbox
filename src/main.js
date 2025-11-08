@@ -166,7 +166,6 @@ class GameScene extends Phaser.Scene {
             if (type === 'separator') {
                 const separator = document.createElement('div');
                 separator.className = 'element-separator';
-                separator.style.cssText = 'width: 2px; height: 36px; background: rgba(255,255,255,0.15); margin: 0 2px;';
                 selector.appendChild(separator);
                 return;
             }

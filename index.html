@@ -27,6 +27,7 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
+            flex-wrap: wrap;
             gap: 4px;
             background: rgba(0, 0, 0, 0.85);
             padding: 6px;
@@ -34,8 +35,52 @@
             backdrop-filter: blur(10px);
             z-index: 1000;
             max-width: 95vw;
-            overflow-x: auto;
-            overflow-y: visible;  /* Changed from hidden to visible so tooltips can show */
+            justify-content: center;
+        }
+
+        /* Separator styling - default (horizontal layout) */
+        .element-separator {
+            width: 2px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        /* Mobile Portrait: Multi-row layout */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #element-selector {
+                max-width: 95vw;
+                bottom: 5px;
+            }
+        }
+
+        /* Mobile Landscape: Side panel layout */
+        @media (max-width: 900px) and (orientation: landscape) {
+            #element-selector {
+                position: fixed;
+                right: 5px;
+                left: auto;
+                top: 50%;
+                bottom: auto;
+                transform: translateY(-50%);
+                flex-direction: column;
+                max-width: 50px;
+                max-height: 95vh;
+                overflow-y: auto;
+                overflow-x: visible;
+            }
+
+            #game-container {
+                padding-right: 60px; /* Make room for side panel */
+            }
+
+            /* Rotate separators for vertical layout */
+            .element-separator {
+                width: 36px;
+                height: 2px;
+                margin: 2px 0;
+            }
         }
         .element-btn {
             width: 36px;
