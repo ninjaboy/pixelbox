@@ -35,29 +35,19 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
-                // Always evaporate the water first
-                grid.setElement(waterX, waterY, registry.get('steam'));
-
-                const lavaCell = grid.getCell(lavaX, lavaY);
-                if (!lavaCell || !lavaCell.state) return true;
-
                 // Check if this lava is at the surface (exposed to air/water above)
                 const above = grid.getElement(lavaX, lavaY - 1);
                 const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
 
-                // Only surface lava can form crust
-                if (!isSurface) return true;
-
-                // Track water contacts for THIS specific lava pixel
-                const currentContacts = (lavaCell.state.data.waterContacts || 0) + 1;
-                lavaCell.state.data.waterContacts = currentContacts;
-
-                // After enough water contacts, solidify to stone crust
-                // More aggressive: just 1 contact! Water cools lava surface quickly
-                if (currentContacts >= 1) {
+                // Simple and aggressive: Surface lava + water = instant stone crust
+                if (isSurface) {
                     // Turn surface lava into immovable stone crust
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
-                    return true;
+                    // Water becomes steam
+                    grid.setElement(waterX, waterY, registry.get('steam'));
+                } else {
+                    // Buried lava just evaporates the water
+                    grid.setElement(waterX, waterY, registry.get('steam'));
                 }
 
                 return true;
