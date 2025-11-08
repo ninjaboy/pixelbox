@@ -9,8 +9,8 @@ class LavaElement extends Element {
             movable: true,
             tags: [TAG.HEAT_SOURCE],
             brushSize: 3,
-            emissionDensity: 0.7
-            // No lifetime - lava is nearly eternal like Minecraft
+            emissionDensity: 0.7,
+            lifetime: 3600 // Very slow cooling: 60 seconds (nearly eternal but eventually hardens)
         });
     }
 
@@ -18,8 +18,19 @@ class LavaElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Lava is nearly eternal - only cools when touching water
-        // No natural cooling like Minecraft lava
+        // Initialize cooling data
+        if (cell.data.coolingTime === undefined) {
+            cell.data.coolingTime = 0;
+        }
+
+        // Slow natural cooling (60 seconds to harden into stone)
+        cell.data.coolingTime++;
+
+        // After 60 seconds, lava cools into stone
+        if (cell.data.coolingTime >= this.lifetime) {
+            grid.setElement(x, y, grid.registry.get('stone'));
+            return true;
+        }
 
         // Lava melts adjacent stone (10% chance)
         if (Math.random() > 0.9) {
@@ -63,8 +74,11 @@ class LavaElement extends Element {
                 // Water evaporates into steam
                 grid.setElement(nx, ny, grid.registry.get('steam'));
 
-                // Lava cools into stone when touching water (like Minecraft obsidian formation)
-                if (Math.random() > 0.5) { // 50% chance to cool per water contact
+                // Lava cools faster when touching water (accelerates cooling)
+                cell.data.coolingTime += 10; // Speed up cooling significantly
+
+                // If cooled enough, instantly harden to stone
+                if (cell.data.coolingTime >= this.lifetime * 0.5) { // 50% cooling progress = instant stone
                     grid.setElement(x, y, grid.registry.get('stone'));
                     return true;
                 }
