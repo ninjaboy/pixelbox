@@ -121,7 +121,18 @@ export class LiquidFlowBehavior {
             for (let i = 1; i <= this.dispersionRate; i++) {
                 const targetX = x + (spreadDir * i);
 
-                if (grid.canMoveTo(x, y, targetX, y)) {
+                // Check path is clear (no walls in between)
+                let pathClear = true;
+                for (let checkX = x + spreadDir; spreadDir > 0 ? checkX <= targetX : checkX >= targetX; checkX += spreadDir) {
+                    const pathElement = grid.getElement(checkX, y);
+                    // Can't go through solid walls or non-movable elements
+                    if (pathElement && pathElement.id !== 0 && !pathElement.movable) {
+                        pathClear = false;
+                        break;
+                    }
+                }
+
+                if (pathClear && grid.canMoveTo(x, y, targetX, y)) {
                     const targetElement = grid.getElement(targetX, y);
                     if (!targetElement || !this.avoidElements.includes(targetElement.name)) {
                         grid.swap(x, y, targetX, y);
