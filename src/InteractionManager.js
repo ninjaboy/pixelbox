@@ -35,17 +35,19 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
-                // Turn lava into stone
-                grid.setElement(lavaX, lavaY, registry.get('stone'));
+                const lavaCell = grid.getCell(lavaX, lavaY);
 
-                // Turn water into steam
+                // Always evaporate the water
                 grid.setElement(waterX, waterY, registry.get('steam'));
 
-                // Accelerate lava cooling if it has state tracking
-                const lavaCell = grid.getCell(lavaX, lavaY);
-                if (lavaCell?.state) {
-                    const currentCooling = lavaCell.state.getTimer('cooling');
-                    lavaCell.state.setTimer('cooling', currentCooling + 10);
+                // Track how many water pixels this lava has evaporated
+                if (!lavaCell.state) return true;
+
+                const waterEvaporated = lavaCell.state.incrementTimer('waterEvaporated', 1);
+
+                // Only solidify after evaporating 5+ water pixels
+                if (waterEvaporated && lavaCell.state.getTimer('waterEvaporated') >= 5) {
+                    grid.setElement(lavaX, lavaY, registry.get('stone'));
                 }
 
                 return true;
