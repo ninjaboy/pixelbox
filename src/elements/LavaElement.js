@@ -32,20 +32,7 @@ class LavaElement extends Element {
             return true;
         }
 
-        // Lava melts adjacent stone (10% chance)
-        if (Math.random() > 0.9) {
-            const neighbors = [
-                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-            ];
-
-            for (const [nx, ny] of neighbors) {
-                const neighbor = grid.getElement(nx, ny);
-                if (neighbor && neighbor.name === 'stone') {
-                    grid.setElement(nx, ny, grid.registry.get('lava'));
-                    return true;
-                }
-            }
-        }
+        // Lava does NOT melt stone - stone acts as a container for lava
 
         // Lava ignites combustible materials
         if (Math.random() > 0.8) {
@@ -96,8 +83,9 @@ class LavaElement extends Element {
         // Lava flows like heavy liquid
         const below = grid.getElement(x, y + 1);
 
-        // Flow through lighter materials
-        if (below && below.density < this.density) {
+        // Flow through lighter materials (but NOT through stone/wall - they contain lava)
+        if (below && below.density < this.density &&
+            below.name !== 'stone' && below.name !== 'wall' && below.name !== 'glass') {
             grid.swap(x, y, x, y + 1);
             return true;
         }
