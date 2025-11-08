@@ -2,42 +2,59 @@
 
 A pixel-based physics simulation game built with Phaser 3, where each pixel acts as a particle with unique physical properties. Features a **modular, property-based interaction system** that makes it incredibly easy to add new elements and interactions. Perfect for mobile and desktop browsers.
 
+## 🎮 Play Now
+
+**Live Demo**: [https://ninjaboy.github.io/pixelbox/](https://ninjaboy.github.io/pixelbox/)
+
 ## Features
 
 - **Property-Based Interaction System**: Elements interact based on tags and properties, not hardcoded logic
 - **Modular Architecture**: Each element in its own file, easy to extend
 - **Custom Pixel Physics Engine**: Cellular automata-based simulation where each pixel has individual physics properties
-- **Multiple Elements**:
-  - **Sand** - Falls and piles up, displaces lighter materials
-  - **Water** - Flows and spreads, interacts with fire to create steam
-  - **Stone** - Static, immovable material (great for walls)
-  - **Fire** - Burns upward, ignites wood, evaporates water
-  - **Wood** - Static but flammable material
-  - **Steam** - Rises and drifts
+- **30+ Interactive Elements**:
+  - **Powders**: Sand, gunpowder, ash, salt
+  - **Liquids**: Water, oil, acid, lava
+  - **Gases**: Fire, steam, smoke, clouds
+  - **Solids**: Stone, wood, glass, ice, walls
+  - **Living**: Fish, plants, trees
+  - **Special**: Fossils (generate oil over time), burning wood
 - **Touch & Mouse Controls**: Draw particles with your finger or mouse
 - **Performance Optimized**: Handles thousands of particles smoothly on mobile
 - **Real-time Stats**: FPS and particle count displayed
 
-## How to Run
+## 🚀 Development
 
-### Option 1: Simple HTTP Server
+### Running Locally
 
 ```bash
-# Using Python 3
-python -m http.server 8000
+# Clone the repository
+git clone https://github.com/ninjaboy/pixelbox.git
+cd pixelbox
 
-# Using Python 2
-python -m SimpleHTTPServer 8000
+# Run a local server
+python3 -m http.server 8000
 
-# Using Node.js (if you have http-server installed)
+# Or use Node.js
 npx http-server -p 8000
 ```
 
 Then open `http://localhost:8000` in your browser.
 
-### Option 2: Open Directly
+### Deploying
 
-Simply open `index.html` in a modern web browser. Note: Some browsers may restrict loading resources this way, so using a local server is recommended.
+**Primary: GitHub Pages** (Automatic)
+```bash
+git add .
+git commit -m "Your changes"
+git push
+```
+Changes go live automatically at https://ninjaboy.github.io/pixelbox/
+
+**Alternative: Vercel** (Manual)
+```bash
+vercel --prod
+```
+Note: Free tier has 100 deployments/day limit
 
 ## How to Play
 
@@ -51,10 +68,17 @@ Simply open `index.html` in a modern web browser. Note: Some browsers may restri
 
 ## Element Interactions
 
-- **Water + Fire** → Steam
-- **Fire + Wood** → Fire spreads
-- **Sand** displaces water and steam
-- **Stone** is immovable and blocks everything
+- **Water + Fire** → Steam (fire extinguished)
+- **Water + Lava** → Stone (lava solidifies after evaporating 5+ water pixels)
+- **Fire + Wood/Oil/Gunpowder** → Ignition and burning
+- **Lava** → Ignites combustibles, emits smoke, slowly cools to stone (5 minutes)
+- **Ice + Heat** → Melts to water
+- **Ice + Water** → Freezes adjacent water
+- **Wood** → Buried in sand/stone for 20s becomes fossil
+- **Fossil** → Slowly generates oil
+- **Gunpowder + Fire** → Explosive burning
+- **Fish** → Swims in water, AI-driven behavior
+- **Trees** → Grow from wood placed near sand/water
 
 ## Technical Details
 
@@ -67,10 +91,14 @@ Simply open `index.html` in a modern web browser. Note: Some browsers may restri
 
 ## Performance
 
-- **Target**: 60 FPS
-- **Typical Particle Count**: 5,000-20,000 particles depending on device
-- **Mobile Optimized**: Tested on Chrome for Android
-- **Pixel Size**: Adjustable in `src/main.js` - smaller = more detail but slower
+- **Target**: 60 FPS (maintained even with 10,000+ particles)
+- **Optimizations**:
+  - Active cell tracking (only updates non-empty cells)
+  - Numeric coordinate keys (eliminates string parsing overhead)
+  - Reduced interaction checks (every 2 frames)
+  - Cached AI computations for fish
+  - Water depth measurement limits
+- **Mobile Optimized**: Tested on iOS Safari and Chrome for Android
 - **ES6 Modules**: Modern JavaScript architecture
 
 ## Architecture
@@ -153,15 +181,27 @@ this.brushSize = 5; // Adjust drawing brush size
 
 MIT License - Feel free to modify and use as you wish!
 
+## Recent Updates
+
+- ✅ 30+ interactive elements with complex behaviors
+- ✅ Reusable movement behaviors (gravity, liquid flow, gas)
+- ✅ Unified state management with CellState
+- ✅ Priority-based interaction system
+- ✅ Performance optimizations (60 FPS with 10K+ particles)
+- ✅ Mobile-friendly tooltips (show only while pressing)
+- ✅ Fish AI with natural swimming behavior
+- ✅ Tree growth system
+- ✅ Lava-water realistic interaction
+
 ## Future Enhancements
 
-- [ ] More element types (oil, gas, electricity, acid)
+- [ ] Electricity element with conduction
 - [ ] Save/load scenes
-- [ ] Adjustable brush size
-- [ ] Color variations for elements
+- [ ] Particle spawn rate controls
 - [ ] Sound effects
-- [ ] Particle limit warnings
-- [ ] Temperature system
-- [ ] GPU-accelerated rendering for 100K+ particles
+- [ ] Multi-player mode
+- [ ] Element mixing/chemistry system
 
-Enjoy creating your particle aquarium!
+---
+
+Enjoy creating your particle aquarium! 🎨🌊🔥
