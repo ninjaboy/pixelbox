@@ -299,44 +299,121 @@
             }
         });
 
-        // 2. Ambient mystic drone (keeps page active + creates atmosphere)
+        // 2. Mystical ambient soundscape with chord progression & Fibonacci melody
         let audioContext = null;
         let oscillators = [];
-        let gainNode = null;
+        let melodyOscillators = [];
+        let chordGain = null;
+        let melodyGain = null;
 
         function setupAmbientDrone() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                gainNode = audioContext.createGain();
 
-                // Very subtle volume for ambient background
-                gainNode.gain.value = 0.03;
+                // Separate gain nodes for chord and melody
+                chordGain = audioContext.createGain();
+                melodyGain = audioContext.createGain();
 
-                // Create a mystical chord using multiple oscillators
-                // C2, G2, C3, E3 - creates a mysterious, spacey feeling
-                const frequencies = [
-                    65.41,   // C2 - deep bass foundation
-                    98.00,   // G2 - perfect fifth
-                    130.81,  // C3 - octave
-                    164.81   // E3 - major third (adds warmth)
+                chordGain.gain.value = 0.025;  // Very subtle chord pad
+                melodyGain.gain.value = 0.015; // Even more subtle melody
+
+                // Deep mystical chord progression (lower octaves for deeper sound)
+                // Am9 -> Fmaj9 -> Cmaj9 -> G9 (magical, ethereal progression)
+                const chordProgression = [
+                    [55.00, 82.41, 98.00, 123.47, 146.83],  // Am9 (A1, E2, G2, B2, D3)
+                    [43.65, 65.41, 77.78, 98.00, 130.81],   // Fmaj9 (F1, C2, E2, G2, C3)
+                    [32.70, 65.41, 82.41, 98.00, 123.47],   // Cmaj9 (C1, C2, E2, G2, B2)
+                    [49.00, 73.42, 98.00, 123.47, 146.83]   // G9 (G1, D2, G2, B2, D3)
                 ];
 
-                frequencies.forEach(freq => {
-                    const osc = audioContext.createOscillator();
-                    osc.type = 'sine'; // Smooth, pure tone
-                    osc.frequency.value = freq;
+                let currentChordIndex = 0;
 
-                    // Add slight detuning for chorus effect
-                    osc.detune.value = (Math.random() - 0.5) * 2;
+                // Create oscillators for current chord
+                function playChord(chordFreqs) {
+                    // Stop previous oscillators
+                    oscillators.forEach(osc => osc.stop());
+                    oscillators = [];
 
-                    osc.connect(gainNode);
-                    osc.start();
-                    oscillators.push(osc);
-                });
+                    // Create new chord
+                    chordFreqs.forEach(freq => {
+                        const osc = audioContext.createOscillator();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        osc.detune.value = (Math.random() - 0.5) * 3; // Slight chorus
 
-                gainNode.connect(audioContext.destination);
+                        osc.connect(chordGain);
+                        osc.start();
+                        oscillators.push(osc);
+                    });
+                }
 
-                console.log('✨ Ambient mystic drone active');
+                // Start with first chord
+                playChord(chordProgression[0]);
+
+                // Chord progression: change every 21 seconds (Fibonacci: 21)
+                setInterval(() => {
+                    currentChordIndex = (currentChordIndex + 1) % chordProgression.length;
+                    playChord(chordProgression[currentChordIndex]);
+                }, 21000);
+
+                // Fibonacci-based melody (using Fibonacci sequence for timing)
+                // Sequence: 1, 1, 2, 3, 5, 8, 13 (in seconds * 1000)
+                const fibTiming = [1000, 1000, 2000, 3000, 5000, 8000, 13000];
+
+                // Pentatonic scale for mystical sound (A minor pentatonic - lower octave)
+                const melodyNotes = [55.00, 65.41, 73.42, 82.41, 98.00, 110.00]; // A1-A2
+
+                let noteIndex = 0;
+                let timingIndex = 0;
+
+                function playMelodyNote() {
+                    // Stop previous melody note
+                    melodyOscillators.forEach(osc => osc.stop());
+                    melodyOscillators = [];
+
+                    // Play note with slight harmonic (octave above, very quiet)
+                    const fundamental = audioContext.createOscillator();
+                    fundamental.type = 'sine';
+                    fundamental.frequency.value = melodyNotes[noteIndex];
+
+                    const harmonic = audioContext.createOscillator();
+                    harmonic.type = 'sine';
+                    harmonic.frequency.value = melodyNotes[noteIndex] * 2;
+
+                    const harmonicGain = audioContext.createGain();
+                    harmonicGain.gain.value = 0.3; // Harmonic is quieter
+
+                    fundamental.connect(melodyGain);
+                    harmonic.connect(harmonicGain);
+                    harmonicGain.connect(melodyGain);
+
+                    fundamental.start();
+                    harmonic.start();
+
+                    melodyOscillators.push(fundamental, harmonic);
+
+                    // Fade in and out
+                    const now = audioContext.currentTime;
+                    melodyGain.gain.setValueAtTime(0, now);
+                    melodyGain.gain.linearRampToValueAtTime(0.015, now + 0.5);
+                    melodyGain.gain.linearRampToValueAtTime(0, now + fibTiming[timingIndex] / 1000 - 0.5);
+
+                    // Move to next note and timing
+                    noteIndex = (noteIndex + 1) % melodyNotes.length;
+                    timingIndex = (timingIndex + 1) % fibTiming.length;
+
+                    // Schedule next note
+                    setTimeout(playMelodyNote, fibTiming[timingIndex]);
+                }
+
+                // Start melody after 5 seconds (let chord establish)
+                setTimeout(playMelodyNote, 5000);
+
+                // Connect to output
+                chordGain.connect(audioContext.destination);
+                melodyGain.connect(audioContext.destination);
+
+                console.log('✨ Mystical soundscape active: chord progression + Fibonacci melody');
             } catch (err) {
                 console.log('Audio context not available:', err.message);
             }
@@ -361,9 +438,10 @@
                 wakeLock.release();
             }
             oscillators.forEach(osc => {
-                if (osc !== null) {
-                    osc.stop();
-                }
+                try { osc.stop(); } catch(e) {}
+            });
+            melodyOscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
             });
             if (audioContext !== null) {
                 audioContext.close();
