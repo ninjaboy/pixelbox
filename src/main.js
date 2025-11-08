@@ -105,24 +105,35 @@ class GameScene extends Phaser.Scene {
         const tooltipProps = document.getElementById('tooltip-props');
         const tooltipKey = document.getElementById('tooltip-key');
 
-        // Define elements with keybindings (fossil removed)
+        // Define elements with keybindings, grouped by category
         const elements = [
+            // TERRAIN
             { name: 'sand', key: '1' },
-            { name: 'water', key: '2' },
-            { name: 'stone', key: '3' },
-            { name: 'wall', key: '4' },
-            { name: 'wood', key: '5' },
-            { name: 'fire', key: '6' },
-            { name: 'oil', key: '7' },
-            { name: 'gunpowder', key: '8' },
-            { name: 'tree_seed', key: '9' },
-            { name: 'fish', key: '0' },
-            { name: 'ice', key: 'I' },
-            { name: 'salt', key: 'S' },
-            { name: 'glass', key: 'G' },
-            { name: 'lava', key: 'L' },
-            { name: 'acid', key: 'A' },
-            { name: 'plant', key: 'T' },
+            { name: 'stone', key: '2' },
+            { name: 'wall', key: '3' },
+            { name: 'glass', key: '4' },
+            { type: 'separator' },
+            // LIQUIDS
+            { name: 'water', key: '5' },
+            { name: 'oil', key: '6' },
+            { name: 'acid', key: '7' },
+            { type: 'separator' },
+            // TEMPERATURE
+            { name: 'fire', key: '8' },
+            { name: 'ice', key: '9' },
+            { name: 'lava', key: '0' },
+            { type: 'separator' },
+            // LIFE
+            { name: 'tree_seed', key: 'Q' },
+            { name: 'plant', key: 'W' },
+            { name: 'fish', key: 'E' },
+            { type: 'separator' },
+            // OTHER
+            { name: 'wood', key: 'R' },
+            { name: 'salt', key: 'T' },
+            { name: 'gunpowder', key: 'Y' },
+            { type: 'separator' },
+            // TOOLS
             { name: 'eraser', key: 'X' }
         ];
 
@@ -150,7 +161,16 @@ class GameScene extends Phaser.Scene {
         };
 
         // Build UI
-        elements.forEach(({ name: elementName, key }) => {
+        elements.forEach(({ name: elementName, key, type }) => {
+            // Handle separators
+            if (type === 'separator') {
+                const separator = document.createElement('div');
+                separator.className = 'element-separator';
+                separator.style.cssText = 'width: 2px; height: 36px; background: rgba(255,255,255,0.15); margin: 0 2px;';
+                selector.appendChild(separator);
+                return;
+            }
+
             const element = this.elementRegistry.get(elementName);
             if (!element && elementName !== 'eraser') return;
 
