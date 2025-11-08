@@ -18,10 +18,8 @@ class FishElement extends Element {
         // Store color variants as instance property
         this.colorVariants = [
             0xff8c42,    // Orange (clownfish)
-            0x4a90e2,    // Blue (tropical)
             0xffd700,    // Gold (goldfish)
             0xff4444,    // Red (betta)
-            0xc0c0c0,    // Silver
             0x2a2a2a     // Black
         ];
     }

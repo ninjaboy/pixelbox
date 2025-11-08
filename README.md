@@ -44,11 +44,18 @@ Then open `http://localhost:8000` in your browser.
 
 **Primary: GitHub Pages** (Automatic)
 ```bash
+# Update version.js to reflect your changes (see versioning guide below)
+# Then commit and push
 git add .
 git commit -m "Your changes"
 git push
 ```
 Changes go live automatically at https://ninjaboy.github.io/pixelbox/
+
+**Versioning Guide:**
+- **Major versions (X.0.0)**: Significant new features or gameplay changes
+- **Minor versions (x.X.0)**: New elements, mechanics, or substantial improvements
+- **Patch versions (x.x.X)**: Bug fixes and minor tweaks
 
 **Alternative: Vercel** (Manual)
 ```bash

@@ -1,2 +1,5 @@
-// Auto-generated version file - DO NOT EDIT MANUALLY
-export const VERSION = '1.0.79';
+// Version file - update manually to reflect meaningful changes
+// Major versions: significant new features or gameplay changes
+// Minor versions: new elements, mechanics, or substantial improvements
+// Patch versions: bug fixes and minor tweaks
+export const VERSION = '2.0.0';
