@@ -36,27 +36,32 @@ class InteractionManager {
                     : [x2, y2, x1, y1];
 
                 const lavaCell = grid.getCell(lavaX, lavaY);
-
-                // Always evaporate the water to steam
-                grid.setElement(waterX, waterY, registry.get('steam'));
+                if (!lavaCell.state) {
+                    grid.setElement(waterX, waterY, registry.get('steam'));
+                    return true;
+                }
 
                 // Track how many water pixels this lava has contacted
-                if (!lavaCell.state) return true;
-
                 const waterContacts = lavaCell.state.incrementTimer('waterContacts', 1);
 
-                // After 3+ water contacts, form stone crust ON TOP of lava
-                if (waterContacts && lavaCell.state.getTimer('waterContacts') >= 3) {
-                    // Try to form stone crust above the lava (realistic surface cooling)
-                    const aboveLava = grid.getElement(lavaX, lavaY - 1);
-                    if (aboveLava && aboveLava.id === 0) {
-                        // Create stone crust on surface
-                        grid.setElement(lavaX, lavaY - 1, registry.get('stone'));
-                        // Reset counter
-                        lavaCell.state.setTimer('waterContacts', 0);
+                // After 2+ water contacts, solidify the LAVA SURFACE to stone
+                // This creates a crust that covers the lava pool
+                if (waterContacts && lavaCell.state.getTimer('waterContacts') >= 2) {
+                    // Check if this lava is at the surface (has empty/water above)
+                    const above = grid.getElement(lavaX, lavaY - 1);
+                    const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
+
+                    if (isSurface) {
+                        // Turn the SURFACE lava pixel into stone (forms crust)
+                        grid.setElement(lavaX, lavaY, registry.get('stone'));
+                        // Water becomes steam
+                        grid.setElement(waterX, waterY, registry.get('steam'));
+                        return true;
                     }
                 }
 
+                // If not ready to solidify yet, just evaporate the water
+                grid.setElement(waterX, waterY, registry.get('steam'));
                 return true;
             }
         });
