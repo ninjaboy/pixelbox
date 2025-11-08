@@ -116,6 +116,9 @@ class PixelGrid {
         // Can move into empty space
         if (toElement.id === 0) return true;
 
+        // Water cannot move into lava (will turn lava to stone instead)
+        if (fromElement.name === 'water' && toElement.name === 'lava') return false;
+
         // Can displace less dense materials
         return fromElement.density > toElement.density && toElement.movable;
     }

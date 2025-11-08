@@ -15,7 +15,22 @@ class WaterElement extends Element {
     }
 
     update(x, y, grid) {
-        // PRIORITY 0: Surface evaporation (water exposed to air evaporates faster)
+        // PRIORITY 0: Check for lava contact - water instantly turns lava surface to stone
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && neighbor.name === 'lava') {
+                // Turn lava into stone and water into steam
+                grid.setElement(nx, ny, grid.registry.get('stone'));
+                grid.setElement(x, y, grid.registry.get('steam'));
+                return true;
+            }
+        }
+
+        // PRIORITY 1: Surface evaporation (water exposed to air evaporates faster)
         const above = grid.getElement(x, y - 1);
         if (above && above.id === 0) {
             // Water at the surface has a higher chance to evaporate
