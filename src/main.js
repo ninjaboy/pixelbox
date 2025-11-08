@@ -190,7 +190,7 @@ class GameScene extends Phaser.Scene {
             btn.appendChild(keybind);
 
             // Handle tooltip with global tooltip element
-            btn.addEventListener('mouseenter', (e) => {
+            const showTooltip = (e) => {
                 // Update tooltip content
                 tooltipName.textContent = elementName.replace(/_/g, ' ');
 
@@ -209,11 +209,23 @@ class GameScene extends Phaser.Scene {
                 globalTooltip.style.bottom = `${window.innerHeight - rect.top + 10}px`;
                 globalTooltip.style.transform = 'translateX(-50%)';
                 globalTooltip.style.display = 'block';
-            });
+            };
 
-            btn.addEventListener('mouseleave', () => {
+            const hideTooltip = () => {
                 globalTooltip.style.display = 'none';
+            };
+
+            // Desktop: show on hover
+            btn.addEventListener('mouseenter', showTooltip);
+            btn.addEventListener('mouseleave', hideTooltip);
+
+            // Mobile: show only while actively pressing
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent mouse events from also firing
+                showTooltip(e);
             });
+            btn.addEventListener('touchend', hideTooltip);
+            btn.addEventListener('touchcancel', hideTooltip);
 
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
