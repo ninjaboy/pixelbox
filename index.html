@@ -26,6 +26,14 @@
             width: 100vw;
             box-sizing: border-box;
             overflow: hidden;
+            min-height: 0; /* Important: allows flex child to shrink below content size */
+        }
+        #game-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain;
         }
         #element-selector {
             flex: 0 0 auto;

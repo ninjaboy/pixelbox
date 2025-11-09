@@ -130,8 +130,7 @@ class GameScene extends Phaser.Scene {
             { type: 'separator' },
             // OTHER
             { name: 'wood', key: 'R' },
-            { name: 'salt', key: 'T' },
-            { name: 'gunpowder', key: 'Y' },
+            { name: 'gunpowder', key: 'T' },
             { type: 'separator' },
             // TOOLS
             { name: 'eraser', key: 'X' }
