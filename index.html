@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>PixelBox - Particle Aquarium</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -16,6 +16,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            height: -webkit-fill-available; /* Safari fix for viewport height */
         }
         #game-container {
             flex: 1;
@@ -40,6 +41,8 @@
             justify-content: center;
             align-self: center;
             margin: 10px;
+            margin-bottom: max(10px, env(safe-area-inset-bottom)); /* Account for iOS home indicator */
+            padding-bottom: calc(6px + env(safe-area-inset-bottom)); /* Extra padding for safe area */
         }
 
         /* Separator styling - default (horizontal layout) */
