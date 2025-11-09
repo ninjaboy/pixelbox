@@ -218,19 +218,27 @@ class GameScene extends Phaser.Scene {
             btn.addEventListener('mouseenter', showTooltip);
             btn.addEventListener('mouseleave', hideTooltip);
 
-            // Mobile: show only while actively pressing
+            // Selection handler (shared between click and touch)
+            const selectElement = () => {
+                document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.selectedElement = elementName;
+            };
+
+            // Mobile: show only while actively pressing and handle selection
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // Prevent mouse events from also firing
                 showTooltip(e);
             });
-            btn.addEventListener('touchend', hideTooltip);
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault(); // Prevent click event from firing
+                hideTooltip();
+                selectElement(); // Select on touch
+            });
             btn.addEventListener('touchcancel', hideTooltip);
 
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.selectedElement = elementName;
-            });
+            // Desktop: handle click
+            btn.addEventListener('click', selectElement);
 
             selector.appendChild(btn);
         });
