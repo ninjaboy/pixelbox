@@ -1033,39 +1033,11 @@ class GameScene extends Phaser.Scene {
     }
 }
 
-// Calculate available height accounting for button panel on mobile
-function getAvailableHeight() {
-    const isPortrait = window.innerWidth <= 768 && window.matchMedia('(orientation: portrait)').matches;
-    const isLandscape = window.innerWidth <= 900 && window.matchMedia('(orientation: landscape)').matches;
-
-    if (isPortrait) {
-        // Reserve 180px for bottom button panel (allows 3-4 rows on narrow screens)
-        return Math.min(window.innerHeight - 180, 600);
-    } else if (isLandscape) {
-        // Landscape has buttons on the side, use full height
-        return Math.min(window.innerHeight, 600);
-    } else {
-        // Desktop - use full height
-        return Math.min(window.innerHeight, 600);
-    }
-}
-
-function getAvailableWidth() {
-    const isLandscape = window.innerWidth <= 900 && window.matchMedia('(orientation: landscape)').matches;
-
-    if (isLandscape) {
-        // Reserve 90px for side button panel
-        return Math.min(window.innerWidth - 90, 800);
-    } else {
-        return Math.min(window.innerWidth, 800);
-    }
-}
-
 // Phaser Game Configuration
 const config = {
     type: Phaser.AUTO,
-    width: getAvailableWidth(),
-    height: getAvailableHeight(),
+    width: Math.min(window.innerWidth, 800),
+    height: Math.min(window.innerHeight, 600),
     parent: 'game-container',
     backgroundColor: '#000000',
     scene: GameScene,

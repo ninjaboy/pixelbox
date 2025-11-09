@@ -50,13 +50,13 @@
 
         /* Mobile Portrait: Multi-row layout */
         @media (max-width: 768px) and (orientation: portrait) {
+            #game-container {
+                height: calc(100vh - 140px); /* Leave 140px for button panel */
+                align-items: flex-end; /* Push canvas to bottom of available space */
+            }
             #element-selector {
                 max-width: 95vw;
                 bottom: 5px;
-            }
-            #game-container {
-                align-items: center;
-                justify-content: center;
             }
         }
 
