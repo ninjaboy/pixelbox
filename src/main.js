@@ -1039,8 +1039,8 @@ function getAvailableHeight() {
     const isLandscape = window.innerWidth <= 900 && window.matchMedia('(orientation: landscape)').matches;
 
     if (isPortrait) {
-        // Reserve 200px for bottom button panel (panel wraps to multiple rows on narrow screens)
-        return Math.min(window.innerHeight - 200, 600);
+        // Reserve 130px for bottom button panel (allows for 2 rows of buttons)
+        return Math.min(window.innerHeight - 130, 600);
     } else if (isLandscape) {
         // Landscape has buttons on the side, use full height
         return Math.min(window.innerHeight, 600);
