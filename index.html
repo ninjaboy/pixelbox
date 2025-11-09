@@ -20,6 +20,7 @@
             align-items: center;
             width: 100vw;
             height: 100vh;
+            box-sizing: border-box;
         }
         #element-selector {
             position: fixed;
@@ -41,7 +42,7 @@
         /* Separator styling - default (horizontal layout) */
         .element-separator {
             width: 2px;
-            height: 36px;
+            height: 52px;
             background: rgba(255, 255, 255, 0.15);
             margin: 0 2px;
             flex-shrink: 0;
@@ -52,6 +53,9 @@
             #element-selector {
                 max-width: 95vw;
                 bottom: 5px;
+            }
+            #game-container {
+                padding-bottom: 100px; /* Make room for button panel */
             }
         }
 
@@ -65,27 +69,27 @@
                 bottom: auto;
                 transform: translateY(-50%);
                 flex-direction: column;
-                max-width: 50px;
+                max-width: 68px;
                 max-height: 95vh;
                 overflow-y: auto;
                 overflow-x: visible;
             }
 
             #game-container {
-                padding-right: 60px; /* Make room for side panel */
+                padding-right: 80px; /* Make room for side panel */
             }
 
             /* Rotate separators for vertical layout */
             .element-separator {
-                width: 36px;
+                width: 52px;
                 height: 2px;
                 margin: 2px 0;
             }
         }
         .element-btn {
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
             border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 6px;
             cursor: pointer;
@@ -96,6 +100,8 @@
             justify-content: center;
             position: relative;
             flex-shrink: 0;
+            /* Larger touch target for mobile */
+            touch-action: manipulation;
         }
         .element-btn:hover {
             transform: translateY(-2px);
