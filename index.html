@@ -80,7 +80,7 @@
             }
             #game-container {
                 height: 100vh;
-                width: calc(100vw - 64px); /* Leave space for 48px buttons + 16px margins */
+                width: calc(100vw - 56px); /* Leave space for 40px buttons + 16px margins */
             }
             #element-selector {
                 position: fixed;
@@ -96,20 +96,20 @@
 
             /* Rotate separators for vertical layout */
             .element-separator {
-                width: 48px;
+                width: 40px;
                 height: 2px;
                 margin: 2px 0;
             }
         }
         .element-btn {
-            width: 48px;
-            height: 48px;
-            min-width: 48px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -142,14 +142,14 @@
         }
         .keybind {
             position: absolute;
-            bottom: 3px;
-            right: 3px;
-            font-size: 9px;
+            bottom: 2px;
+            right: 2px;
+            font-size: 8px;
             color: rgba(255, 255, 255, 0.6);
             font-weight: 700;
             background: rgba(0, 0, 0, 0.7);
-            padding: 2px 4px;
-            border-radius: 3px;
+            padding: 1px 3px;
+            border-radius: 2px;
             line-height: 1;
             pointer-events: none;
             text-shadow: none;

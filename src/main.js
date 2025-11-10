@@ -201,12 +201,31 @@ class GameScene extends Phaser.Scene {
 
                 tooltipKey.textContent = `Press ${key}`;
 
-                // Position tooltip above button
+                // Position tooltip above button with smart boundary detection
                 const rect = btn.getBoundingClientRect();
-                globalTooltip.style.left = `${rect.left + rect.width / 2}px`;
+                globalTooltip.style.display = 'block'; // Show first to measure width
+
+                const tooltipRect = globalTooltip.getBoundingClientRect();
+                const tooltipWidth = tooltipRect.width;
+
+                // Calculate centered position
+                let leftPos = rect.left + rect.width / 2;
+                let transform = 'translateX(-50%)';
+
+                // Check if tooltip would go off-screen on the left
+                if (leftPos - tooltipWidth / 2 < 10) {
+                    leftPos = rect.left;
+                    transform = 'translateX(0)';
+                }
+                // Check if tooltip would go off-screen on the right
+                else if (leftPos + tooltipWidth / 2 > window.innerWidth - 10) {
+                    leftPos = rect.right;
+                    transform = 'translateX(-100%)';
+                }
+
+                globalTooltip.style.left = `${leftPos}px`;
                 globalTooltip.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-                globalTooltip.style.transform = 'translateX(-50%)';
-                globalTooltip.style.display = 'block';
+                globalTooltip.style.transform = transform;
             };
 
             const hideTooltip = () => {
