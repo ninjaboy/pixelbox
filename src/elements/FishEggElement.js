@@ -55,8 +55,26 @@ class FishEggElement extends Element {
 
         // Hatch after 600 frames (10 seconds)
         if (cell.data.incubationTime > 600) {
-            // Spawn 3-5 fish nearby
-            const fishCount = 3 + Math.floor(Math.random() * 3); // 3-5 fish
+            // POPULATION CONTROL: Check if area is overcrowded before hatching
+            const nearbyFishCount = this.countNearbyFish(x, y, grid, 3);
+
+            // If too crowded (>10 fish nearby), egg dies without hatching
+            if (nearbyFishCount > 10) {
+                grid.setElement(x, y, grid.registry.get('ash'));
+                return true;
+            }
+
+            // Adjust spawn count based on population density
+            // If moderately crowded (8-10 fish), spawn fewer fish (1-2 instead of 3-5)
+            let fishCount;
+            if (nearbyFishCount >= 8) {
+                fishCount = 1 + Math.floor(Math.random() * 2); // 1-2 fish
+            } else if (nearbyFishCount >= 5) {
+                fishCount = 2 + Math.floor(Math.random() * 2); // 2-3 fish
+            } else {
+                fishCount = 3 + Math.floor(Math.random() * 3); // 3-5 fish (original)
+            }
+
             let spawned = 0;
 
             const spawnOffsets = [
@@ -112,6 +130,21 @@ class FishEggElement extends Element {
         }
 
         return false;
+    }
+
+    // Count nearby fish for population control
+    countNearbyFish(x, y, grid, radius) {
+        let count = 0;
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'fish') {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }
 
