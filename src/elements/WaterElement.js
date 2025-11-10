@@ -38,9 +38,18 @@ class WaterElement extends Element {
                 const aboveLava = grid.getElement(nx, ny - 1);
                 const isSurface = !aboveLava || aboveLava.id === 0 || aboveLava.name === 'water' || aboveLava.name === 'steam';
 
-                if (isSurface) {
-                    // Surface lava + water = instant stone crust
+                if (isSurface && Math.random() < 0.2) {
+                    // 20% chance: Surface lava + water = stone crust
                     grid.setElement(nx, ny, grid.registry.get('stone'));
+                    // Mark as crust so it stays in place
+                    const crustCell = grid.getCell(nx, ny);
+                    if (crustCell) {
+                        crustCell.data.isCrust = true;
+                    }
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    return true;
+                } else if (isSurface) {
+                    // Surface lava evaporates water without forming crust
                     grid.setElement(x, y, grid.registry.get('steam'));
                     return true;
                 } else {

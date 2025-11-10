@@ -39,11 +39,19 @@ class InteractionManager {
                 const above = grid.getElement(lavaX, lavaY - 1);
                 const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
 
-                // Simple and aggressive: Surface lava + water = instant stone crust
-                if (isSurface) {
+                // Probabilistic crust formation: 20% chance per contact
+                if (isSurface && Math.random() < 0.2) {
                     // Turn surface lava into immovable stone crust
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
+                    // Mark as crust so it stays in place
+                    const crustCell = grid.getCell(lavaX, lavaY);
+                    if (crustCell) {
+                        crustCell.data.isCrust = true;
+                    }
                     // Water becomes steam
+                    grid.setElement(waterX, waterY, registry.get('steam'));
+                } else if (isSurface) {
+                    // Surface lava evaporates water without forming crust
                     grid.setElement(waterX, waterY, registry.get('steam'));
                 } else {
                     // Buried lava just evaporates the water

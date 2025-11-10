@@ -54,6 +54,14 @@ class StoneElement extends Element {
 
     updateIndividual(x, y, grid) {
         // Individual stone physics (for borders, etc.)
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+
+        // Lava crust is completely immovable - stays on top of lava
+        if (cell.data.isCrust) {
+            return false;
+        }
+
         // Stone is rigid - only falls straight down into empty space or liquids
         const below = grid.getCell(x, y + 1);
         if (!below) return false;
