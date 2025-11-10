@@ -2,8 +2,7 @@ import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
 import {
     HeatTransformationBehavior,
-    FreezingPropagationBehavior,
-    ConditionalTransformationBehavior
+    FreezingPropagationBehavior
 } from '../behaviors/TransformationBehaviors.js';
 
 class IceElement extends Element {
@@ -12,7 +11,7 @@ class IceElement extends Element {
             density: 3,
             state: STATE.SOLID,
             movable: false,
-            tags: [TAG.ORGANIC],
+            tags: new Set([TAG.FREEZING]), // Ice is freezing, not organic
             brushSize: 1,
             emissionDensity: 0.8
         });
@@ -20,19 +19,12 @@ class IceElement extends Element {
         // Behavior 1: Melt when near heat sources
         this.addBehavior(new HeatTransformationBehavior({
             transformInto: 'water',
-            transformChance: 0.05, // 5% chance per frame
+            transformChance: 0.05, // 5% chance per frame when near heat
             requiredTag: TAG.HEAT_SOURCE,
             checkDiagonals: false // only cardinal directions
         }));
 
-        // Behavior 2: Slow melting at normal temperature
-        this.addBehavior(new ConditionalTransformationBehavior({
-            condition: () => true, // always melting (just slowly)
-            transformInto: 'water',
-            transformChance: 0.001 // 0.1% per frame - very slow
-        }));
-
-        // Behavior 3: Freeze adjacent water
+        // Behavior 2: Freeze adjacent water (spread the cold)
         this.addBehavior(new FreezingPropagationBehavior({
             targetElement: 'water',
             freezeInto: 'ice',

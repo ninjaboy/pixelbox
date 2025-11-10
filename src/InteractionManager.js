@@ -93,6 +93,33 @@ class InteractionManager {
             }
         });
 
+        // PRIORITY 7: FIRE EXTINGUISHING - water + fire → smoke/steam
+        this.registerInteraction({
+            name: 'fire_extinguishing',
+            priority: 7,
+            check: (element1, element2) => {
+                return (element1.hasTag(TAG.EXTINGUISHES_FIRE) && element2.name === 'fire') ||
+                       (element2.hasTag(TAG.EXTINGUISHES_FIRE) && element1.name === 'fire');
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
+                // Determine which is fire and which is water
+                const [fireX, fireY] = element1.name === 'fire' ? [x1, y1] : [x2, y2];
+                const [waterX, waterY] = element1.name === 'fire' ? [x2, y2] : [x1, y1];
+
+                // Extinguish fire (70% chance)
+                if (Math.random() < 0.7) {
+                    grid.setElement(fireX, fireY, registry.get('smoke'));
+
+                    // Water becomes steam (50% chance)
+                    if (Math.random() < 0.5) {
+                        grid.setElement(waterX, waterY, registry.get('steam'));
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
         // PRIORITY 10: EVAPORATION - liquid + heat_source → gas
         this.registerInteraction({
             name: 'evaporation',
@@ -173,9 +200,51 @@ class InteractionManager {
             }
         });
 
+        // STEAM-ICE CONDENSATION: steam + ice → water (rapid condensation on cold surface)
+        this.registerInteraction({
+            name: 'steam_ice_condensation',
+            priority: 8,
+            check: (element1, element2) => {
+                return (element1.name === 'steam' && element2.name === 'ice') ||
+                       (element2.name === 'steam' && element1.name === 'ice');
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
+                const [steamX, steamY] = element1.name === 'steam' ? [x1, y1] : [x2, y2];
+
+                // 30% chance to condense to water (faster than regular condensation)
+                if (Math.random() < 0.3) {
+                    grid.setElement(steamX, steamY, registry.get('water'));
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        // OIL-WATER SEPARATION: oil floats on water (density physics)
+        this.registerInteraction({
+            name: 'oil_water_separation',
+            priority: 15,
+            check: (element1, element2) => {
+                return (element1.name === 'oil' && element2.name === 'water') ||
+                       (element2.name === 'oil' && element1.name === 'water');
+            },
+            apply: (element1, element2, grid, x1, y1, x2, y2) => {
+                const [oilX, oilY] = element1.name === 'oil' ? [x1, y1] : [x2, y2];
+                const [waterX, waterY] = element1.name === 'oil' ? [x2, y2] : [x1, y1];
+
+                // Oil floats: if oil is below water, swap them (20% chance for gradual effect)
+                if (oilY > waterY && Math.random() < 0.2) {
+                    grid.swap(oilX, oilY, waterX, waterY);
+                    return true;
+                }
+                return false;
+            }
+        });
+
         // STEAM CONDENSATION: steam + cool surfaces → water
         this.registerInteraction({
             name: 'steam_condensation',
+            priority: 16,
             check: (element1, element2) => {
                 const coolSurfaces = ['stone', 'wood', 'sand', 'wet_sand'];
                 return (element1.name === 'steam' && coolSurfaces.includes(element2.name)) ||

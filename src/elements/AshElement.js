@@ -8,9 +8,7 @@ class AshElement extends Element {
             density: 1,
             state: STATE.POWDER,
             dispersion: 1,
-            ignitionResistance: 0.0, // Burns easily
-            burnsInto: 'empty', // Ash burns away to nothing
-            tags: new Set([TAG.DISSOLVES, TAG.COMBUSTIBLE]),
+            tags: new Set([TAG.DISSOLVES]), // Ash is already burned - not combustible
             lifetime: 600 // Dissolve after 10 seconds (600 frames at 60fps)
         });
 

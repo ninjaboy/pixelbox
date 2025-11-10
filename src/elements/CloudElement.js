@@ -51,13 +51,14 @@ class CloudElement extends Element {
         // CLOUD ACCUMULATION SYSTEM
 
         // 1. Absorb nearby steam to increase saturation (slowly!)
-        if (Math.random() > 0.85) { // 15% chance per frame to check for steam (slower accumulation)
+        // Cap saturation at 20 to prevent infinite water generation
+        if (Math.random() > 0.85 && cell.data.saturation < 20) { // 15% chance per frame, max 20 capacity
             const nearbySteam = this.findNearbySteam(x, y, grid);
             if (nearbySteam) {
                 // Absorb the steam
                 grid.setElement(nearbySteam[0], nearbySteam[1], grid.registry.get('empty'));
-                cell.data.saturation += 1;
-                cell.data.waterCapacity += 1; // Each steam absorbed = 1 water we can return
+                cell.data.saturation = Math.min(cell.data.saturation + 1, 20); // Hard cap at 20
+                cell.data.waterCapacity = Math.min(cell.data.waterCapacity + 1, 20); // Hard cap at 20
                 // Update color based on saturation
                 this.updateCloudColor(cell);
             }

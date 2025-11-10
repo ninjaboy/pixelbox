@@ -1,4 +1,22 @@
-// Base Element Class
+/**
+ * Base Element Class
+ *
+ * DENSITY SCALE (determines settling/displacement order):
+ *   0:     Gases (fire, smoke, steam)
+ *   1-2:   Light liquids (ash: 1, oil: 1.5, water: 2)
+ *   3-4:   Powders (ice: 3, sand: 3, salt: 4)
+ *   5-7:   Light solids (wood: 5, glass: 5)
+ *   8-9:   Heavy materials (lava: 8, wet sand: 9)
+ *   10+:   Very heavy solids (stone: 10)
+ *
+ * Elements with higher density sink through lower density elements.
+ *
+ * BEHAVIOR SYSTEM:
+ * Elements can use behavior composition pattern via this.addBehavior():
+ *   - MovementBehaviors (GravityBehavior, LiquidFlowBehavior, GasBehavior)
+ *   - CombustionBehaviors (BurningBehavior, EmissionBehavior, IgnitionBehavior)
+ *   - TransformationBehaviors (HeatTransformationBehavior, MeltingBehavior, etc.)
+ */
 class Element {
     constructor(id, name, color, properties = {}) {
         this.id = id;

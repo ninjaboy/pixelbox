@@ -9,13 +9,29 @@ import { TAG } from '../ElementProperties.js';
 /**
  * BurningBehavior - For elements that actively burn and spread fire
  * Implements progressive burning with fire spreading mechanics
+ *
+ * Used by: BurningWoodElement
+ *
+ * @param {Object} options - Configuration options
+ * @param {number} [options.lifetime=3000] - Frames until burnout (at 60fps: 3000 = 50 seconds)
+ * @param {number} [options.spreadChance=0.15] - Base probability to spread fire per frame (0-1)
+ * @param {number} [options.spreadIntensity=1.0] - Spread range multiplier (currently unused)
+ * @param {string} [options.burnsInto='ash'] - Element name to transform into after burning
+ *
+ * @example
+ * // Burning wood that slowly burns for 15 seconds and becomes ash
+ * this.addBehavior(new BurningBehavior({
+ *     lifetime: 900,
+ *     spreadChance: 0.15,
+ *     burnsInto: 'ash'
+ * }));
  */
 export class BurningBehavior {
     constructor(options = {}) {
-        this.lifetime = options.lifetime || 3000; // frames until burnout
-        this.spreadChance = options.spreadChance || 0.15; // base chance to spread fire
-        this.spreadIntensity = options.spreadIntensity || 1.0; // spread range multiplier
-        this.burnsInto = options.burnsInto || 'ash'; // what element becomes after burning
+        this.lifetime = options.lifetime || 3000;
+        this.spreadChance = options.spreadChance || 0.15;
+        this.spreadIntensity = options.spreadIntensity || 1.0;
+        this.burnsInto = options.burnsInto || 'ash';
     }
 
     apply(x, y, grid, cell) {
@@ -69,15 +85,38 @@ export class BurningBehavior {
 
 /**
  * EmissionBehavior - For elements that emit other elements (fire, smoke, etc.)
- * Implements staged emission with variable intensity
+ * Implements staged emission with variable intensity based on lifecycle
+ *
+ * Used by: BurningWoodElement, LavaElement
+ *
+ * @param {Object} options - Configuration options
+ * @param {string} [options.emitElement='fire'] - Element type to emit
+ * @param {number} [options.emissionRate=0.15] - Base emission probability per frame (0-1)
+ * @param {Array} [options.stages=null] - Emission stages array: [{ until: 0.33, rate: 0.15 }, ...]
+ *        Stages allow changing emission rate based on burn progress (0-1)
+ * @param {Array<Array<number>>} [options.directions=[[0,-1]]] - Emission directions as [dx, dy] offsets
+ *        Default [[0,-1]] = upward. Can specify multiple: [[-1,-1], [1,-1]] = up-left and up-right
+ * @param {boolean} [options.requiresEmpty=true] - Only emit into empty space
+ *
+ * @example
+ * // Fire that gets stronger, then weaker
+ * this.addBehavior(new EmissionBehavior({
+ *     emitElement: 'fire',
+ *     directions: [[0, -1]],
+ *     stages: [
+ *         { until: 0.33, rate: 0.15 }, // early: weak
+ *         { until: 0.66, rate: 0.20 }, // peak: strong
+ *         { until: 1.0, rate: 0.07 }   // late: dying
+ *     ]
+ * }));
  */
 export class EmissionBehavior {
     constructor(options = {}) {
-        this.emitElement = options.emitElement || 'fire'; // what to emit
-        this.emissionRate = options.emissionRate || 0.15; // base emission chance
-        this.stages = options.stages || null; // emission stages [{ until: 0.33, rate: 0.15 }, ...]
-        this.directions = options.directions || [[0, -1]]; // where to emit (default: up)
-        this.requiresEmpty = options.requiresEmpty !== false; // only emit into empty space
+        this.emitElement = options.emitElement || 'fire';
+        this.emissionRate = options.emissionRate || 0.15;
+        this.stages = options.stages || null;
+        this.directions = options.directions || [[0, -1]];
+        this.requiresEmpty = options.requiresEmpty !== false;
     }
 
     apply(x, y, grid, cell) {
@@ -121,11 +160,27 @@ export class EmissionBehavior {
 /**
  * IgnitionBehavior - For elements that can ignite combustibles nearby
  * Implements heat-based ignition with resistance calculation
+ *
+ * Used by: LavaElement
+ *
+ * @param {Object} options - Configuration options
+ * @param {number} [options.ignitionChance=0.2] - Base ignition probability per frame (0-1)
+ *        Actual chance is modified by target's ignitionResistance property
+ * @param {number} [options.range=1] - How far to check for combustibles (1 = adjacent cells only)
+ * @param {boolean} [options.checkDiagonals=true] - Include diagonal neighbors in ignition check
+ *
+ * @example
+ * // Lava that ignites adjacent combustibles
+ * this.addBehavior(new IgnitionBehavior({
+ *     ignitionChance: 0.2,  // 20% base chance
+ *     range: 1,
+ *     checkDiagonals: false // only cardinal directions
+ * }));
  */
 export class IgnitionBehavior {
     constructor(options = {}) {
-        this.ignitionChance = options.ignitionChance || 0.2; // base ignition probability
-        this.range = options.range || 1; // how far to check (1 = adjacent only)
+        this.ignitionChance = options.ignitionChance || 0.2;
+        this.range = options.range || 1;
         this.checkDiagonals = options.checkDiagonals !== false;
     }
 
@@ -182,14 +237,31 @@ export class IgnitionBehavior {
 
 /**
  * ProximityIgnitionBehavior - For highly flammable elements that ignite from nearby heat
- * Used for oil, gunpowder, etc.
+ * Automatically scans for heat sources and ignites the element
+ *
+ * Used by: OilElement
+ *
+ * @param {Object} options - Configuration options
+ * @param {number} [options.detectionRange=1] - How far to detect heat sources (cells)
+ * @param {number} [options.ignitionChance=0.5] - Probability when near heat source (0-1)
+ * @param {string} [options.transformInto='fire'] - Element to transform into when ignited
+ * @param {number} [options.checkInterval=1] - Check every N frames (for performance throttling)
+ *
+ * @example
+ * // Oil that ignites from nearby heat
+ * this.addBehavior(new ProximityIgnitionBehavior({
+ *     detectionRange: 1,
+ *     ignitionChance: 0.5,
+ *     transformInto: 'fire',
+ *     checkInterval: 20  // check every 20 frames
+ * }));
  */
 export class ProximityIgnitionBehavior {
     constructor(options = {}) {
-        this.detectionRange = options.detectionRange || 1; // how far to detect heat sources
-        this.ignitionChance = options.ignitionChance || 0.5; // probability when near heat
-        this.transformInto = options.transformInto || 'fire'; // what to become
-        this.checkInterval = options.checkInterval || 1; // check every N frames
+        this.detectionRange = options.detectionRange || 1;
+        this.ignitionChance = options.ignitionChance || 0.5;
+        this.transformInto = options.transformInto || 'fire';
+        this.checkInterval = options.checkInterval || 1;
     }
 
     apply(x, y, grid, cell) {
