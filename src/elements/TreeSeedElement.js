@@ -25,7 +25,9 @@ class TreeSeedElement extends Element {
             density: 3,
             state: STATE.SOLID,
             movable: false,
-            tags: [TAG.ORGANIC],
+            ignitionResistance: 0.0, // Burns easily
+            burnsInto: 'ash',
+            tags: [TAG.ORGANIC, TAG.COMBUSTIBLE],
             brushSize: 0,
             emissionDensity: 1.0
         });

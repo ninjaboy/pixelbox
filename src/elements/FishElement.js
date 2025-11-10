@@ -130,7 +130,7 @@ class FishElement extends Element {
         }
 
         // HUNGER SYSTEM
-        cell.data.hunger = Math.min(100, cell.data.hunger + 0.02); // Hunger increases slowly (50+ seconds between meals)
+        cell.data.hunger = Math.min(100, cell.data.hunger + 0.015); // Hunger increases slowly (66+ seconds between meals)
 
         // STARVATION DEATH: Die if hunger reaches 100
         if (cell.data.hunger >= 100) {
@@ -196,8 +196,8 @@ class FishElement extends Element {
                         cell.data.cachedFoodLocation = null; // Clear cache after eating
 
                         // REPRODUCTION: If well-fed and not overcrowded, lay egg
-                        if (cell.data.hunger < 40 && nearbyFishCount < 8) {
-                            if (Math.random() < 0.3) { // 30% chance to lay egg when conditions are good
+                        if (cell.data.hunger < 50 && nearbyFishCount < 10) {
+                            if (Math.random() < 0.5) { // 50% chance to lay egg when conditions are good
                                 this.layEgg(x, y, grid);
                             }
                         }

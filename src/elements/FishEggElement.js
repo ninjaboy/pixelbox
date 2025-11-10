@@ -3,7 +3,7 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 class FishEggElement extends Element {
     constructor() {
-        super(30, 'fish_egg', 0xffd700, { // Golden/yellow color
+        super(30, 'fish_egg', 0x9370db, { // Purple color
             density: 3, // Slightly heavier than water, lighter than fish
             state: STATE.SOLID,
             movable: true,
