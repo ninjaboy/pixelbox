@@ -273,6 +273,9 @@
                 Press <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">B</kbd> to toggle
             </div>
         </div>
+        <button id="mute-btn" style="margin-top: 6px; padding: 4px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; font-size: 10px; cursor: pointer; width: 100%;">
+            <span id="mute-icon">🔊</span> Sound
+        </button>
         <div style="font-size: 10px; opacity: 0.6; margin-top: 6px;">v<span id="version">-</span></div>
     </div>
 
@@ -476,6 +479,7 @@
 
         // Start audio context on first user interaction (required by browser policy)
         let audioStarted = false;
+        let isMuted = false;
         function startAudioOnInteraction() {
             if (!audioStarted) {
                 setupAmbientDrone();
@@ -486,6 +490,37 @@
         }
         document.addEventListener('click', startAudioOnInteraction);
         document.addEventListener('keydown', startAudioOnInteraction);
+
+        // Mute button functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const muteBtn = document.getElementById('mute-btn');
+            const muteIcon = document.getElementById('mute-icon');
+
+            muteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering audio start
+
+                if (!audioStarted) {
+                    // Start audio if not started yet
+                    setupAmbientDrone();
+                    audioStarted = true;
+                    return;
+                }
+
+                isMuted = !isMuted;
+
+                if (isMuted) {
+                    // Mute
+                    if (chordGain) chordGain.gain.value = 0;
+                    if (melodyGain) melodyGain.gain.value = 0;
+                    muteIcon.textContent = '🔇';
+                } else {
+                    // Unmute
+                    if (chordGain) chordGain.gain.value = 0.025;
+                    if (melodyGain) melodyGain.gain.value = 0.015;
+                    muteIcon.textContent = '🔊';
+                }
+            });
+        });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {

@@ -19,9 +19,26 @@ class PlantElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize growth stage
+        // Initialize growth stage and landed state
         if (cell.data.growthStage === undefined) {
             cell.data.growthStage = 0;
+            cell.data.hasLanded = false;
+        }
+
+        // FALLING BEHAVIOR: Fall when first placed until landing
+        if (!cell.data.hasLanded) {
+            const below = grid.getElement(x, y + 1);
+
+            // Can fall through empty space
+            if (!below || below.id === 0) {
+                if (grid.canMoveTo(x, y, x, y + 1)) {
+                    grid.swap(x, y, x, y + 1);
+                    return true;
+                }
+            } else {
+                // Landed - mark as such
+                cell.data.hasLanded = true;
+            }
         }
 
         // GRASS BEHAVIOR: Must be on TOP of suitable ground
