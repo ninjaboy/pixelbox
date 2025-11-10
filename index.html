@@ -80,7 +80,7 @@
             }
             #game-container {
                 height: 100vh;
-                width: calc(100vw - 60px); /* Leave space for side panel */
+                width: calc(100vw - 64px); /* Leave space for 48px buttons + 16px margins */
             }
             #element-selector {
                 position: fixed;
@@ -88,7 +88,7 @@
                 top: 50%;
                 transform: translateY(-50%);
                 flex-direction: column;
-                max-width: 56px;
+                max-width: 60px;
                 max-height: 95vh;
                 overflow-y: auto;
                 margin-bottom: 0;
@@ -96,32 +96,38 @@
 
             /* Rotate separators for vertical layout */
             .element-separator {
-                width: 44px;
+                width: 48px;
                 height: 2px;
                 margin: 2px 0;
             }
         }
         .element-btn {
-            width: 44px;
-            height: 44px;
-            min-width: 44px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.15s;
-            font-size: 16px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             flex-shrink: 0;
-            /* Larger touch target for mobile */
             touch-action: manipulation;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .element-btn:hover {
             transform: translateY(-2px);
-            border-color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        .element-btn:active {
+            transform: translateY(0px) scale(0.95);
         }
         .element-btn.active {
             border-width: 3px;
@@ -136,16 +142,17 @@
         }
         .keybind {
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 600;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 1px 3px;
-            border-radius: 2px;
+            bottom: 3px;
+            right: 3px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 4px;
+            border-radius: 3px;
             line-height: 1;
             pointer-events: none;
+            text-shadow: none;
         }
         #global-tooltip {
             position: fixed;

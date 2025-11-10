@@ -136,27 +136,27 @@ class GameScene extends Phaser.Scene {
             { name: 'eraser', key: 'X' }
         ];
 
-        // Element visual configs
+        // Element visual configs - using universal symbols for cross-platform consistency
         const elementConfigs = {
-            sand: { icon: '⋅', color: '#c2b280' },
-            water: { icon: '≈', color: '#4a90e2' },
-            stone: { icon: '●', color: '#666' },
-            wall: { icon: '█', color: '#444' },
-            fire: { icon: '🔥', color: '#ff6b35' },
-            wood: { icon: '▓', color: '#8b4513' },
-            oil: { icon: '○', color: '#3d3d1a' },
-            gunpowder: { icon: '💣', color: '#333' },
-            fossil: { icon: '🦴', color: '#8b7355' },
-            fish: { icon: '🐟', color: '#1a5f7a' },
-            tree_seed: { icon: '🌱', color: '#654321' },
-            ash: { icon: '∴', color: '#666' },
-            ice: { icon: '❄️', color: '#87ceeb' },
+            sand: { icon: '∙∙', color: '#c2b280' },
+            water: { icon: '≋', color: '#4a90e2' },
+            stone: { icon: '▪', color: '#666' },
+            wall: { icon: '▉', color: '#444' },
+            fire: { icon: '▲', color: '#ff6b35' },
+            wood: { icon: '▥', color: '#8b4513' },
+            oil: { icon: '◐', color: '#3d3d1a' },
+            gunpowder: { icon: '◉', color: '#333' },
+            fossil: { icon: '⚔', color: '#8b7355' },
+            fish: { icon: '◭', color: '#1a5f7a' },
+            tree_seed: { icon: '⦿', color: '#654321' },
+            ash: { icon: '∵', color: '#999' },
+            ice: { icon: '❆', color: '#87ceeb' },
             salt: { icon: '▫', color: '#ffffff' },
             glass: { icon: '◇', color: '#add8e6' },
-            lava: { icon: '🌋', color: '#ff4500' },
-            acid: { icon: '☢', color: '#7fff00' },
-            plant: { icon: '🌿', color: '#32cd32' },
-            eraser: { icon: '✖', color: '#222' }
+            lava: { icon: '▼', color: '#ff4500' },
+            acid: { icon: '☠', color: '#7fff00' },
+            plant: { icon: '♣', color: '#32cd32' },
+            eraser: { icon: '✕', color: '#ff3333' }
         };
 
         // Build UI
