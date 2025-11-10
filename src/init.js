@@ -18,6 +18,7 @@ import {
     FossilElement,
     AshElement,
     FishElement,
+    FishEggElement,
     WetSandElement,
     WallElement,
     WetGunpowderElement,
@@ -54,6 +55,7 @@ registry.register(new GunpowderElement());
 registry.register(new FossilElement());
 registry.register(new AshElement());
 registry.register(new FishElement());
+registry.register(new FishEggElement());
 registry.register(new WetSandElement());
 registry.register(new WallElement());
 registry.register(new WetGunpowderElement());

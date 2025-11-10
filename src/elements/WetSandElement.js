@@ -4,7 +4,7 @@ import { STATE } from '../ElementProperties.js';
 class WetSandElement extends Element {
     constructor() {
         super(18, 'wet_sand', 0x8b7355, { // Darker brown color
-            density: 4, // Heavier than regular sand (3) and water (2)
+            density: 9, // Much heavier than lava (8) - wet sand blocks lava flow
             state: STATE.POWDER,
             dispersion: 0,
             tags: [],

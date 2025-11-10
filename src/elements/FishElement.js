@@ -195,10 +195,10 @@ class FishElement extends Element {
                         cell.data.seekingFood = false;
                         cell.data.cachedFoodLocation = null; // Clear cache after eating
 
-                        // REPRODUCTION: If well-fed and not overcrowded, reproduce
+                        // REPRODUCTION: If well-fed and not overcrowded, lay egg
                         if (cell.data.hunger < 40 && nearbyFishCount < 8) {
-                            if (Math.random() < 0.5) { // 50% chance to reproduce when conditions are good
-                                this.reproduce(x, y, grid);
+                            if (Math.random() < 0.3) { // 30% chance to lay egg when conditions are good
+                                this.layEgg(x, y, grid);
                             }
                         }
                         return true;
@@ -524,8 +524,35 @@ class FishElement extends Element {
         return false;
     }
 
+    layEgg(x, y, grid) {
+        // Lay an egg nearby in water
+        const spawnOffsets = [
+            [0, 1], [0, 2], // Prefer laying below
+            [-1, 1], [1, 1],
+            [0, -1], [-1, 0], [1, 0],
+            [-1, -1], [1, -1], [-1, 1], [1, 1]
+        ];
+
+        // Shuffle spawn positions
+        spawnOffsets.sort(() => Math.random() - 0.5);
+
+        for (const [dx, dy] of spawnOffsets) {
+            const spawnX = x + dx;
+            const spawnY = y + dy;
+            const element = grid.getElement(spawnX, spawnY);
+
+            // Lay egg in water
+            if (element && element.name === 'water') {
+                grid.setElement(spawnX, spawnY, grid.registry.get('fish_egg'));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     reproduce(x, y, grid) {
-        // Spawn a new fish nearby
+        // Spawn a new fish nearby (kept as fallback)
         const spawnOffsets = [
             [0, -1], [0, 1], [-1, 0], [1, 0],
             [-1, -1], [1, -1], [-1, 1], [1, 1],
