@@ -1,5 +1,6 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
+import { BurningBehavior, EmissionBehavior } from '../behaviors/CombustionBehaviors.js';
 
 class BurningWoodElement extends Element {
     constructor() {
@@ -12,97 +13,43 @@ class BurningWoodElement extends Element {
             burnsInto: 'fire', // If re-ignited, becomes fire (shouldn't happen often)
             tags: [TAG.HEAT_SOURCE, TAG.COMBUSTIBLE] // Can spread fire AND still burn
         });
+
+        // Behavior 1: Fire spreading to adjacent combustibles
+        this.addBehavior(new BurningBehavior({
+            lifetime: 900,
+            spreadChance: 0.15, // 15% chance per frame to spread
+            spreadIntensity: 1.0,
+            burnsInto: 'ash'
+        }));
+
+        // Behavior 2: Fire emission upward (staged by burn progress)
+        this.addBehavior(new EmissionBehavior({
+            emitElement: 'fire',
+            emissionRate: 0.15, // base rate
+            directions: [[0, -1]], // emit upward
+            stages: [
+                { until: 0.33, rate: 0.15 }, // early burn
+                { until: 0.66, rate: 0.20 }, // peak burn
+                { until: 1.0, rate: 0.07 }   // late burn (dying down)
+            ]
+        }));
+
+        // Behavior 3: Smoke emission (lighter, offset to sides)
+        this.addBehavior(new EmissionBehavior({
+            emitElement: 'smoke',
+            emissionRate: 0.01, // base rate
+            directions: [[-1, -1], [1, -1]], // emit upward-left or upward-right
+            stages: [
+                { until: 0.33, rate: 0.01 }, // early burn - minimal smoke
+                { until: 0.66, rate: 0.02 }, // peak burn - more smoke
+                { until: 1.0, rate: 0.03 }   // late burn - most smoke
+            ]
+        }));
     }
 
     update(x, y, grid) {
-        // Burning wood is a slow fuel source that emits fire AND spreads to adjacent materials
-        const cell = grid.getCell(x, y);
-        if (!cell) return false;
-
-        const remainingLife = cell.lifetime;
-        const totalLife = 900;
-        const burnProgress = 1 - (remainingLife / totalLife); // 0 = just ignited, 1 = almost done
-
-        // AGGRESSIVE FIRE SPREADING - spread to adjacent combustible materials
-        // Check all 4 cardinal directions for wood to ignite
-        const spreadChance = burnProgress < 0.66 ? 0.85 : 0.92; // Higher spread during peak burning
-        if (Math.random() > spreadChance) {
-            const directions = [
-                [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
-            ];
-
-            // Shuffle for random spread direction
-            directions.sort(() => Math.random() - 0.5);
-
-            for (const [nx, ny] of directions) {
-                const neighbor = grid.getElement(nx, ny);
-                if (neighbor && neighbor.hasTag && neighbor.hasTag('combustible')) {
-                    // Try to ignite adjacent combustible material
-                    const ignited = neighbor.burnsInto ? grid.registry.get(neighbor.burnsInto) : grid.registry.get('fire');
-                    grid.setElement(nx, ny, ignited);
-                    return true; // Only spread to one neighbor per frame
-                }
-            }
-        }
-
-        // Early burn stage (0-33%) - igniting, building up
-        if (burnProgress < 0.33) {
-            // Strong fire emission upward
-            if (Math.random() > 0.85) {
-                // Emit fire upward (surface burning)
-                if (grid.isEmpty(x, y - 1)) {
-                    grid.setElement(x, y - 1, grid.registry.get('fire'));
-                    return true;
-                }
-            }
-
-            // Reduced smoke emission (5% -> 1%)
-            if (Math.random() > 0.99) {
-                const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
-                if (grid.isEmpty(smokeX, y - 1)) {
-                    grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));
-                }
-            }
-        }
-        // Peak burn stage (33-66%) - hottest, most fire
-        else if (burnProgress < 0.66) {
-            // Very strong fire emission
-            if (Math.random() > 0.80) {
-                // Strong fire emission
-                if (grid.isEmpty(x, y - 1)) {
-                    grid.setElement(x, y - 1, grid.registry.get('fire'));
-                    return true;
-                }
-            }
-
-            // Reduced smoke emission (7% -> 2%)
-            if (Math.random() > 0.98) {
-                const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
-                if (grid.isEmpty(smokeX, y - 1)) {
-                    grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));
-                }
-            }
-        }
-        // Late burn stage (66-100%) - dying down, mostly embers
-        else {
-            // Occasional fire
-            if (Math.random() > 0.93) {
-                if (grid.isEmpty(x, y - 1)) {
-                    grid.setElement(x, y - 1, grid.registry.get('fire'));
-                    return true;
-                }
-            }
-
-            // Reduced smoke emission (12% -> 3%)
-            if (Math.random() > 0.97) {
-                const smokeX = x + (Math.random() > 0.5 ? 1 : -1);
-                if (grid.isEmpty(smokeX, y - 1)) {
-                    grid.setElement(smokeX, y - 1, grid.registry.get('smoke'));
-                }
-            }
-        }
-
-        return false;
+        // Use behavior composition pattern
+        return this.applyBehaviors(x, y, grid);
     }
 }
 

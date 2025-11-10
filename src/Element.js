@@ -33,11 +33,33 @@ class Element {
         this.evaporatesInto = properties.evaporatesInto || null; // What it becomes when heated
         this.condensesInto = properties.condensesInto || null;   // What it becomes when cooled
         this.meltInto = properties.meltInto || null;       // What it becomes when melted
+
+        // Behavior strategies (for composition pattern)
+        this.behaviors = [];
     }
 
     // Check if element has a specific tag
     hasTag(tag) {
         return this.tags.has(tag);
+    }
+
+    // Add a behavior to this element
+    addBehavior(behavior) {
+        this.behaviors.push(behavior);
+        return this; // for chaining
+    }
+
+    // Apply all behaviors in sequence
+    applyBehaviors(x, y, grid) {
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+
+        for (const behavior of this.behaviors) {
+            const changed = behavior.apply(x, y, grid, cell);
+            if (changed) return true; // Stop after first successful behavior
+        }
+
+        return false;
     }
 
     // Override in subclasses for custom movement behavior

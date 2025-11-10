@@ -1,6 +1,7 @@
 import Element from '../Element.js';
 import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { LiquidFlowBehavior } from '../behaviors/MovementBehaviors.js';
+import { ProximityIgnitionBehavior } from '../behaviors/CombustionBehaviors.js';
 
 class OilElement extends Element {
     constructor() {
@@ -14,6 +15,14 @@ class OilElement extends Element {
             brushSize: 5,              // Large pour brush
             emissionDensity: 1.0       // Continuous pour
         });
+
+        // Behavior: Proximity ignition - oil ignites from nearby heat
+        this.addBehavior(new ProximityIgnitionBehavior({
+            detectionRange: 1,
+            ignitionChance: 0.5, // 50% chance when near heat
+            transformInto: 'fire',
+            checkInterval: 20 // check every 20 frames (~5% of frames)
+        }));
 
         // Use standardized liquid flow behavior (more viscous than water)
         this.movement = new LiquidFlowBehavior({
@@ -63,24 +72,9 @@ class OilElement extends Element {
     }
 
     update(x, y, grid) {
-        // Check if there's fire nearby - oil heats up and can ignite from nearby fire
-        if (Math.random() > 0.95) {
-            const nearbyFire = [
-                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y],
-                [x - 1, y - 1], [x + 1, y - 1], [x - 1, y + 1], [x + 1, y + 1]
-            ];
-
-            for (const [fx, fy] of nearbyFire) {
-                const neighbor = grid.getElement(fx, fy);
-                if (neighbor && neighbor.hasTag && neighbor.hasTag(TAG.HEAT_SOURCE)) {
-                    // Found fire nearby, create fire on this oil occasionally
-                    if (Math.random() > 0.5) {
-                        grid.setElement(x, y, grid.registry.get('fire'));
-                        return true;
-                    }
-                }
-            }
-        }
+        // Apply behaviors (proximity ignition)
+        const behaviorResult = this.applyBehaviors(x, y, grid);
+        if (behaviorResult) return true;
 
         // Delegate to standardized liquid flow behavior
         return this.movement.apply(x, y, grid);

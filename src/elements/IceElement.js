@@ -1,5 +1,10 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
+import {
+    HeatTransformationBehavior,
+    FreezingPropagationBehavior,
+    ConditionalTransformationBehavior
+} from '../behaviors/TransformationBehaviors.js';
 
 class IceElement extends Element {
     constructor() {
@@ -11,46 +16,34 @@ class IceElement extends Element {
             brushSize: 1,
             emissionDensity: 0.8
         });
+
+        // Behavior 1: Melt when near heat sources
+        this.addBehavior(new HeatTransformationBehavior({
+            transformInto: 'water',
+            transformChance: 0.05, // 5% chance per frame
+            requiredTag: TAG.HEAT_SOURCE,
+            checkDiagonals: false // only cardinal directions
+        }));
+
+        // Behavior 2: Slow melting at normal temperature
+        this.addBehavior(new ConditionalTransformationBehavior({
+            condition: () => true, // always melting (just slowly)
+            transformInto: 'water',
+            transformChance: 0.001 // 0.1% per frame - very slow
+        }));
+
+        // Behavior 3: Freeze adjacent water
+        this.addBehavior(new FreezingPropagationBehavior({
+            targetElement: 'water',
+            freezeInto: 'ice',
+            freezeChance: 0.02, // 2% chance per frame
+            checkDiagonals: false
+        }));
     }
 
     update(x, y, grid) {
-        const cell = grid.getCell(x, y);
-        if (!cell) return false;
-
-        // Check for adjacent heat sources - ice melts
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
-
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && neighbor.hasTag && neighbor.hasTag(TAG.HEAT_SOURCE)) {
-                // Melt into water (5% chance per frame when near heat)
-                if (Math.random() > 0.95) {
-                    grid.setElement(x, y, grid.registry.get('water'));
-                    return true;
-                }
-            }
-        }
-
-        // Slowly melt at normal temperatures (very slow - 0.1% per frame)
-        if (Math.random() > 0.999) {
-            grid.setElement(x, y, grid.registry.get('water'));
-            return true;
-        }
-
-        // Freeze adjacent water (spread the cold)
-        if (Math.random() > 0.98) { // 2% chance
-            for (const [nx, ny] of neighbors) {
-                const neighbor = grid.getElement(nx, ny);
-                if (neighbor && neighbor.name === 'water') {
-                    grid.setElement(nx, ny, grid.registry.get('ice'));
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        // Use behavior composition pattern
+        return this.applyBehaviors(x, y, grid);
     }
 }
 
