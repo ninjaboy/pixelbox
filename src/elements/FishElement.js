@@ -337,8 +337,32 @@ class FishElement extends Element {
             }
 
             // MORE ACTIVE vertical movement (50% chance, up from 20%)
+            // WITH BOTTOM AVOIDANCE: Fish prefer to stay above the bottom
             if (Math.random() > 0.5) {
-                const verticalDir = Math.random() > 0.5 ? 1 : -1;
+                // Find bottom of water body (where water meets non-water below)
+                let bottomDistance = 0;
+                for (let checkY = y + 1; checkY < grid.height; checkY++) {
+                    const element = grid.getElement(x, checkY);
+                    if (!element || element.name !== 'water') {
+                        bottomDistance = checkY - y - 1;
+                        break;
+                    }
+                    // Limit search to avoid performance issues
+                    if (checkY - y > 10) {
+                        bottomDistance = 10; // Far from bottom
+                        break;
+                    }
+                }
+
+                // Add strong upward bias when near bottom
+                let upwardBias = 0.5; // Default 50/50
+                if (bottomDistance <= 3) {
+                    upwardBias = 0.85; // 85% chance to move up when very close to bottom
+                } else if (bottomDistance <= 6) {
+                    upwardBias = 0.70; // 70% chance to move up when near bottom
+                }
+
+                const verticalDir = Math.random() < upwardBias ? -1 : 1; // Negative = up
                 const newY = y + verticalDir;
                 const targetElement = grid.getElement(x, newY);
                 if (targetElement && targetElement.name === 'water') {
