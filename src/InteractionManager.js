@@ -188,8 +188,8 @@ class InteractionManager {
                     ? [x1, y1]
                     : [x2, y2];
 
-                // 50% chance to convert sand to wet sand (increased from 30%)
-                if (Math.random() > 0.5) {
+                // 85% chance to convert sand to wet sand - water saturates sand quickly in real life
+                if (Math.random() > 0.15) {
                     const wetSandElement = registry.get('wet_sand');
                     if (wetSandElement) {
                         grid.setElement(sandX, sandY, wetSandElement);
