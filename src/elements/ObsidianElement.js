@@ -1,6 +1,5 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
-import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class ObsidianElement extends Element {
     constructor() {
@@ -13,21 +12,13 @@ class ObsidianElement extends Element {
             brushSize: 2,
             emissionDensity: 0.8
         });
-
-        // Use gravity behavior - obsidian falls like stone
-        this.movement = new GravityBehavior({
-            fallSpeed: 1,
-            slideAngle: false, // Doesn't slide, just falls straight
-            slideStability: 1.0 // Very stable, no sliding
-        });
     }
 
     updateImpl(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Only hot obsidian (created by lava-water) has temperature tracking
-        // Regular placed obsidian doesn't have temperature and stays cool
+        // PRIORITY 1: Temperature tracking and cooling
         if (cell.data.temperature !== undefined) {
             // Natural cooling over time (slower than water cooling)
             if (cell.data.temperature > 0 && Math.random() < 0.001) {
@@ -47,8 +38,35 @@ class ObsidianElement extends Element {
             }
         }
 
-        // Movement: Fall straight down (sinks through water due to high density)
-        return this.movement.apply(x, y, grid);
+        // PRIORITY 2: Movement - obsidian always tries to fall through water and other obsidian
+        const below = grid.getElement(x, y + 1);
+        if (!below) return false;
+
+        // Can fall into empty space
+        if (below.id === 0) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        // Can displace liquids (water, lava, oil) - sink through them
+        if (below.state === 'liquid' && this.density > below.density) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        // SPECIAL: Newly formed hot obsidian can displace other obsidian/stone to settle
+        // This prevents traffic jams when lava hits water
+        const isHot = cell.data.temperature !== undefined && cell.data.temperature > 50;
+        if (isHot && (below.name === 'obsidian' || below.name === 'stone')) {
+            // Hot obsidian pushes aside cooler obsidian/stone (10% chance to prevent infinite loops)
+            if (Math.random() < 0.1) {
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
+        }
+
+        // Can't move through solids - settled
+        return false;
     }
 }
 
