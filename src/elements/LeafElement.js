@@ -134,33 +134,49 @@ class LeafElement extends Element {
     }
 
     checkSupport(x, y, grid) {
-        // Check if connected to wood or other leaves
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
+        // Use BFS to check if this leaf is connected to wood within reasonable distance
+        const maxDistance = 8; // Max leaf chain length to wood
+        const visited = new Set();
+        const queue = [[x, y, 0]]; // [x, y, distance]
+        visited.add(`${x},${y}`);
 
-        for (const [nx, ny] of neighbors) {
-            const neighborElement = grid.getElement(nx, ny);
-            if (neighborElement) {
+        while (queue.length > 0) {
+            const [cx, cy, dist] = queue.shift();
+
+            // Too far from any wood - unsupported
+            if (dist > maxDistance) {
+                continue;
+            }
+
+            const neighbors = [
+                [cx, cy - 1], [cx, cy + 1], [cx - 1, cy], [cx + 1, cy]
+            ];
+
+            for (const [nx, ny] of neighbors) {
+                const key = `${nx},${ny}`;
+                if (visited.has(key)) continue;
+                visited.add(key);
+
+                const neighborElement = grid.getElement(nx, ny);
+                if (!neighborElement) continue;
+
                 const name = neighborElement.name;
+
+                // Found wood - this leaf is supported!
                 if (name === 'tree_trunk' || name === 'tree_branch' ||
                     name === 'wood' || name === 'burning_wood') {
                     return true;
                 }
+
+                // Found another leaf - continue searching through it
+                if (name === 'leaf') {
+                    queue.push([nx, ny, dist + 1]);
+                }
             }
         }
 
-        // Check for nearby leaves (clusters stay together)
-        // FIXED: Only need 1 leaf neighbor to prevent cascading holes in foliage
-        let leafCount = 0;
-        for (const [nx, ny] of neighbors) {
-            const neighborElement = grid.getElement(nx, ny);
-            if (neighborElement && neighborElement.name === 'leaf') {
-                leafCount++;
-            }
-        }
-
-        return leafCount >= 1; // Supported if at least 1 leaf neighbor (prevents holes)
+        // No wood found within maxDistance - unsupported
+        return false;
     }
 }
 
