@@ -45,8 +45,16 @@ class WetSandElement extends Element {
         const isUnderWater = above && above.name === 'water';
 
         // DRYING LOGIC - time-based exposure (more realistic than probabilistic)
-        if (isExposedToAir && !cell.data.isTouchingWater) {
-            // Exposed to air and not touching water - start drying
+        // FIX: Also check if surrounded by wet_sand - don't dry if in a wet pile
+        const neighbors = [
+            grid.getElement(x - 1, y),
+            grid.getElement(x + 1, y),
+            grid.getElement(x, y + 1)
+        ];
+        const hasWetSandNeighbors = neighbors.some(n => n && n.name === 'wet_sand');
+
+        if (isExposedToAir && !cell.data.isTouchingWater && !hasWetSandNeighbors) {
+            // Exposed to air, not touching water, and isolated - start drying
             cell.data.exposureTime++;
 
             // Dry out after 600 frames (10 seconds) of air exposure
@@ -55,7 +63,7 @@ class WetSandElement extends Element {
                 return true;
             }
         } else {
-            // Underwater or touching water - stay wet, reset exposure
+            // Underwater, touching water, or in wet pile - stay wet, reset exposure
             cell.data.exposureTime = 0;
         }
 

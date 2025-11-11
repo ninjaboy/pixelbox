@@ -22,14 +22,22 @@ class SandElement extends Element {
     }
 
     updateImpl(x, y, grid) {
-        // FIX: Check if sand is underwater and convert to wet_sand
-        // Previously, sand only got wet when directly touching water (InteractionManager)
-        // This caused piles of sand underwater to have dry sand in the middle → bubbling effect
-        const above = grid.getElement(x, y - 1);
-        if (above && above.name === 'water') {
-            // Sand is underwater - convert to wet_sand
-            grid.setElement(x, y, grid.registry.get('wet_sand'));
-            return true;
+        // FIX v2: Check if sand is touching water in any direction
+        // The previous fix only checked above, but sand displaces water when sinking
+        // So we need to check all neighbors to catch sand moving through water
+        const neighbors = [
+            grid.getElement(x, y - 1), // above
+            grid.getElement(x, y + 1), // below
+            grid.getElement(x - 1, y), // left
+            grid.getElement(x + 1, y), // right
+        ];
+
+        for (const neighbor of neighbors) {
+            if (neighbor && neighbor.name === 'water') {
+                // Sand is touching water - convert to wet_sand immediately
+                grid.setElement(x, y, grid.registry.get('wet_sand'));
+                return true;
+            }
         }
 
         return this.movement.apply(x, y, grid);
