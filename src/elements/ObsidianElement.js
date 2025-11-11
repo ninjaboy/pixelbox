@@ -38,7 +38,7 @@ class ObsidianElement extends Element {
             }
         }
 
-        // PRIORITY 2: Movement - obsidian always tries to fall through water and other obsidian
+        // PRIORITY 2: Movement - obsidian falls through liquids only, not solids
         const below = grid.getElement(x, y + 1);
         if (!below) return false;
 
@@ -54,18 +54,7 @@ class ObsidianElement extends Element {
             return true;
         }
 
-        // SPECIAL: Newly formed hot obsidian can displace other obsidian/stone to settle
-        // This prevents traffic jams when lava hits water
-        const isHot = cell.data.temperature !== undefined && cell.data.temperature > 50;
-        if (isHot && (below.name === 'obsidian' || below.name === 'stone')) {
-            // Hot obsidian pushes aside cooler obsidian/stone (10% chance to prevent infinite loops)
-            if (Math.random() < 0.1) {
-                grid.swap(x, y, x, y + 1);
-                return true;
-            }
-        }
-
-        // Can't move through solids - settled
+        // Obsidian is solid - stops when it hits any solid (stone, obsidian, walls, etc.)
         return false;
     }
 }

@@ -89,17 +89,8 @@ class StoneElement extends Element {
             return true;
         }
 
-        // Falling stones can push through other falling stones and obsidian
-        if (isFallingStone && (belowElement.name === 'stone' || belowElement.name === 'obsidian')) {
-            // 10% chance to swap with stone/obsidian below to prevent traffic jams
-            if (Math.random() < 0.1) {
-                grid.swap(x, y, x, y + 1);
-                return true;
-            }
-        }
-
-        // Once falling stone hits immovable solid ground (walls), stop
-        if (isFallingStone && belowElement.state === 'solid' && !belowElement.movable) {
+        // Once falling stone hits any solid (stone, obsidian, walls), it stops
+        if (isFallingStone && belowElement.state === 'solid') {
             delete cell.data.isFallingStone;
             return false;
         }
