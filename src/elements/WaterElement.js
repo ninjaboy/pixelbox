@@ -1,6 +1,7 @@
 import Element from '../Element.js';
 import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { LiquidFlowBehavior } from '../behaviors/MovementBehaviors.js';
+import { WaterLavaInteractionBehavior } from '../behaviors/ElementInteractionBehaviors.js';
 
 class WaterElement extends Element {
     constructor() {
@@ -14,95 +15,31 @@ class WaterElement extends Element {
             emissionDensity: 1.0 // Continuous pour
         });
 
+        // Behavior 1: Lava/Obsidian interaction (crusting, cooling)
+        this.addBehavior(new WaterLavaInteractionBehavior({
+            lavaCrustChance: 0.7,
+            lavaEvaporateChance: 0.3,
+            obsidianCoolRate: 5,
+            obsidianCoolThreshold: 20,
+            obsidianCrustChance: 0.4,
+            hotObsidianEvaporateChance: 0.3
+        }));
+
         // Use standardized liquid flow behavior
         this.movement = new LiquidFlowBehavior({
             fallSpeed: 4,
             dispersionRate: 2,
             viscosity: 0, // Water is not viscous
             levelingEnabled: true
-            // Removed avoidElements: water SHOULD touch lava to form crust via InteractionManager
         });
     }
 
     update(x, y, grid) {
-        // Check for lava/obsidian contact FIRST - before any movement
-        // This ensures water-lava interaction happens before water tries to displace lava
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
+        // PRIORITY 1: Check for lava/obsidian interactions
+        const interactionResult = this.applyBehaviors(x, y, grid);
+        if (interactionResult) return true;
 
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-
-            // LAVA INTERACTION
-            if (neighbor && neighbor.name === 'lava') {
-                // Check if lava is at surface (exposed to water/air above)
-                const aboveLava = grid.getElement(nx, ny - 1);
-                const isSurface = !aboveLava || aboveLava.id === 0 || aboveLava.name === 'water' || aboveLava.name === 'steam';
-
-                // MUCH HIGHER CHANCE for complete crusting (was 20%, now 70%)
-                if (Math.random() < 0.7) {
-                    // Surface lava + water = stone crust
-                    grid.setElement(nx, ny, grid.registry.get('stone'));
-                    // Mark as crust so it stays in place
-                    const crustCell = grid.getCell(nx, ny);
-                    if (crustCell) {
-                        crustCell.data.isCrust = true;
-                    }
-                    grid.setElement(x, y, grid.registry.get('steam'));
-                    return true;
-                } else {
-                    // 30% chance: Evaporate without forming crust
-                    grid.setElement(x, y, grid.registry.get('steam'));
-                    return true;
-                }
-            }
-
-            // OBSIDIAN COOLING MECHANIC
-            if (neighbor && neighbor.name === 'obsidian') {
-                const neighborCell = grid.getCell(nx, ny);
-
-                // Initialize obsidian temperature tracking
-                if (!neighborCell.data.temperature) {
-                    neighborCell.data.temperature = 100; // Hot obsidian starts at 100
-                }
-
-                // Water above obsidian = cooling mechanism
-                if (ny === y - 1) { // Water is above obsidian
-                    // Cool down the obsidian
-                    neighborCell.data.temperature -= 5;
-
-                    // When obsidian gets cool enough, water stops evaporating and forms protective crust
-                    if (neighborCell.data.temperature <= 20) {
-                        // Cool obsidian: Form stone crust ABOVE it (where the water is)
-                        if (Math.random() < 0.4) { // 40% chance to form crust
-                            grid.setElement(x, y, grid.registry.get('stone'));
-                            const crustCell = grid.getCell(x, y);
-                            if (crustCell) {
-                                crustCell.data.isCrust = true;
-                            }
-                            return true;
-                        }
-                        // Otherwise water stays as water (obsidian is cool now)
-                        return false;
-                    } else {
-                        // Still hot: evaporate water
-                        if (Math.random() < 0.3) { // 30% chance
-                            grid.setElement(x, y, grid.registry.get('steam'));
-                            return true;
-                        }
-                    }
-                } else {
-                    // Water on sides or below: evaporate if hot, otherwise interact normally
-                    if (neighborCell.data.temperature > 50 && Math.random() < 0.2) {
-                        grid.setElement(x, y, grid.registry.get('steam'));
-                        return true;
-                    }
-                }
-            }
-        }
-
-        // Surface evaporation (element-specific behavior)
+        // PRIORITY 2: Surface evaporation (element-specific behavior)
         const above = grid.getElement(x, y - 1);
         if (above && above.id === 0) {
             const isAtSurface = this.isAtSurface(x, y, grid);
@@ -112,7 +49,7 @@ class WaterElement extends Element {
             }
         }
 
-        // Seep through wet sand (permeability)
+        // PRIORITY 3: Seep through wet sand (permeability)
         const below = grid.getElement(x, y + 1);
         if (below && below.name === 'wet_sand') {
             const belowWetSand = grid.getElement(x, y + 2);
@@ -122,7 +59,7 @@ class WaterElement extends Element {
             }
         }
 
-        // Delegate to standardized liquid flow behavior
+        // PRIORITY 4: Delegate to standardized liquid flow behavior
         return this.movement.apply(x, y, grid);
     }
 
