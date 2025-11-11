@@ -105,44 +105,33 @@ class GameScene extends Phaser.Scene {
         const tooltipProps = document.getElementById('tooltip-props');
         const tooltipKey = document.getElementById('tooltip-key');
 
-        // Define elements with keybindings, grouped by category
+        // All elements - compact layout
         const elements = [
-            // TERRAIN
             { name: 'sand', key: '1' },
             { name: 'stone', key: '2' },
             { name: 'wall', key: '3' },
             { name: 'glass', key: '4' },
             { name: 'obsidian', key: '5' },
-            { type: 'separator' },
-            // LIQUIDS
             { name: 'water', key: '6' },
             { name: 'oil', key: '7' },
             { name: 'acid', key: '8' },
-            { type: 'separator' },
-            // TEMPERATURE
             { name: 'fire', key: '9' },
             { name: 'ice', key: '0' },
             { name: 'lava', key: 'Q' },
             { name: 'snow', key: 'W' },
-            { type: 'separator' },
-            // LIFE
             { name: 'tree_seed', key: 'E' },
             { name: 'vine', key: 'R' },
             { name: 'fish', key: 'T' },
             { name: 'coral', key: 'Y' },
-            { type: 'separator' },
-            // ENERGY & MATERIALS
             { name: 'wood', key: 'U' },
             { name: 'coal', key: 'I' },
             { name: 'gunpowder', key: 'O' },
             { name: 'steam_vent', key: 'P' },
-            { type: 'separator' },
-            // TOOLS
             { name: 'eraser', key: 'X' }
         ];
 
         // Element visual configs - using emojis for better visual clarity
-        const elementConfigs = {
+        this.elementConfigs = {
             sand: { icon: '∙∙', color: '#c2b280' },
             water: { icon: '💧', color: '#4a90e2' },
             stone: { icon: '🪨', color: '#666' },
@@ -169,23 +158,15 @@ class GameScene extends Phaser.Scene {
             eraser: { icon: '🧹', color: '#ff3333' }
         };
 
-        // Build UI
-        elements.forEach(({ name: elementName, key, type }) => {
-            // Handle separators
-            if (type === 'separator') {
-                const separator = document.createElement('div');
-                separator.className = 'element-separator';
-                selector.appendChild(separator);
-                return;
-            }
-
+        // Build all element buttons
+        elements.forEach(({ name: elementName, key }, index) => {
             const element = this.elementRegistry.get(elementName);
             if (!element && elementName !== 'eraser') return;
 
-            const config = elementConfigs[elementName];
+            const config = this.elementConfigs[elementName];
             const btn = document.createElement('button');
             btn.className = 'element-btn';
-            if (elementName === 'sand') btn.classList.add('active');
+            if (index === 0) btn.classList.add('active');
             btn.dataset.element = elementName;
             btn.dataset.key = key;
             btn.style.background = config.color;
@@ -197,9 +178,8 @@ class GameScene extends Phaser.Scene {
             keybind.textContent = key;
             btn.appendChild(keybind);
 
-            // Handle tooltip with global tooltip element
+            // Handle tooltip
             const showTooltip = (e) => {
-                // Update tooltip content
                 tooltipName.textContent = elementName.replace(/_/g, ' ');
 
                 if (element) {
@@ -211,23 +191,19 @@ class GameScene extends Phaser.Scene {
 
                 tooltipKey.textContent = `Press ${key}`;
 
-                // Position tooltip above button with smart boundary detection
                 const rect = btn.getBoundingClientRect();
-                globalTooltip.style.display = 'block'; // Show first to measure width
+                globalTooltip.style.display = 'block';
 
                 const tooltipRect = globalTooltip.getBoundingClientRect();
                 const tooltipWidth = tooltipRect.width;
 
-                // Calculate centered position
                 let leftPos = rect.left + rect.width / 2;
                 let transform = 'translateX(-50%)';
 
-                // Check if tooltip would go off-screen on the left
                 if (leftPos - tooltipWidth / 2 < 10) {
                     leftPos = rect.left;
                     transform = 'translateX(0)';
                 }
-                // Check if tooltip would go off-screen on the right
                 else if (leftPos + tooltipWidth / 2 > window.innerWidth - 10) {
                     leftPos = rect.right;
                     transform = 'translateX(-100%)';
@@ -242,34 +218,42 @@ class GameScene extends Phaser.Scene {
                 globalTooltip.style.display = 'none';
             };
 
-            // Desktop: show on hover
             btn.addEventListener('mouseenter', showTooltip);
             btn.addEventListener('mouseleave', hideTooltip);
 
-            // Selection handler (shared between click and touch)
             const selectElement = () => {
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedElement = elementName;
             };
 
-            // Mobile: show only while actively pressing and handle selection
             btn.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevent mouse events from also firing
+                e.preventDefault();
                 showTooltip(e);
             });
             btn.addEventListener('touchend', (e) => {
-                e.preventDefault(); // Prevent click event from firing
+                e.preventDefault();
                 hideTooltip();
-                selectElement(); // Select on touch
+                selectElement();
             });
             btn.addEventListener('touchcancel', hideTooltip);
-
-            // Desktop: handle click
             btn.addEventListener('click', selectElement);
 
             selector.appendChild(btn);
         });
+
+        // Add Menu button
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'element-btn menu-trigger-btn';
+        menuBtn.textContent = '☰';
+        menuBtn.title = 'Menu';
+        menuBtn.style.background = '#222';
+        menuBtn.style.fontSize = '24px';
+        menuBtn.style.fontWeight = 'bold';
+        menuBtn.addEventListener('click', () => {
+            this.menuManager.showMenu();
+        });
+        selector.appendChild(menuBtn);
 
         // Add keyboard shortcuts
         window.addEventListener('keydown', (e) => {
@@ -326,6 +310,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
 
+            // Check element buttons
             const btn = document.querySelector(`.element-btn[data-key="${key}"]`);
             if (btn) {
                 btn.click();
