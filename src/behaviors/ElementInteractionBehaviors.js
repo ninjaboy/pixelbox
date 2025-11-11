@@ -149,15 +149,15 @@ export class LavaWaterInteractionBehavior {
 
 /**
  * WaterLavaInteractionBehavior
- * Handles water interacting with lava and hot obsidian
- * - Water on lava: Forms stone crust (70% chance) or evaporates
+ * Handles water interacting with hot obsidian (NOT lava - that's handled by InteractionManager + LavaWaterInteractionBehavior)
  * - Water on hot obsidian: Evaporates while cooling obsidian
  * - Water on cool obsidian: Forms protective stone crust
+ *
+ * NOTE: Obsidian formation is handled by LavaWaterInteractionBehavior to avoid duplication
  */
 export class WaterLavaInteractionBehavior {
     constructor(options = {}) {
-        this.lavaCrustChance = options.lavaCrustChance || 0.7; // Stone crust formation
-        this.lavaEvaporateChance = options.lavaEvaporateChance || 0.3; // Evaporate instead
+        // Removed lava interaction options - InteractionManager + LavaWaterInteractionBehavior handle that
         this.obsidianCoolRate = options.obsidianCoolRate || 5; // Temperature drop per contact
         this.obsidianCoolThreshold = options.obsidianCoolThreshold || 20; // Cool enough for crust
         this.obsidianCrustChance = options.obsidianCrustChance || 0.4; // Crust formation on cool obsidian
@@ -165,37 +165,15 @@ export class WaterLavaInteractionBehavior {
     }
 
     apply(x, y, grid) {
-        // ONLY CHECK SIDES - no above, no below
-        // Let lava sink through via density physics!
+        // Check sides for obsidian (lava interaction is handled elsewhere)
         const neighbors = [
-            [x - 1, y], // left side only
-            [x + 1, y]  // right side only
-            // NOT above [x, y-1] - lava should sink through!
-            // NOT below [x, y+1] - lava should sink through!
+            [x - 1, y], // left side
+            [x + 1, y], // right side
+            [x, y - 1]  // above (for crust formation)
         ];
 
         for (const [nx, ny] of neighbors) {
             const neighbor = grid.getElement(nx, ny);
-
-            // LAVA INTERACTION (SIDES ONLY - form obsidian barriers)
-            if (neighbor && neighbor.name === 'lava') {
-                // Water touching lava on sides: mostly just evaporate, rarely form obsidian
-                if (Math.random() < 0.3) {
-                    // Form obsidian barrier on side (not stone crust!)
-                    grid.setElement(nx, ny, grid.registry.get('obsidian'));
-                    // Mark as hot obsidian (just formed from lava)
-                    const obsidianCell = grid.getCell(nx, ny);
-                    if (obsidianCell) {
-                        obsidianCell.data.temperature = 100;
-                    }
-                    grid.setElement(x, y, grid.registry.get('steam'));
-                    return true;
-                } else if (Math.random() < 0.2) {
-                    // Just evaporate water
-                    grid.setElement(x, y, grid.registry.get('steam'));
-                    return true;
-                }
-            }
 
             // OBSIDIAN COOLING INTERACTION
             if (neighbor && neighbor.name === 'obsidian') {

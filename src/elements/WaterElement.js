@@ -15,10 +15,8 @@ class WaterElement extends Element {
             emissionDensity: 1.0 // Continuous pour
         });
 
-        // Behavior 1: Lava/Obsidian interaction (crusting, cooling)
+        // Behavior 1: Obsidian cooling interaction (lava interaction handled by InteractionManager)
         this.addBehavior(new WaterLavaInteractionBehavior({
-            lavaCrustChance: 0.7,
-            lavaEvaporateChance: 0.3,
             obsidianCoolRate: 5,
             obsidianCoolThreshold: 20,
             obsidianCrustChance: 0.4,
