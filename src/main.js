@@ -2,8 +2,6 @@ import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
 import profiler from './Profiler.js';
-import WorldSerializer from './WorldSerializer.js';
-import MenuManager from './MenuManager.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -25,10 +23,6 @@ class GameScene extends Phaser.Scene {
         // Create pixel grid (4x4 pixel size for better performance on mobile)
         this.pixelSize = 4;
         this.pixelGrid = new PixelGrid(width, height, this.pixelSize, this.elementRegistry);
-
-        // Initialize WorldSerializer and MenuManager
-        this.worldSerializer = new WorldSerializer(this);
-        this.menuManager = new MenuManager(this);
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
@@ -55,9 +49,6 @@ class GameScene extends Phaser.Scene {
 
         // Element selector UI
         this.setupElementSelector();
-
-        // Initialize menu manager
-        this.menuManager.init();
 
         // Stats
         this.fpsText = document.getElementById('fps');
@@ -275,19 +266,6 @@ class GameScene extends Phaser.Scene {
 
             selector.appendChild(btn);
         });
-
-        // Add Menu button
-        const menuBtn = document.createElement('button');
-        menuBtn.className = 'element-btn menu-trigger-btn';
-        menuBtn.textContent = '☰';
-        menuBtn.title = 'Menu';
-        menuBtn.style.background = '#222';
-        menuBtn.style.fontSize = '24px';
-        menuBtn.style.fontWeight = 'bold';
-        menuBtn.addEventListener('click', () => {
-            this.menuManager.showMenu();
-        });
-        selector.appendChild(menuBtn);
 
         // Add keyboard shortcuts
         window.addEventListener('keydown', (e) => {
