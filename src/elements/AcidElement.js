@@ -47,12 +47,44 @@ class AcidElement extends Element {
             return true;
         }
 
-        // PRIORITY 2: Water neutralization (separate from corrosion)
-        // Acid neutralizes when mixed with water (becomes diluted)
+        // PRIORITY 2: Extreme heat reaction (lava, fire)
+        // Acid boils violently when touching extreme heat
         const neighbors = [
             [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
         ];
 
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+
+            // React with lava - violent boiling creates steam and smoke
+            if (neighbor && neighbor.name === 'lava') {
+                // 30% chance - faster reaction than water neutralization
+                if (Math.random() < 0.3) {
+                    // Acid boils off to steam
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    // Create toxic smoke as byproduct
+                    if (Math.random() < 0.5) {
+                        const aboveAcid = grid.getElement(x, y - 1);
+                        if (aboveAcid && aboveAcid.id === 0) {
+                            grid.setElement(x, y - 1, grid.registry.get('smoke'));
+                        }
+                    }
+                    return true;
+                }
+            }
+
+            // React with fire - acid evaporates
+            if (neighbor && neighbor.name === 'fire') {
+                // 20% chance to evaporate
+                if (Math.random() < 0.2) {
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    return true;
+                }
+            }
+        }
+
+        // PRIORITY 3: Water neutralization (separate from corrosion)
+        // Acid neutralizes when mixed with water (becomes diluted)
         for (const [nx, ny] of neighbors) {
             const neighbor = grid.getElement(nx, ny);
             if (neighbor && neighbor.name === 'water') {
@@ -64,7 +96,7 @@ class AcidElement extends Element {
             }
         }
 
-        // PRIORITY 3: Delegate to standardized liquid flow behavior
+        // PRIORITY 4: Delegate to standardized liquid flow behavior
         return this.movement.apply(x, y, grid);
     }
 }
