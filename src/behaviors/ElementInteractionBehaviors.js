@@ -201,9 +201,10 @@ export class WaterLavaInteractionBehavior {
             if (neighbor && neighbor.name === 'obsidian') {
                 const neighborCell = grid.getCell(nx, ny);
 
-                // Initialize obsidian temperature
-                if (!neighborCell.data.temperature) {
-                    neighborCell.data.temperature = 100; // Hot obsidian
+                // Skip if this is user-placed obsidian (no temperature data)
+                // Only interact with hot obsidian created by lava-water
+                if (neighborCell.data.temperature === undefined) {
+                    continue; // User-placed obsidian - leave it alone
                 }
 
                 // Water above obsidian = cooling mechanism
