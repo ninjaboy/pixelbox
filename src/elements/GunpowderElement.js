@@ -44,10 +44,11 @@ class GunpowderElement extends Element {
     }
 
     // Custom interaction for explosive chain reactions
+    // NOTE: This overrides InteractionManager's standard ignition to provide explosion behavior
     onInteract(otherElement, grid, x, y, otherX, otherY) {
-        // When gunpowder touches heat source - INSTANT IGNITION
+        // When gunpowder touches heat source - HIGH CHANCE IGNITION (90%)
+        // (Higher than InteractionManager's 15% base to make gunpowder more volatile)
         if (otherElement.hasTag(TAG.HEAT_SOURCE)) {
-            // Very high chance to ignite immediately (90%)
             if (Math.random() > 0.1) {
                 this.explode(x, y, grid);
                 return true;

@@ -9,7 +9,7 @@ class WetGunpowderElement extends Element {
             density: 4,  // Heavy when wet
             state: STATE.POWDER,
             movable: true,
-            ignitionResistance: 0.95,  // Very hard to ignite but possible
+            ignitionResistance: 0.80,  // Hard to ignite (3% base chance = 15% * 0.20)
             burnsInto: 'fire',
             tags: [TAG.COMBUSTIBLE],  // Can burn, but slowly
             brushSize: 0,
@@ -43,31 +43,9 @@ class WetGunpowderElement extends Element {
         return this.movement.apply(x, y, grid);
     }
 
-    // Custom interaction to handle burning
-    onInteract(otherElement, grid, x, y, otherX, otherY) {
-        const cell = grid.getCell(x, y);
-
-        // Check if touching a heat source
-        if (otherElement.hasTag && otherElement.hasTag(TAG.HEAT_SOURCE)) {
-            // Wet gunpowder burns slowly (3% chance per frame)
-            // Lower chance if touching water (1% chance)
-            const burnChance = (cell && cell.data.isTouchingWater) ? 0.01 : 0.03;
-
-            if (Math.random() < burnChance) {
-                const fireElement = grid.registry.get('fire');
-                if (fireElement) {
-                    grid.setElement(x, y, fireElement);
-                    return true; // Interaction handled
-                }
-            }
-
-            // Even if it doesn't ignite, return true to prevent default interaction
-            return true;
-        }
-
-        // Let other interactions proceed normally
-        return null;
-    }
+    // Note: Ignition is handled by InteractionManager (priority 5)
+    // TAG.COMBUSTIBLE + TAG.HEAT_SOURCE with ignitionResistance: 0.80
+    // This gives 3% base chance (15% * 0.20), making wet gunpowder hard to ignite
 }
 
 export default WetGunpowderElement;
