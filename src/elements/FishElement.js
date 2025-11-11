@@ -99,14 +99,17 @@ class FishElement extends Element {
         // PERFORMANCE: Cache nearby fish count (only update every 3 frames)
         let nearbyFishCount = cell.data.cachedNearbyFishCount;
         if (shouldUpdateAI) {
-            nearbyFishCount = this.countNearbyFish(x, y, grid, 3);
+            nearbyFishCount = this.countNearbyFish(x, y, grid, 5); // Increased radius to 5
             cell.data.cachedNearbyFishCount = nearbyFishCount;
         }
 
-        // OVERPOPULATION CONTROL: Die if too crowded
-        if (nearbyFishCount > 12) { // More than 12 fish within 3 pixels = overcrowding
-            // 1% chance per frame to die from stress/competition (gentle control)
-            if (Math.random() < 0.01) {
+        // OVERPOPULATION CONTROL: Die if too crowded (stronger control)
+        if (nearbyFishCount > 8) { // More than 8 fish within 5 pixels = overcrowding
+            // Progressive death chance based on crowding severity
+            const crowdingLevel = nearbyFishCount - 8; // 1-10+
+            const deathChance = Math.min(0.05 + (crowdingLevel * 0.01), 0.15); // 5-15% chance
+
+            if (Math.random() < deathChance) {
                 grid.setElement(x, y, grid.registry.get('ash'));
                 return true;
             }
@@ -196,8 +199,9 @@ class FishElement extends Element {
                         cell.data.cachedFoodLocation = null; // Clear cache after eating
 
                         // REPRODUCTION: If well-fed and not overcrowded, lay egg
-                        if (cell.data.hunger < 50 && nearbyFishCount < 10) {
-                            if (Math.random() < 0.5) { // 50% chance to lay egg when conditions are good
+                        // Stricter conditions to prevent overpopulation
+                        if (cell.data.hunger < 30 && nearbyFishCount < 6) {
+                            if (Math.random() < 0.15) { // 15% chance to lay egg (reduced from 50%)
                                 this.layEgg(x, y, grid);
                             }
                         }
