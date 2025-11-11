@@ -155,16 +155,20 @@ export class WaterLavaInteractionBehavior {
     }
 
     apply(x, y, grid) {
+        // Check neighbors but NOT below (lava above water should sink, not crust!)
         const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+            [x, y - 1], // above
+            [x - 1, y], // left
+            [x + 1, y]  // right
+            // NOT [x, y + 1] - don't check below!
         ];
 
         for (const [nx, ny] of neighbors) {
             const neighbor = grid.getElement(nx, ny);
 
-            // LAVA INTERACTION
+            // LAVA INTERACTION (only sides and above, NOT below)
             if (neighbor && neighbor.name === 'lava') {
-                // Water touching lava: form stone crust or evaporate
+                // Water touching lava on sides/above: form stone crust or evaporate
                 if (Math.random() < this.lavaCrustChance) {
                     // Form stone crust over lava
                     grid.setElement(nx, ny, grid.registry.get('stone'));
