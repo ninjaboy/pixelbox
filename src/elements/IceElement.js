@@ -35,8 +35,35 @@ class IceElement extends Element {
     }
 
     update(x, y, grid) {
-        // Use behavior composition pattern
-        return this.applyBehaviors(x, y, grid);
+        // PRIORITY 1: Apply behaviors (melting, freezing)
+        if (this.applyBehaviors(x, y, grid)) {
+            return true;
+        }
+
+        // PRIORITY 2: Ice physics - floats on water, falls in air
+        const below = grid.getElement(x, y + 1);
+
+        // Fall through empty space
+        if (below && below.id === 0) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        // Float on water (ice is less dense than water: 1.8 < 2)
+        // Water will naturally push ice up via density physics in canMoveTo
+        if (below && below.name === 'water') {
+            // Ice floats - water should move down, ice stays/moves up
+            // But this is handled by water's movement logic
+            return false;
+        }
+
+        // Fall through other liquids lighter than ice (oil: 1.5)
+        if (below && below.state === 'liquid' && below.density < this.density) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        return false;
     }
 }
 
