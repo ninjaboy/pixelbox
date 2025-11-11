@@ -71,22 +71,25 @@ class StoneElement extends Element {
 
         const belowElement = below.element;
 
-        // Can only move into completely empty space
+        // All stone can fall into empty space
         if (belowElement.id === 0) {
             grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        // Can displace liquids (water, oil, steam) but NOT powders or other solids
-        if (belowElement.state === 'liquid' && this.density > belowElement.density) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
+        // ONLY falling stones (from lava-water) can displace liquids and powders
+        if (isFallingStone) {
+            // Can displace liquids (water, oil, lava, steam)
+            if (belowElement.state === 'liquid' && this.density > belowElement.density) {
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
 
-        // Falling stones can displace powders (sand, wet_sand) on their way down
-        if (isFallingStone && belowElement.state === 'powder' && this.density > belowElement.density) {
-            grid.swap(x, y, x, y + 1);
-            return true;
+            // Can displace powders (sand, wet_sand) on their way down
+            if (belowElement.state === 'powder' && this.density > belowElement.density) {
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
         }
 
         // Once falling stone hits any solid (stone, obsidian, walls), it stops
