@@ -33,7 +33,7 @@ class FireElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // PRIORITY 1: Emit smoke (via behavior)
         if (this.applyBehaviors(x, y, grid)) {
             return true;

@@ -33,7 +33,7 @@ class GunpowderElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // PRIORITY 1: Check for wet/dry transition
         if (this.applyBehaviors(x, y, grid)) {
             return true;

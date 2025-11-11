@@ -47,7 +47,7 @@ class BurningWoodElement extends Element {
         }));
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Use behavior composition pattern
         return this.applyBehaviors(x, y, grid);
     }

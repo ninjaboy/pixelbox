@@ -22,7 +22,7 @@ class ObsidianElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 

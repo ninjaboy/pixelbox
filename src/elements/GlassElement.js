@@ -9,11 +9,12 @@ class GlassElement extends Element {
             movable: false,
             tags: [],
             brushSize: 1,
-            emissionDensity: 0.8
+            emissionDensity: 0.8,
+            canInteract: false  // PERFORMANCE: Skip interaction checks
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Glass is inert - doesn't react or move
         // In the future could add:
         // - Breaking mechanics when under pressure

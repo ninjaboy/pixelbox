@@ -22,7 +22,7 @@ class SnowElement extends Element {
         }));
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // First check behaviors (melting from heat)
         if (this.applyBehaviors(x, y, grid)) {
             return true;

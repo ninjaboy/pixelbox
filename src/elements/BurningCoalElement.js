@@ -50,7 +50,7 @@ class BurningCoalElement extends Element {
         }));
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // All behaviors handled via composition:
         // 1. Water extinguishing (via WaterExtinguishBehavior)
         // 2. Burning countdown (via BurningBehavior)

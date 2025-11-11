@@ -608,12 +608,11 @@ class GameScene extends Phaser.Scene {
         this.graphics.clear();
         const lightingColor = this.getLightingColor(time);
 
-        // CRITICAL FIX: Only render active (non-empty) cells, batched by color
+        // PERFORMANCE: Render active cells using cached coordinates (no keyToCoord!)
         const particlesByColor = new Map();
 
-        for (const [numericKey] of this.pixelGrid.activeCells) {
-            const { x, y } = this.pixelGrid.keyToCoord(numericKey);
-            const cell = this.pixelGrid.grid[y]?.[x];
+        for (const [numericKey, coords] of this.pixelGrid.activeCells) {
+            const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
 
             if (cell && cell.element.id !== 0) {
                 // Use per-cell color if available (for fish), otherwise use element color
@@ -625,17 +624,17 @@ class GameScene extends Phaser.Scene {
                 if (!particlesByColor.has(tintedColor)) {
                     particlesByColor.set(tintedColor, []);
                 }
-                particlesByColor.get(tintedColor).push({ x, y });
+                particlesByColor.get(tintedColor).push(coords);
             }
         }
 
         // Render all particles of the same color in one batch
         for (const [color, particles] of particlesByColor) {
             this.graphics.fillStyle(color, 1);
-            for (const { x, y } of particles) {
+            for (const coords of particles) {
                 this.graphics.fillRect(
-                    x * this.pixelSize,
-                    y * this.pixelSize,
+                    coords.x * this.pixelSize,
+                    coords.y * this.pixelSize,
                     this.pixelSize,
                     this.pixelSize
                 );

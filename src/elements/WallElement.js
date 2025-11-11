@@ -9,7 +9,8 @@ class WallElement extends Element {
             movable: false,  // Static - never moves
             tags: [],
             brushSize: 1,
-            emissionDensity: 1.0
+            emissionDensity: 1.0,
+            canInteract: false  // PERFORMANCE: Skip interaction checks
         });
     }
 

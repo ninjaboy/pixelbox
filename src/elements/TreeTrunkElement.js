@@ -13,7 +13,7 @@ class TreeTrunkElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Tree trunks maintain minimal foliage ONLY when bare
         if (Math.random() > 0.99998) { // 0.002% chance per frame (almost never)
             const leafElement = grid.registry.get('leaf');

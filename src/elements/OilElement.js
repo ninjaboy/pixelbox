@@ -71,7 +71,7 @@ class OilElement extends Element {
         return null; // Use default interaction system
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Apply behaviors (proximity ignition)
         const behaviorResult = this.applyBehaviors(x, y, grid);
         if (behaviorResult) return true;

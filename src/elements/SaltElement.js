@@ -13,7 +13,7 @@ class SaltElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Salt falls like sand
         const below = grid.getElement(x, y + 1);
 

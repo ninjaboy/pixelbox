@@ -17,6 +17,9 @@
  *   - CombustionBehaviors (BurningBehavior, EmissionBehavior, IgnitionBehavior)
  *   - TransformationBehaviors (HeatTransformationBehavior, MeltingBehavior, etc.)
  */
+
+import profiler from './Profiler.js';
+
 class Element {
     constructor(id, name, color, properties = {}) {
         this.id = id;
@@ -45,6 +48,9 @@ class Element {
         // Drawing/placement properties
         this.brushSize = properties.brushSize !== undefined ? properties.brushSize : 5; // Brush radius (0 = single pixel)
         this.emissionDensity = properties.emissionDensity !== undefined ? properties.emissionDensity : 1.0; // 0-1, spawn probability
+
+        // PERFORMANCE: Interaction optimization
+        this.canInteract = properties.canInteract !== false; // Static elements can disable interactions
 
         // Transformation properties
         this.burnsInto = properties.burnsInto || null;     // What it becomes when burned
@@ -81,8 +87,27 @@ class Element {
     }
 
     // Override in subclasses for custom movement behavior
+    // PERFORMANCE: Wrapped with profiling when profiler enabled
     update(x, y, grid) {
-        return false; // false = no change, true = changed
+        if (profiler.enabled) {
+            profiler.start(`element:${this.name}`);
+            const result = this.updateImpl(x, y, grid);
+            profiler.end(`element:${this.name}`);
+            return result;
+        }
+        return this.updateImpl(x, y, grid);
+    }
+
+    // Subclasses should override updateImpl instead of update
+    updateImpl(x, y, grid) {
+        // Default: apply behaviors then movement
+        if (this.applyBehaviors(x, y, grid)) {
+            return true;
+        }
+        if (this.movement) {
+            return this.movement.apply(x, y, grid);
+        }
+        return false;
     }
 
     // Called when this element interacts with another

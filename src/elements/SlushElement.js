@@ -31,7 +31,7 @@ class SlushElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // PRIORITY 1: Apply behaviors (melting from heat)
         if (this.applyBehaviors(x, y, grid)) {
             return true;

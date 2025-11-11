@@ -21,7 +21,7 @@ class SandElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         return this.movement.apply(x, y, grid);
     }
 }

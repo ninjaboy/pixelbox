@@ -13,7 +13,7 @@ class TreeBranchElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Tree branches maintain foliage ONLY if there are no leaves nearby
         // This prevents infinite growth
         if (Math.random() > 0.99995) { // 0.005% chance per frame (extremely rare)

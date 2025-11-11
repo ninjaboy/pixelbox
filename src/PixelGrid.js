@@ -12,9 +12,16 @@ class PixelGrid {
         this.frameCount = 0; // Track frames
         this.boulderCache = new Map(); // boulderId → Set of "x,y" position strings
 
-        // PERFORMANCE: Track active cells with numeric keys instead of strings
+        // PERFORMANCE: Track active cells with numeric keys and cached coordinates
         // Key formula: y * width + x (avoids expensive string parsing)
-        this.activeCells = new Map(); // Map<number, true>
+        // Value: {x, y} coordinates (eliminates keyToCoord() calls)
+        this.activeCells = new Map(); // Map<number, {x: number, y: number}>
+
+        // PERFORMANCE: Reusable neighbor offset arrays (no per-call allocation)
+        this.neighborOffsets = [
+            [0, -1], [0, 1], [-1, 0], [1, 0],           // Cardinal
+            [-1, -1], [1, -1], [-1, 1], [1, 1]          // Diagonal
+        ];
 
         // Initialize empty grid
         const emptyElement = this.registry.get('empty');
@@ -82,10 +89,10 @@ class PixelGrid {
             }
         }
 
-        // PERFORMANCE: Update active cells tracking with numeric keys
+        // PERFORMANCE: Update active cells tracking with cached coordinates
         if (wasEmpty && !isEmpty) {
             this.particleCount++;
-            this.activeCells.set(numericKey, true);
+            this.activeCells.set(numericKey, { x, y });
         }
         if (!wasEmpty && isEmpty) {
             this.particleCount--;
@@ -147,7 +154,7 @@ class PixelGrid {
         const cell1 = this.grid[y1][x1];
         const cell2 = this.grid[y2][x2];
 
-        // PERFORMANCE: Update active cells tracking during swap with numeric keys
+        // PERFORMANCE: Update active cells tracking during swap with cached coordinates
         const pos1Key = this.coordToKey(x1, y1);
         const pos2Key = this.coordToKey(x2, y2);
         const cell1Empty = cell1.element.id === 0;
@@ -156,11 +163,11 @@ class PixelGrid {
         if (!cell1Empty && cell2Empty) {
             // Moving from pos1 to pos2
             this.activeCells.delete(pos1Key);
-            this.activeCells.set(pos2Key, true);
+            this.activeCells.set(pos2Key, { x: x2, y: y2 });
         } else if (cell1Empty && !cell2Empty) {
             // Moving from pos2 to pos1
             this.activeCells.delete(pos2Key);
-            this.activeCells.set(pos1Key, true);
+            this.activeCells.set(pos1Key, { x: x1, y: y1 });
         }
         // If both empty or both filled, activeCells doesn't change
 
@@ -180,21 +187,19 @@ class PixelGrid {
             stoneElement.processedBoulders.clear();
         }
 
-        // PERFORMANCE: Only reset updated flags for active cells (no string parsing!)
-        for (const [numericKey] of this.activeCells) {
-            const coord = this.keyToCoord(numericKey);
-            const cell = this.grid[coord.y]?.[coord.x];
+        // PERFORMANCE: Only reset updated flags for active cells using cached coords
+        for (const [numericKey, coords] of this.activeCells) {
+            const cell = this.grid[coords.y]?.[coords.x];
             if (cell) {
                 cell.updated = false;
             }
         }
 
-        // PERFORMANCE: Group active cells by row and sort bottom to top (no string parsing!)
+        // PERFORMANCE: Group active cells by row using cached coordinates
         const cellsByRow = new Map();
-        for (const [numericKey] of this.activeCells) {
-            const coord = this.keyToCoord(numericKey);
-            const y = coord.y;
-            const x = coord.x;
+        for (const [numericKey, coords] of this.activeCells) {
+            const y = coords.y;
+            const x = coords.x;
             if (!cellsByRow.has(y)) {
                 cellsByRow.set(y, []);
             }
@@ -232,10 +237,9 @@ class PixelGrid {
                 // Let the element update itself
                 cell.element.update(x, y, this);
 
-                // PERFORMANCE: Check interactions every 2 frames instead of every frame
-                // Saves ~50% of interaction checks (20,000 ops/frame)
-                // Safe since most interactions are probabilistic anyway
-                if (this.frameCount % 2 === 0) {
+                // PERFORMANCE: Check interactions every 2 frames AND skip static elements
+                // Saves ~50% of interaction checks + skips walls/glass/obsidian
+                if (this.frameCount % 2 === 0 && cell.element.canInteract !== false) {
                     this.checkInteractions(x, y);
                 }
             }
@@ -246,13 +250,11 @@ class PixelGrid {
         const element = this.getElement(x, y);
         if (!element || element.id === 0) return;
 
-        // Check all adjacent cells for interactions (including diagonals)
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y],
-            [x - 1, y - 1], [x + 1, y - 1], [x - 1, y + 1], [x + 1, y + 1]
-        ];
+        // PERFORMANCE: Use reusable offset array (no allocation)
+        for (const [dx, dy] of this.neighborOffsets) {
+            const nx = x + dx;
+            const ny = y + dy;
 
-        for (const [nx, ny] of neighbors) {
             const neighborElement = this.getElement(nx, ny);
             if (neighborElement && neighborElement.id !== 0) {
                 // Use registry's interaction manager

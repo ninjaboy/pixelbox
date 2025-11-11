@@ -15,7 +15,7 @@ class CoalElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Coal falls straight down when unsupported
         const below = grid.getElement(x, y + 1);
 

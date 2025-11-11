@@ -41,7 +41,7 @@ class AcidElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // PRIORITY 1: Apply corrosion behavior (dissolves materials)
         if (this.applyBehaviors(x, y, grid)) {
             return true;

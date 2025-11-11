@@ -32,7 +32,7 @@ class WaterElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // PRIORITY 1: Check for lava/obsidian interactions
         const interactionResult = this.applyBehaviors(x, y, grid);
         if (interactionResult) return true;

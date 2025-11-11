@@ -66,7 +66,7 @@ class LavaElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Apply all behaviors (sand, water, ignition, melting, smoke)
         const behaviorResult = this.applyBehaviors(x, y, grid);
         if (behaviorResult) return true;

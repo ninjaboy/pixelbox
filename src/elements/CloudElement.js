@@ -17,7 +17,7 @@ class CloudElement extends Element {
         this.atmosphereThreshold = 0.40;
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 

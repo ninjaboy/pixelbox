@@ -14,7 +14,7 @@ class FossilElement extends Element {
         });
     }
 
-    update(x, y, grid) {
+    updateImpl(x, y, grid) {
         // Fossils slowly generate oil (fossil fuel!)
         // Very rare - represents millions of years of pressure
         if (Math.random() > 0.9999) { // 0.01% chance per frame
