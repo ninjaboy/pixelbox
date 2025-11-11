@@ -45,8 +45,10 @@ class WetSandElement extends Element {
         const isUnderWater = above && above.name === 'water';
 
         // DRYING LOGIC - time-based exposure (more realistic than probabilistic)
-        if (isExposedToAir && !cell.data.isTouchingWater) {
-            // Exposed to air and not touching water - start drying
+        // BUG FIX: Check if underwater OR touching water (not just sides)
+        // Previously: wet_sand could dry even when fully submerged if no water on sides
+        if (isExposedToAir && !cell.data.isTouchingWater && !isUnderWater) {
+            // Exposed to air, not touching water, not underwater - start drying
             cell.data.exposureTime++;
 
             // Dry out after 600 frames (10 seconds) of air exposure
