@@ -33,11 +33,10 @@ class LavaElement extends Element {
             dryWetSandChance: 0.6 // NEW: Dry wet sand before burning through
         }));
 
-        // Behavior 3: Water interaction (fall through as stone, create obsidian)
+        // Behavior 3: Water interaction (create obsidian on sides, evaporate)
         this.addBehavior(new LavaWaterInteractionBehavior({
-            stoneConversionChance: 0.9, // Lava → stone when falling through water
-            obsidianChance: 0.1, // Chance for obsidian instead
-            evaporateWaterChance: 0.4 // Evaporate water while falling
+            obsidianSideChance: 0.3, // Form obsidian barriers on sides
+            evaporateWaterChance: 0.2 // Evaporate water on contact
         }));
 
         // Behavior 4: Melting behavior (ice, salt)

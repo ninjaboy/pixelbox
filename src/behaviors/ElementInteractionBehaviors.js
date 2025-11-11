@@ -85,47 +85,48 @@ export class LavaSandInteractionBehavior {
 /**
  * LavaWaterInteractionBehavior
  * Handles lava falling through water
- * - Lava poured onto water: converts to stone/obsidian and continues falling
- * - Evaporates some water as it falls through
- * - Creates realistic "lava bomb" falling through water effect
+ * - Lava sinks through water (density: lava=8, water=2)
+ * - Creates obsidian on SIDES (not below - lava needs to sink!)
+ * - Evaporates some water as it passes through
+ * - Creates realistic "lava sinking through ocean" effect
  */
 export class LavaWaterInteractionBehavior {
     constructor(options = {}) {
-        this.stoneConversionChance = options.stoneConversionChance || 0.9; // Chance lava becomes stone
-        this.obsidianChance = options.obsidianChance || 0.1; // Chance for obsidian instead
-        this.evaporateWaterChance = options.evaporateWaterChance || 0.4; // Evaporate water around
+        this.obsidianSideChance = options.obsidianSideChance || 0.3; // Form obsidian on sides
+        this.evaporateWaterChance = options.evaporateWaterChance || 0.2; // Evaporate water around
     }
 
     apply(x, y, grid) {
-        // Check if lava is falling into/through water
-        const below = grid.getElement(x, y + 1);
+        // Check SIDES for water - create obsidian barrier (not below!)
+        const sideNeighbors = [
+            [x - 1, y], [x + 1, y]
+        ];
 
-        if (below && below.name === 'water') {
-            // LAVA FALLING THROUGH WATER: Convert to stone and continue falling
-            if (Math.random() < this.stoneConversionChance) {
-                // Create stone/obsidian that falls through
-                const resultElement = Math.random() < this.obsidianChance ? 'obsidian' : 'stone';
-                grid.setElement(x, y, grid.registry.get(resultElement));
-
-                // Evaporate some water below
-                if (Math.random() < this.evaporateWaterChance) {
-                    grid.setElement(x, y + 1, grid.registry.get('steam'));
+        for (const [nx, ny] of sideNeighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && neighbor.name === 'water') {
+                // Side contact: form obsidian barrier
+                if (Math.random() < this.obsidianSideChance) {
+                    grid.setElement(nx, ny, grid.registry.get('obsidian'));
+                    return true;
                 }
-
-                return true;
+                // Or evaporate water
+                else if (Math.random() < this.evaporateWaterChance) {
+                    grid.setElement(nx, ny, grid.registry.get('steam'));
+                    return true;
+                }
             }
         }
 
-        // Check sides/diagonal for water - create obsidian barrier
-        const neighbors = [
-            [x - 1, y], [x + 1, y], [x - 1, y + 1], [x + 1, y + 1]
+        // Check diagonal sides (not below diagonal!)
+        const diagonalNeighbors = [
+            [x - 1, y - 1], [x + 1, y - 1]
         ];
 
-        for (const [nx, ny] of neighbors) {
+        for (const [nx, ny] of diagonalNeighbors) {
             const neighbor = grid.getElement(nx, ny);
             if (neighbor && neighbor.name === 'water') {
-                // Side contact: high chance to form obsidian
-                if (Math.random() < 0.9) {
+                if (Math.random() < 0.1) { // Lower chance for diagonal
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
                     return true;
                 }
