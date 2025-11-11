@@ -189,20 +189,22 @@ class InteractionManager {
                 // Check if water is above the sand (water seeping down)
                 const isWaterAbove = waterY < sandY;
 
-                // Check if sand is surrounded by water/wet sand (fully submerged)
+                // Check if sand is surrounded by water (fully submerged)
+                // IMPORTANT: Only count actual WATER, not wet_sand, to prevent uncontrolled spreading
                 const neighbors = [
                     grid.getElement(sandX, sandY - 1), // above
                     grid.getElement(sandX, sandY + 1), // below
                     grid.getElement(sandX - 1, sandY), // left
                     grid.getElement(sandX + 1, sandY)  // right
                 ];
-                const waterCount = neighbors.filter(n => n && (n.name === 'water' || n.name === 'wet_sand')).length;
-                const isSubmerged = waterCount >= 3; // 3+ sides covered
+                const waterCount = neighbors.filter(n => n && n.name === 'water').length;
+                const isSubmerged = waterCount >= 3; // 3+ sides covered by actual water
 
                 // RULE: Sand only gets wet if:
                 // 1. Water is directly above it (absorption from above), OR
-                // 2. Sand is fully submerged (3+ sides covered by water/wet sand)
+                // 2. Sand is fully submerged (3+ sides covered by actual WATER)
                 // Sand exposed to air at the same level as water stays DRY
+                // Sand touching only wet_sand (no water) stays DRY
                 if (isWaterAbove || isSubmerged) {
                     // High conversion rate when conditions are met (85%)
                     if (Math.random() > 0.15) {
