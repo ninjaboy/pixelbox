@@ -112,25 +112,30 @@ class GameScene extends Phaser.Scene {
             { name: 'stone', key: '2' },
             { name: 'wall', key: '3' },
             { name: 'glass', key: '4' },
+            { name: 'obsidian', key: '5' },
             { type: 'separator' },
             // LIQUIDS
-            { name: 'water', key: '5' },
-            { name: 'oil', key: '6' },
-            { name: 'acid', key: '7' },
+            { name: 'water', key: '6' },
+            { name: 'oil', key: '7' },
+            { name: 'acid', key: '8' },
             { type: 'separator' },
             // TEMPERATURE
-            { name: 'fire', key: '8' },
-            { name: 'ice', key: '9' },
-            { name: 'lava', key: '0' },
+            { name: 'fire', key: '9' },
+            { name: 'ice', key: '0' },
+            { name: 'lava', key: 'Q' },
+            { name: 'snow', key: 'W' },
             { type: 'separator' },
             // LIFE
-            { name: 'tree_seed', key: 'Q' },
-            { name: 'plant', key: 'W' },
-            { name: 'fish', key: 'E' },
+            { name: 'tree_seed', key: 'E' },
+            { name: 'vine', key: 'R' },
+            { name: 'fish', key: 'T' },
+            { name: 'coral', key: 'Y' },
             { type: 'separator' },
-            // OTHER
-            { name: 'wood', key: 'R' },
-            { name: 'gunpowder', key: 'T' },
+            // ENERGY & MATERIALS
+            { name: 'wood', key: 'U' },
+            { name: 'coal', key: 'I' },
+            { name: 'gunpowder', key: 'O' },
+            { name: 'steam_vent', key: 'P' },
             { type: 'separator' },
             // TOOLS
             { name: 'eraser', key: 'X' }
@@ -155,7 +160,12 @@ class GameScene extends Phaser.Scene {
             glass: { icon: '◇', color: '#add8e6' },
             lava: { icon: '🌋', color: '#ff4500' },
             acid: { icon: '☢️', color: '#7fff00' },
-            plant: { icon: '🌿', color: '#32cd32' },
+            vine: { icon: '🌿', color: '#228b22' },
+            snow: { icon: '❄', color: '#ffffff' },
+            obsidian: { icon: '⬛', color: '#0a0a14' },
+            coal: { icon: '⚫', color: '#1a1a1a' },
+            coral: { icon: '🪸', color: '#ff6b9d' },
+            steam_vent: { icon: '🌡️', color: '#555555' },
             eraser: { icon: '🧹', color: '#ff3333' }
         };
 
