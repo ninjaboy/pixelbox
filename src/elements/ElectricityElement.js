@@ -41,8 +41,8 @@ class ElectricityElement extends Element {
             for (const [nx, ny] of neighbors) {
                 const neighbor = grid.getElement(nx, ny);
 
-                // Conduct through water (dangerous!)
-                if (neighbor && neighbor.name === 'water') {
+                // Conduct through conductive materials (water, etc.)
+                if (neighbor && neighbor.hasTag && neighbor.hasTag(TAG.CONDUCTIVE)) {
                     if (Math.random() < 0.4) { // 40% chance to spread
                         grid.setElement(nx, ny, grid.registry.get('electricity'));
                         cell.data.hasConducted = true; // Mark as conducted to prevent infinite spread
@@ -67,10 +67,10 @@ class ElectricityElement extends Element {
         if (Math.random() < 0.7) { // 70% chance to move down
             const below = grid.getElement(x, y + 1);
 
-            // Move through empty space or water
-            if (below && (below.name === 'empty' || below.name === 'water')) {
-                if (below.name === 'water') {
-                    // Spread when hitting water
+            // Move through empty space or conductive materials
+            if (below && (below.name === 'empty' || (below.hasTag && below.hasTag(TAG.CONDUCTIVE)))) {
+                if (below.hasTag && below.hasTag(TAG.CONDUCTIVE)) {
+                    // Spread when hitting conductive material
                     grid.setElement(x, y + 1, grid.registry.get('electricity'));
                 } else {
                     // Move through empty

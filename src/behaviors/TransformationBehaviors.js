@@ -192,6 +192,8 @@ export class CorrosionBehavior {
         this.checkDiagonals = options.checkDiagonals || false;
         this.emitByproduct = options.emitByproduct || null; // e.g., 'smoke' when corroding
         this.byproductChance = options.byproductChance || 0.5;
+        this.selfDilutionChance = options.selfDilutionChance || 0; // Chance for corrosive element to dilute itself
+        this.selfDilutionResult = options.selfDilutionResult || 'water'; // What it dilutes into
     }
 
     apply(x, y, grid) {
@@ -236,6 +238,11 @@ export class CorrosionBehavior {
                         if (grid.isEmpty(nx, ny - 1)) {
                             grid.setElement(nx, ny - 1, grid.registry.get(this.emitByproduct));
                         }
+                    }
+
+                    // Self-dilution (acid gets diluted when corroding)
+                    if (this.selfDilutionChance > 0 && Math.random() < this.selfDilutionChance) {
+                        grid.setElement(x, y, grid.registry.get(this.selfDilutionResult));
                     }
 
                     return true;
