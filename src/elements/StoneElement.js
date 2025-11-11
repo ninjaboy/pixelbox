@@ -71,6 +71,11 @@ class StoneElement extends Element {
 
         const belowElement = below.element;
 
+        // Debug: Log when falling stone is created and what's below
+        if (isFallingStone && Math.random() < 0.01) {
+            console.log(`Falling stone at (${x},${y}), below: ${belowElement.name}, state: ${belowElement.state}, density: ${belowElement.density}`);
+        }
+
         // All stone can fall into empty space
         if (belowElement.id === 0) {
             grid.swap(x, y, x, y + 1);
@@ -94,6 +99,7 @@ class StoneElement extends Element {
 
         // Once falling stone hits any solid (stone, obsidian, walls), it stops
         if (isFallingStone && belowElement.state === 'solid') {
+            console.log(`Falling stone stopped at (${x},${y}), hit solid: ${belowElement.name}`);
             delete cell.data.isFallingStone;
             return false;
         }
