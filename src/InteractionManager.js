@@ -36,26 +36,19 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
-                // Check if this lava is at the surface (exposed to air/water above)
-                const above = grid.getElement(lavaX, lavaY - 1);
-                const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
-
                 // Probabilistic stonification: 20% chance per contact
-                if (isSurface && Math.random() < 0.2) {
-                    // Turn surface lava into stone that can fall through water
+                if (Math.random() < 0.2) {
+                    // Turn lava into falling stone that can sink through water
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
-                    // Mark as falling stone (not crust) so it can sink
+                    // ALWAYS mark as falling stone so it sinks
                     const stoneCell = grid.getCell(lavaX, lavaY);
                     if (stoneCell) {
                         stoneCell.data.isFallingStone = true;
                     }
                     // Water becomes steam
                     grid.setElement(waterX, waterY, registry.get('steam'));
-                } else if (isSurface) {
-                    // Surface lava evaporates water without forming crust
-                    grid.setElement(waterX, waterY, registry.get('steam'));
                 } else {
-                    // Buried lava just evaporates the water
+                    // Just evaporate the water without forming stone
                     grid.setElement(waterX, waterY, registry.get('steam'));
                 }
 
