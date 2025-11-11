@@ -83,7 +83,25 @@ class CloudElement extends Element {
             }
         }
 
-        // 3. RAIN GENERATION - saturated clouds produce rain (but only what they absorbed!)
+        // 3. LIGHTNING GENERATION - very saturated clouds can produce lightning!
+        // Initialize lightning cooldown
+        if (cell.data.lightningCooldown === undefined) {
+            cell.data.lightningCooldown = 0;
+        }
+
+        if (cell.data.lightningCooldown > 0) {
+            cell.data.lightningCooldown--;
+        } else if (cell.data.saturation >= 12 && Math.random() < 0.0008) { // 0.08% chance per frame when highly saturated
+            // LIGHTNING STRIKE!
+            const below = grid.getElement(x, y + 1);
+            if (below && below.name === 'empty') {
+                grid.setElement(x, y + 1, grid.registry.get('electricity'));
+                // Long cooldown between lightning strikes (3-5 seconds)
+                cell.data.lightningCooldown = 180 + Math.floor(Math.random() * 120);
+            }
+        }
+
+        // 4. RAIN GENERATION - saturated clouds produce rain (but only what they absorbed!)
         // IMPORTANT: Clouds need to mature for 8-12 seconds before they can rain
         const minCloudAge = 480 + Math.floor(Math.random() * 240); // 8-12 seconds at 60fps
         const canRain = cell.data.cloudAge >= minCloudAge;

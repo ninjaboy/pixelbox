@@ -29,8 +29,15 @@ import {
     GlassElement,
     LavaElement,
     AcidElement,
-    PlantElement,
-    GrassSeedElement
+    VineElement,
+    GrassSeedElement,
+    CoalElement,
+    BurningCoalElement,
+    SnowElement,
+    ObsidianElement,
+    SteamVentElement,
+    CoralElement,
+    ElectricityElement
 } from './elements/index.js';
 
 // Create and initialize the global element registry
@@ -66,8 +73,15 @@ registry.register(new SaltElement());
 registry.register(new GlassElement());
 registry.register(new LavaElement());
 registry.register(new AcidElement());
-registry.register(new PlantElement());
+registry.register(new VineElement());
 registry.register(new GrassSeedElement());
+registry.register(new CoalElement());
+registry.register(new BurningCoalElement());
+registry.register(new SnowElement());
+registry.register(new ObsidianElement());
+registry.register(new SteamVentElement());
+registry.register(new CoralElement());
+registry.register(new ElectricityElement());
 
 // Export the initialized registry
 export default registry;

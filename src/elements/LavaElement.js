@@ -23,9 +23,10 @@ class LavaElement extends Element {
             checkDiagonals: false // only cardinal directions
         }));
 
-        // Behavior 2: Melting behavior (ice, sand, salt)
+        // Behavior 2: Melting/transformation behavior (ice, sand, salt, water)
         this.addBehavior(new MeltingBehavior({
             meltingRules: [
+                { target: 'water', result: 'obsidian', chance: 0.8 }, // Lava + water = obsidian (like Minecraft!)
                 { target: 'ice', result: 'steam', chance: 0.2 },
                 { target: 'sand', result: ['glass', 'glass', 'glass', 'stone'], chance: 0.05 }, // 75% glass, 25% stone
                 { target: 'salt', result: 'smoke', chance: 0.1 }

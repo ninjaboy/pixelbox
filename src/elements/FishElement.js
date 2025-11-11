@@ -263,10 +263,12 @@ class FishElement extends Element {
         if (cell.data.feedingCooldown > 0 || cell.data.hunger < 30) {
             // Initialize or update exploration target depth
             if (cell.data.targetDepth === undefined || Math.random() > 0.99) {
-                // Pick a random depth to explore
+                // Pick a random depth to explore (but stay away from bottom!)
                 if (surfaceY !== null) {
                     const waterDepth = grid.height - surfaceY;
-                    cell.data.targetDepth = surfaceY + Math.floor(Math.random() * waterDepth);
+                    // Keep fish at least 5 pixels above the bottom
+                    const maxDepth = Math.max(waterDepth - 5, 0);
+                    cell.data.targetDepth = surfaceY + Math.floor(Math.random() * maxDepth);
                 } else {
                     cell.data.targetDepth = y;
                 }

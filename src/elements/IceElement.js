@@ -8,9 +8,9 @@ import {
 class IceElement extends Element {
     constructor() {
         super(18, 'ice', 0x87ceeb, { // Sky blue
-            density: 3,
+            density: 1.8, // Less dense than water (2) so it floats!
             state: STATE.SOLID,
-            movable: false,
+            movable: true, // Can float/move in water
             tags: new Set([TAG.FREEZING]), // Ice is freezing, not organic
             brushSize: 1,
             emissionDensity: 0.8
@@ -24,12 +24,13 @@ class IceElement extends Element {
             checkDiagonals: false // only cardinal directions
         }));
 
-        // Behavior 2: Freeze adjacent water (spread the cold)
+        // Behavior 2: Freeze adjacent water (MUCH slower, more realistic)
+        // Ice floats and freezes water from top down (like real ice)
         this.addBehavior(new FreezingPropagationBehavior({
             targetElement: 'water',
             freezeInto: 'ice',
-            freezeChance: 0.02, // 2% chance per frame
-            checkDiagonals: false
+            freezeChance: 0.0005, // 0.05% chance per frame (40x slower than before)
+            checkDiagonals: false // Only cardinal directions
         }));
     }
 
