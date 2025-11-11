@@ -31,50 +31,78 @@ class WetSandElement extends Element {
         const isExposedToAir = !above || above.id === 0;
         const isUnderWater = above && above.name === 'water';
 
-        // DRYING LOGIC - Realistic evaporation from top of pile
-        // Wet_sand exposed to air should dry, even if wet_sand below
-        // But moisture wicks up from below, so slower drying
+        // DRYING LOGIC - Simple exposure-based drying
+        // Count how many sides are "dry" (air/empty or dry sand)
+        // More dry sides = faster drying
 
         const below = grid.getElement(x, y + 1);
         const left = grid.getElement(x - 1, y);
         const right = grid.getElement(x + 1, y);
 
-        // Check for water contact (not wet_sand, actual water)
+        // Check for water contact (actual water, not wet_sand)
         const touchingWater =
             (above && above.name === 'water') ||
             (below && below.name === 'water') ||
             (left && left.name === 'water') ||
             (right && right.name === 'water');
 
-        // Check if moisture wicking from below
-        const hasWetSandBelow = below && below.name === 'wet_sand';
+        let hasMoisture = false;
 
-        // Drying conditions:
-        // 1. Never dry if touching water directly
-        // 2. Never dry if underwater
-        // 3. Must be exposed to air to dry
+        // Never dry if touching water or underwater
         if (touchingWater || isUnderWater) {
-            // Touching water - stay wet, reset timer
             cell.data.exposureTime = 0;
-        } else if (isExposedToAir) {
-            // Exposed to air - can dry
-            cell.data.exposureTime++;
+            hasMoisture = true;
+        } else {
+            // Count dry neighbors (air/empty or dry sand)
+            const neighbors = [above, below, left, right];
+            let drySides = 0;
 
-            // Drying speed depends on moisture wicking from below
-            const dryingTime = hasWetSandBelow ? 1200 : 600; // Slower if wicking from below
+            for (const neighbor of neighbors) {
+                if (!neighbor || neighbor.id === 0 || neighbor.name === 'sand') {
+                    drySides++;
+                }
+            }
 
-            if (cell.data.exposureTime > dryingTime) {
+            // Drying speed based on exposure:
+            // 4 dry sides: instant (completely exposed)
+            // 3 dry sides: 60 frames (~1 second)
+            // 2 dry sides: 300 frames (~5 seconds)
+            // 1 dry side: 900 frames (~15 seconds)
+            // 0 dry sides: don't dry (surrounded by wet_sand)
+
+            if (drySides >= 4) {
+                // Completely exposed - dry instantly
                 grid.setElement(x, y, grid.registry.get('sand'));
                 return true;
+            } else if (drySides >= 3) {
+                // Mostly exposed - dry very fast
+                cell.data.exposureTime++;
+                if (cell.data.exposureTime > 60) {
+                    grid.setElement(x, y, grid.registry.get('sand'));
+                    return true;
+                }
+            } else if (drySides >= 2) {
+                // Half exposed - dry moderately fast
+                cell.data.exposureTime++;
+                if (cell.data.exposureTime > 300) {
+                    grid.setElement(x, y, grid.registry.get('sand'));
+                    return true;
+                }
+            } else if (drySides >= 1) {
+                // Barely exposed - dry slowly
+                cell.data.exposureTime++;
+                if (cell.data.exposureTime > 900) {
+                    grid.setElement(x, y, grid.registry.get('sand'));
+                    return true;
+                }
+            } else {
+                // No dry sides (surrounded by wet_sand) - stay wet
+                cell.data.exposureTime = 0;
             }
-        } else {
-            // Not exposed to air but not underwater either (something solid above)
-            // Keep as wet_sand but don't advance drying timer
-            cell.data.exposureTime = 0;
-        }
 
-        // For movement logic below
-        const hasMoisture = touchingWater || hasWetSandBelow || isUnderWater;
+            // For movement logic below
+            hasMoisture = drySides < 3;
+        }
 
         // PERMEABILITY - allow water to slowly seep through
         // Check if there's water above wanting to seep down
