@@ -1,16 +1,24 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
+import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class ObsidianElement extends Element {
     constructor() {
         super(32, 'obsidian', 0x0a0a14, { // Very dark purple-black
-            density: 10, // Very heavy, like stone
+            density: 10, // Very heavy, like stone - sinks through water
             state: STATE.SOLID,
-            movable: false,
+            movable: true, // Can fall and sink through water
             ignitionResistance: 1.0, // Cannot burn
             tags: [TAG.MINERAL], // TAG.VERY_HOT added dynamically when hot
             brushSize: 2,
             emissionDensity: 0.8
+        });
+
+        // Use gravity behavior - obsidian falls like stone
+        this.movement = new GravityBehavior({
+            fallSpeed: 1,
+            slideAngle: false, // Doesn't slide, just falls straight
+            slideStability: 1.0 // Very stable, no sliding
         });
     }
 
@@ -39,7 +47,8 @@ class ObsidianElement extends Element {
             }
         }
 
-        return false;
+        // Movement: Fall straight down (sinks through water due to high density)
+        return this.movement.apply(x, y, grid);
     }
 }
 
