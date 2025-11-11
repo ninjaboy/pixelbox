@@ -255,6 +255,71 @@ export class CorrosionBehavior {
 }
 
 /**
+ * WetDryTransitionBehavior - Handles wet/dry state transitions
+ * Used for elements that absorb water and dry out when not touching water
+ *
+ * @example Gunpowder ↔ Wet Gunpowder, Sand ↔ Wet Sand
+ */
+export class WetDryTransitionBehavior {
+    constructor(options = {}) {
+        this.wetForm = options.wetForm; // e.g., 'wet_gunpowder'
+        this.dryForm = options.dryForm; // e.g., 'gunpowder'
+        this.waterSources = options.waterSources || ['water', 'wet_sand']; // Elements that wet this
+        this.wettingChance = options.wettingChance || 1.0; // Instant wetting by default
+        this.dryingChance = options.dryingChance || 0.0005; // 0.05% per frame (slow drying)
+        this.requiresExposure = options.requiresExposure || false; // Must be exposed to air to dry
+    }
+
+    apply(x, y, grid, cell) {
+        const element = grid.getElement(x, y);
+        if (!element) return false;
+
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        // Check if touching water
+        let isTouchingWater = false;
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && this.waterSources.includes(neighbor.name)) {
+                isTouchingWater = true;
+                break;
+            }
+        }
+
+        // Store water contact status (for other behaviors to check)
+        cell.data.isTouchingWater = isTouchingWater;
+
+        // DRY → WET transition
+        if (element.name === this.dryForm && isTouchingWater) {
+            if (Math.random() < this.wettingChance) {
+                grid.setElement(x, y, grid.registry.get(this.wetForm));
+                return true;
+            }
+        }
+
+        // WET → DRY transition
+        if (element.name === this.wetForm && !isTouchingWater) {
+            // Check if exposed to air (if required)
+            if (this.requiresExposure) {
+                const above = grid.getElement(x, y - 1);
+                if (!above || above.id !== 0) {
+                    return false; // Not exposed, can't dry
+                }
+            }
+
+            if (Math.random() < this.dryingChance) {
+                grid.setElement(x, y, grid.registry.get(this.dryForm));
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+/**
  * TimedTransformationBehavior - Transforms after a certain time/lifetime
  * Used for elements that decay, burnout, or age into something else
  */

@@ -1,6 +1,7 @@
 import Element from '../Element.js';
 import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
+import { WetDryTransitionBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class GunpowderElement extends Element {
     constructor() {
@@ -15,6 +16,15 @@ class GunpowderElement extends Element {
             emissionDensity: 1.0 // Pour like sand
         });
 
+        // Behavior 1: Wet/dry transition
+        this.addBehavior(new WetDryTransitionBehavior({
+            dryForm: 'gunpowder',
+            wetForm: 'wet_gunpowder',
+            waterSources: ['water', 'wet_sand'],
+            wettingChance: 1.0, // Instant wetting
+            dryingChance: 0.0005 // Slow drying (0.05%)
+        }));
+
         // Use standardized gravity behavior (same as sand)
         this.movement = new GravityBehavior({
             fallSpeed: 1,
@@ -24,23 +34,12 @@ class GunpowderElement extends Element {
     }
 
     update(x, y, grid) {
-        // Check if touching water or wet_sand - become wet gunpowder
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
-
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && (neighbor.name === 'water' || neighbor.name === 'wet_sand')) {
-                const wetGunpowder = grid.registry.get('wet_gunpowder');
-                if (wetGunpowder) {
-                    grid.setElement(x, y, wetGunpowder);
-                    return true;
-                }
-            }
+        // PRIORITY 1: Check for wet/dry transition
+        if (this.applyBehaviors(x, y, grid)) {
+            return true;
         }
 
-        // Delegate to gravity behavior
+        // PRIORITY 2: Delegate to gravity behavior
         return this.movement.apply(x, y, grid);
     }
 
