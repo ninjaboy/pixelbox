@@ -33,6 +33,7 @@ export { default as GrassSeedElement } from './GrassSeedElement.js';
 export { default as CoalElement } from './CoalElement.js';
 export { default as BurningCoalElement } from './BurningCoalElement.js';
 export { default as SnowElement } from './SnowElement.js';
+export { default as SlushElement } from './SlushElement.js';
 export { default as ObsidianElement } from './ObsidianElement.js';
 export { default as SteamVentElement } from './SteamVentElement.js';
 export { default as CoralElement } from './CoralElement.js';

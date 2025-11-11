@@ -34,6 +34,7 @@ import {
     CoalElement,
     BurningCoalElement,
     SnowElement,
+    SlushElement,
     ObsidianElement,
     SteamVentElement,
     CoralElement,
@@ -78,6 +79,7 @@ registry.register(new GrassSeedElement());
 registry.register(new CoalElement());
 registry.register(new BurningCoalElement());
 registry.register(new SnowElement());
+registry.register(new SlushElement());
 registry.register(new ObsidianElement());
 registry.register(new SteamVentElement());
 registry.register(new CoralElement());
