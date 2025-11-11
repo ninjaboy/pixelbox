@@ -23,9 +23,25 @@ class SnowElement extends Element {
     }
 
     update(x, y, grid) {
-        // First check behaviors (melting)
+        // First check behaviors (melting from heat)
         if (this.applyBehaviors(x, y, grid)) {
             return true;
+        }
+
+        // CHECK FOR WATER CONTACT: Snow melts into ice (slush) when touching water
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && neighbor.name === 'water') {
+                // Snow touching water = melts into ice (slush/frozen mix)
+                if (Math.random() < 0.4) { // 40% chance per contact
+                    grid.setElement(x, y, grid.registry.get('ice'));
+                    return true;
+                }
+            }
         }
 
         // SLOW FALLING: Only move 30% of the time (snow drifts down gently)
@@ -34,6 +50,15 @@ class SnowElement extends Element {
         }
 
         // Priority 1: Fall straight down
+        const below = grid.getElement(x, y + 1);
+
+        // Can't fall onto water - would float/melt
+        if (below && below.name === 'water') {
+            // Snow on water surface converts to ice (slush layer)
+            grid.setElement(x, y, grid.registry.get('ice'));
+            return true;
+        }
+
         if (grid.canMoveTo(x, y, x, y + 1)) {
             grid.swap(x, y, x, y + 1);
             return true;
