@@ -8,7 +8,7 @@ class ObsidianElement extends Element {
             state: STATE.SOLID,
             movable: false,
             ignitionResistance: 1.0, // Cannot burn
-            tags: [TAG.MINERAL, TAG.VERY_HOT], // Newly formed obsidian is very hot!
+            tags: [TAG.MINERAL], // TAG.VERY_HOT added dynamically when hot
             brushSize: 2,
             emissionDensity: 0.8
         });

@@ -21,13 +21,14 @@ class InteractionManager {
 
     // Register all default interaction rules
     registerDefaultInteractions() {
-        // PRIORITY 0: CRITICAL - Lava + Water solidification
+        // PRIORITY 0: CRITICAL - Lava + Water solidification (lava only, not obsidian)
         this.registerInteraction({
             name: 'lava_water_solidification',
             priority: 0,
             check: (element1, element2) => {
-                return (element1.hasTag(TAG.SOLIDIFIES_LAVA) && element2.hasTag(TAG.VERY_HOT)) ||
-                       (element2.hasTag(TAG.SOLIDIFIES_LAVA) && element1.hasTag(TAG.VERY_HOT));
+                // Only check for lava specifically, not all VERY_HOT elements
+                return (element1.hasTag(TAG.SOLIDIFIES_LAVA) && element2.name === 'lava') ||
+                       (element2.hasTag(TAG.SOLIDIFIES_LAVA) && element1.name === 'lava');
             },
             apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
                 // Determine which is water and which is lava
