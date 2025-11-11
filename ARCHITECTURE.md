@@ -462,3 +462,47 @@ Before committing:
 ### Summary
 
 **Remember:** When in doubt, create a new module. Modularity prevents technical debt and makes the codebase scalable. A well-organized codebase with many small modules is far easier to maintain than a monolithic file with thousands of lines.
+
+---
+
+## Version Management
+
+**IMPORTANT:** Always update the version number when making meaningful changes.
+
+### Version File Location
+`version.js` - Single source of truth for version display
+
+### Version Format
+`MAJOR.MINOR.PATCH` (e.g., `3.0.3`)
+
+### When to Update
+
+**Major (X.0.0)** - Significant new features or gameplay changes
+- New game modes
+- Major system overhauls
+- Breaking changes to save format
+
+**Minor (3.X.0)** - New elements, mechanics, or substantial improvements
+- New elements or interactions
+- New world templates
+- Significant performance improvements
+- New UI features (menus, controls)
+
+**Patch (3.0.X)** - Bug fixes and minor tweaks
+- Bug fixes
+- UI tweaks (button sizes, colors)
+- Performance optimizations
+- Code refactoring without user-facing changes
+
+### Update Checklist
+
+When making changes:
+1. [ ] Determine if change is major, minor, or patch
+2. [ ] Update `version.js` with new version number
+3. [ ] Commit with version number in commit message
+4. [ ] Push to production
+
+Example commit message:
+```
+Update to v3.0.3: Make element buttons compact for mobile
+```
