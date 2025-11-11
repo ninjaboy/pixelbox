@@ -270,6 +270,11 @@ class GameScene extends Phaser.Scene {
                 this.buildMode = !this.buildMode;
                 console.log(this.buildMode ? '🔨 Build mode ON' : '🚶 Explore mode ON');
 
+                // Spawn player when exiting build mode for the first time
+                if (!this.buildMode && this.playerX === null) {
+                    this.spawnPlayer();
+                }
+
                 // Update persistent mode display in stats
                 this.updateModeDisplay();
 
@@ -328,8 +333,7 @@ class GameScene extends Phaser.Scene {
         // Profiler panel reference
         this.profilerPanel = document.getElementById('profiler-content');
 
-        // Spawn initial player at center-top
-        this.spawnPlayer();
+        // Player will spawn when exiting build mode for the first time
     }
 
     createModeIndicator() {
@@ -556,8 +560,10 @@ class GameScene extends Phaser.Scene {
         this.pixelGrid.update();
         profiler.end('physics:update');
 
-        // Update player position after physics update
-        this.findPlayer();
+        // Update player position after physics update (only in explore mode)
+        if (!this.buildMode) {
+            this.findPlayer();
+        }
 
         // Render everything with atmospheric effects
         profiler.start('render:total');
