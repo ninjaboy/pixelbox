@@ -8,14 +8,38 @@ class ObsidianElement extends Element {
             state: STATE.SOLID,
             movable: false,
             ignitionResistance: 1.0, // Cannot burn
-            tags: [TAG.MINERAL],
+            tags: [TAG.MINERAL, TAG.VERY_HOT], // Newly formed obsidian is very hot!
             brushSize: 2,
             emissionDensity: 0.8
         });
     }
 
     update(x, y, grid) {
-        // Obsidian is inert and permanent
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+
+        // Initialize temperature for newly created obsidian (from lava)
+        if (cell.data.temperature === undefined) {
+            cell.data.temperature = 100; // Hot obsidian (just formed from lava)
+        }
+
+        // Natural cooling over time (slower than water cooling)
+        if (cell.data.temperature > 0 && Math.random() < 0.001) {
+            cell.data.temperature -= 1;
+
+            // Update visual color based on temperature (hot = brighter)
+            if (cell.data.temperature > 70) {
+                // Very hot: dark red glow
+                cell.element.color = 0x1a0a14;
+            } else if (cell.data.temperature > 40) {
+                // Warm: slight reddish tint
+                cell.element.color = 0x120a14;
+            } else {
+                // Cool: normal dark purple-black
+                cell.element.color = 0x0a0a14;
+            }
+        }
+
         return false;
     }
 }
