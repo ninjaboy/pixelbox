@@ -74,8 +74,16 @@ class WetSandElement extends Element {
             }
         }
 
-        // MOVEMENT - wet sand is VERY static, barely moves
-        // Only fall straight down if there's nothing beneath (10% chance)
+        // MOVEMENT - WET SAND SHOULD BE COMPLETELY STATIC
+        // FIX: Don't move at all if any moisture is present
+        // This prevents "bubbling" effect from wet_sand trying to settle
+        if (hasMoisture) {
+            // Has moisture nearby - completely static, no movement
+            return false;
+        }
+
+        // Only move if completely dry (drying out)
+        // This handles the edge case of wet_sand that's drying
         if (grid.canMoveTo(x, y, x, y + 1)) {
             if (Math.random() > 0.9) {
                 grid.swap(x, y, x, y + 1);
@@ -83,7 +91,7 @@ class WetSandElement extends Element {
             }
         }
 
-        // Almost NEVER slides diagonally (0.5% chance - super stable)
+        // Slide when drying out
         if (Math.random() > 0.995) {
             const dir = Math.random() > 0.5 ? -1 : 1;
             if (grid.canMoveTo(x, y, x + dir, y + 1)) {
