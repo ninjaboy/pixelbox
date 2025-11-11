@@ -39,14 +39,14 @@ class InteractionManager {
                 const above = grid.getElement(lavaX, lavaY - 1);
                 const isSurface = !above || above.id === 0 || above.name === 'water' || above.name === 'steam';
 
-                // Probabilistic crust formation: 20% chance per contact
+                // Probabilistic stonification: 20% chance per contact
                 if (isSurface && Math.random() < 0.2) {
-                    // Turn surface lava into immovable stone crust
+                    // Turn surface lava into stone that can fall through water
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
-                    // Mark as crust so it stays in place
-                    const crustCell = grid.getCell(lavaX, lavaY);
-                    if (crustCell) {
-                        crustCell.data.isCrust = true;
+                    // Mark as falling stone (not crust) so it can sink
+                    const stoneCell = grid.getCell(lavaX, lavaY);
+                    if (stoneCell) {
+                        stoneCell.data.isFallingStone = true;
                     }
                     // Water becomes steam
                     grid.setElement(waterX, waterY, registry.get('steam'));

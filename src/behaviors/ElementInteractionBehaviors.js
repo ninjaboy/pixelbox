@@ -108,6 +108,11 @@ export class LavaWaterInteractionBehavior {
                 // Side contact: form obsidian barrier
                 if (Math.random() < this.obsidianSideChance) {
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
+                    // Mark as hot obsidian (just formed from lava)
+                    const obsidianCell = grid.getCell(nx, ny);
+                    if (obsidianCell) {
+                        obsidianCell.data.temperature = 100;
+                    }
                     return true;
                 }
                 // Or evaporate water
@@ -128,6 +133,11 @@ export class LavaWaterInteractionBehavior {
             if (neighbor && neighbor.name === 'water') {
                 if (Math.random() < 0.1) { // Lower chance for diagonal
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
+                    // Mark as hot obsidian (just formed from lava)
+                    const obsidianCell = grid.getCell(nx, ny);
+                    if (obsidianCell) {
+                        obsidianCell.data.temperature = 100;
+                    }
                     return true;
                 }
             }
@@ -173,6 +183,11 @@ export class WaterLavaInteractionBehavior {
                 if (Math.random() < 0.3) {
                     // Form obsidian barrier on side (not stone crust!)
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
+                    // Mark as hot obsidian (just formed from lava)
+                    const obsidianCell = grid.getCell(nx, ny);
+                    if (obsidianCell) {
+                        obsidianCell.data.temperature = 100;
+                    }
                     grid.setElement(x, y, grid.registry.get('steam'));
                     return true;
                 } else if (Math.random() < 0.2) {
