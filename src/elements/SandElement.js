@@ -22,6 +22,16 @@ class SandElement extends Element {
     }
 
     updateImpl(x, y, grid) {
+        // FIX: Check if sand is underwater and convert to wet_sand
+        // Previously, sand only got wet when directly touching water (InteractionManager)
+        // This caused piles of sand underwater to have dry sand in the middle → bubbling effect
+        const above = grid.getElement(x, y - 1);
+        if (above && above.name === 'water') {
+            // Sand is underwater - convert to wet_sand
+            grid.setElement(x, y, grid.registry.get('wet_sand'));
+            return true;
+        }
+
         return this.movement.apply(x, y, grid);
     }
 }
