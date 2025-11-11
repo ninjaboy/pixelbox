@@ -1,5 +1,7 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
+import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
+import { WetDryTransitionBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class WetGunpowderElement extends Element {
     constructor() {
@@ -13,57 +15,32 @@ class WetGunpowderElement extends Element {
             brushSize: 0,
             emissionDensity: 0
         });
+
+        // Behavior 1: Wet/dry transition (shared with regular gunpowder)
+        this.addBehavior(new WetDryTransitionBehavior({
+            dryForm: 'gunpowder',
+            wetForm: 'wet_gunpowder',
+            waterSources: ['water', 'wet_sand'],
+            wettingChance: 1.0, // Stay wet when touching water
+            dryingChance: 0.0005 // Slow drying (0.05%)
+        }));
+
+        // Use standardized gravity behavior (heavy when wet)
+        this.movement = new GravityBehavior({
+            fallSpeed: 1,
+            slideAngle: true,
+            slideStability: 0.85
+        });
     }
 
     update(x, y, grid) {
-        // Check if touching water or wet_sand - stays completely wet
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
-
-        let isTouchingWater = false;
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && (neighbor.name === 'water' || neighbor.name === 'wet_sand')) {
-                isTouchingWater = true;
-                break;
-            }
-        }
-
-        // Store water contact status for interaction
-        const cell = grid.getCell(x, y);
-        if (cell) {
-            cell.data.isTouchingWater = isTouchingWater;
-        }
-
-        // Wet gunpowder acts like heavy sand
-        // Try to fall down
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            grid.swap(x, y, x, y + 1);
+        // PRIORITY 1: Check for wet/dry transition (stores isTouchingWater in cell.data)
+        if (this.applyBehaviors(x, y, grid)) {
             return true;
         }
 
-        // Try diagonal falling
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        if (grid.canMoveTo(x, y, x + dir, y + 1)) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-        if (grid.canMoveTo(x, y, x - dir, y + 1)) {
-            grid.swap(x, y, x - dir, y + 1);
-            return true;
-        }
-
-        // Slowly dry out ONLY if not touching water (0.05% chance per frame)
-        if (!isTouchingWater && Math.random() > 0.9995) {
-            const dryGunpowder = grid.registry.get('gunpowder');
-            if (dryGunpowder) {
-                grid.setElement(x, y, dryGunpowder);
-                return true;
-            }
-        }
-
-        return false;
+        // PRIORITY 2: Delegate to gravity behavior
+        return this.movement.apply(x, y, grid);
     }
 
     // Custom interaction to handle burning

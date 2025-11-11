@@ -1,5 +1,6 @@
 import Element from '../Element.js';
 import { STATE } from '../ElementProperties.js';
+import { WetDryTransitionBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class WetSandElement extends Element {
     constructor() {
@@ -12,11 +13,26 @@ class WetSandElement extends Element {
             brushSize: 5,
             emissionDensity: 1.0
         });
+
+        // Behavior 1: Wet/dry transition with exposure requirement
+        // WetSand dries via time-based exposure (600 frames), not probabilistic
+        // So we'll handle it manually but use behavior for water contact tracking
+        this.addBehavior(new WetDryTransitionBehavior({
+            dryForm: 'sand',
+            wetForm: 'wet_sand',
+            waterSources: ['water'],
+            wettingChance: 0, // Don't auto-wet (handled by InteractionManager)
+            dryingChance: 0, // Don't use probabilistic drying (use exposureTime instead)
+            requiresExposure: false // We handle this manually
+        }));
     }
 
     update(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
+
+        // PRIORITY 1: Check water contact (stores isTouchingWater in cell.data)
+        this.applyBehaviors(x, y, grid);
 
         // Initialize exposure tracking
         if (cell.data.exposureTime === undefined) {
@@ -28,22 +44,8 @@ class WetSandElement extends Element {
         const isExposedToAir = !above || above.id === 0;
         const isUnderWater = above && above.name === 'water';
 
-        // Check if touching water on any side (for saturation)
-        const neighbors = [
-            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
-        ];
-
-        let touchingWater = false;
-        for (const [nx, ny] of neighbors) {
-            const neighborElement = grid.getElement(nx, ny);
-            if (neighborElement && neighborElement.name === 'water') {
-                touchingWater = true;
-                break;
-            }
-        }
-
-        // DRYING LOGIC - only dry when exposed to air (not underwater)
-        if (isExposedToAir && !touchingWater) {
+        // DRYING LOGIC - time-based exposure (more realistic than probabilistic)
+        if (isExposedToAir && !cell.data.isTouchingWater) {
             // Exposed to air and not touching water - start drying
             cell.data.exposureTime++;
 

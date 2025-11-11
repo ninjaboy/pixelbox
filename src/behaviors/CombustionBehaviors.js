@@ -294,3 +294,48 @@ export class ProximityIgnitionBehavior {
         return false;
     }
 }
+
+/**
+ * WaterExtinguishBehavior - Extinguishes burning elements when touching water
+ * Water source may convert to steam in the process
+ * Used for fire, burning coal, burning wood - anything extinguished by water
+ *
+ * @example
+ * // Burning coal that extinguishes to ash and creates steam
+ * this.addBehavior(new WaterExtinguishBehavior({
+ *     extinguishesTo: 'ash',
+ *     waterToSteamChance: 0.5,
+ *     extinguishChance: 1.0,
+ *     waterSources: ['water']
+ * }));
+ */
+export class WaterExtinguishBehavior {
+    constructor(options = {}) {
+        this.extinguishesTo = options.extinguishesTo || 'ash';
+        this.waterToSteamChance = options.waterToSteamChance || 0.5;
+        this.extinguishChance = options.extinguishChance || 1.0;
+        this.waterSources = options.waterSources || ['water'];
+    }
+
+    apply(x, y, grid) {
+        const neighbors = [
+            [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && this.waterSources.includes(neighbor.name)) {
+                if (Math.random() < this.extinguishChance) {
+                    grid.setElement(x, y, grid.registry.get(this.extinguishesTo));
+
+                    // Convert water to steam
+                    if (Math.random() < this.waterToSteamChance) {
+                        grid.setElement(nx, ny, grid.registry.get('steam'));
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}

@@ -1,6 +1,6 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
-import { BurningBehavior, EmissionBehavior } from '../behaviors/CombustionBehaviors.js';
+import { BurningBehavior, EmissionBehavior, WaterExtinguishBehavior } from '../behaviors/CombustionBehaviors.js';
 
 class BurningCoalElement extends Element {
     constructor() {
@@ -40,28 +40,22 @@ class BurningCoalElement extends Element {
             emissionRate: 0.08, // Less smoke than wood (0.12)
             directions: [[0, -1]]
         }));
+
+        // Behavior 4: Water extinguishes burning coal back to regular coal
+        this.addBehavior(new WaterExtinguishBehavior({
+            extinguishesTo: 'coal', // Becomes regular coal (not ash)
+            waterToSteamChance: 0.5,
+            extinguishChance: 1.0,
+            waterSources: ['water']
+        }));
     }
 
     update(x, y, grid) {
-        // PRIORITY 1: Check for water contact - extinguish burning coal
-        const neighbors = [
-            [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
-        ];
-
-        for (const [nx, ny] of neighbors) {
-            const neighbor = grid.getElement(nx, ny);
-            if (neighbor && neighbor.name === 'water') {
-                // Water extinguishes burning coal -> back to regular coal
-                grid.setElement(x, y, grid.registry.get('coal'));
-                // Water becomes steam (50% chance)
-                if (Math.random() < 0.5) {
-                    grid.setElement(nx, ny, grid.registry.get('steam'));
-                }
-                return true;
-            }
-        }
-
-        // PRIORITY 2: Use behavior composition pattern (burning, emissions)
+        // All behaviors handled via composition:
+        // 1. Water extinguishing (via WaterExtinguishBehavior)
+        // 2. Burning countdown (via BurningBehavior)
+        // 3. Fire emission (via EmissionBehavior)
+        // 4. Smoke emission (via EmissionBehavior)
         return this.applyBehaviors(x, y, grid);
     }
 }
