@@ -84,11 +84,11 @@ export class LavaSandInteractionBehavior {
 
 /**
  * LavaWaterInteractionBehavior
- * Handles lava falling through water
+ * Handles lava falling through water with volume conservation
  * - Lava sinks through water (density: lava=8, water=2)
- * - Creates obsidian on SIDES (not below - lava needs to sink!)
- * - Evaporates some water as it passes through
- * - Creates realistic "lava sinking through ocean" effect
+ * - Side contact: BOTH turn to obsidian (1:1 exchange, conserves volume)
+ * - Evaporates water as it passes through (lava stays lava, water → steam)
+ * - Creates realistic "lava sinking through ocean" effect without mass creation
  */
 export class LavaWaterInteractionBehavior {
     constructor(options = {}) {
@@ -105,17 +105,25 @@ export class LavaWaterInteractionBehavior {
         for (const [nx, ny] of sideNeighbors) {
             const neighbor = grid.getElement(nx, ny);
             if (neighbor && neighbor.name === 'water') {
-                // Side contact: form obsidian barrier
+                // Side contact: BOTH turn to obsidian (volume conservation!)
                 if (Math.random() < this.obsidianSideChance) {
+                    // Water becomes obsidian
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
-                    // Mark as hot obsidian (just formed from lava)
                     const obsidianCell = grid.getCell(nx, ny);
                     if (obsidianCell) {
                         obsidianCell.data.temperature = 100;
                     }
+
+                    // VOLUME CONSERVATION: Lava also becomes obsidian
+                    grid.setElement(x, y, grid.registry.get('obsidian'));
+                    const lavaObsidianCell = grid.getCell(x, y);
+                    if (lavaObsidianCell) {
+                        lavaObsidianCell.data.temperature = 100;
+                    }
+
                     return true;
                 }
-                // Or evaporate water
+                // Or evaporate water (lava stays lava, water → steam)
                 else if (Math.random() < this.evaporateWaterChance) {
                     grid.setElement(nx, ny, grid.registry.get('steam'));
                     return true;
@@ -132,12 +140,19 @@ export class LavaWaterInteractionBehavior {
             const neighbor = grid.getElement(nx, ny);
             if (neighbor && neighbor.name === 'water') {
                 if (Math.random() < 0.1) { // Lower chance for diagonal
+                    // VOLUME CONSERVATION: Both turn to obsidian
                     grid.setElement(nx, ny, grid.registry.get('obsidian'));
-                    // Mark as hot obsidian (just formed from lava)
                     const obsidianCell = grid.getCell(nx, ny);
                     if (obsidianCell) {
                         obsidianCell.data.temperature = 100;
                     }
+
+                    grid.setElement(x, y, grid.registry.get('obsidian'));
+                    const lavaObsidianCell = grid.getCell(x, y);
+                    if (lavaObsidianCell) {
+                        lavaObsidianCell.data.temperature = 100;
+                    }
+
                     return true;
                 }
             }
