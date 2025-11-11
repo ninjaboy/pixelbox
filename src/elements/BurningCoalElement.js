@@ -13,10 +13,10 @@ class BurningCoalElement extends Element {
             emissionDensity: 0
         });
 
-        // Behavior 1: Burn MUCH longer than wood (6000 frames = 100 seconds vs 50 for wood)
+        // Behavior 1: Burn longer than wood but not forever (1800 frames = 30 seconds vs 50 for wood)
         // Burns slower but hotter
         this.addBehavior(new BurningBehavior({
-            lifetime: 6000, // 2x longer than wood
+            lifetime: 1800, // Burns for 30 seconds (still much longer than wood's 50s)
             spreadChance: 0.10, // Less spreading than wood
             burnsInto: 'ash'
         }));
@@ -43,7 +43,25 @@ class BurningCoalElement extends Element {
     }
 
     update(x, y, grid) {
-        // Use behavior composition pattern
+        // PRIORITY 1: Check for water contact - extinguish burning coal
+        const neighbors = [
+            [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
+        ];
+
+        for (const [nx, ny] of neighbors) {
+            const neighbor = grid.getElement(nx, ny);
+            if (neighbor && neighbor.name === 'water') {
+                // Water extinguishes burning coal -> back to regular coal
+                grid.setElement(x, y, grid.registry.get('coal'));
+                // Water becomes steam (50% chance)
+                if (Math.random() < 0.5) {
+                    grid.setElement(nx, ny, grid.registry.get('steam'));
+                }
+                return true;
+            }
+        }
+
+        // PRIORITY 2: Use behavior composition pattern (burning, emissions)
         return this.applyBehaviors(x, y, grid);
     }
 }
