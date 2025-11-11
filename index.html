@@ -509,18 +509,18 @@
 
                 <div style="border-top: 1px solid rgba(255,255,255,0.2); margin: 8px 0;"></div>
 
-                <button id="share-world-btn" class="menu-btn">
-                    <span class="menu-icon">📋</span>
+                <button id="export-world-btn" class="menu-btn">
+                    <span class="menu-icon">☁️</span>
                     <div>
-                        <div class="menu-btn-title">Share World</div>
-                        <div class="menu-btn-desc">Copy world code to share</div>
+                        <div class="menu-btn-title">Export Game</div>
+                        <div class="menu-btn-desc">Upload to 0x0.st and get URL</div>
                     </div>
                 </button>
                 <button id="import-world-btn" class="menu-btn">
                     <span class="menu-icon">📥</span>
                     <div>
-                        <div class="menu-btn-title">Import World</div>
-                        <div class="menu-btn-desc">Load world from code</div>
+                        <div class="menu-btn-title">Import Game</div>
+                        <div class="menu-btn-desc">Load from 0x0.st URL</div>
                     </div>
                 </button>
 
@@ -530,6 +530,9 @@
             <!-- Template Selection Menu -->
             <div id="template-menu" style="display: none;">
                 <h2>Choose Template</h2>
+
+                <!-- Procedural Templates -->
+                <h3 style="font-size: 14px; color: rgba(255,255,255,0.7); margin: 16px 0 8px 0;">Procedural Worlds</h3>
                 <div class="template-grid">
                     <button class="template-btn" data-template="island">
                         <div class="template-icon">🏝️</div>
@@ -557,6 +560,13 @@
                         <div class="template-desc">Dense trees and streams</div>
                     </button>
                 </div>
+
+                <!-- Pre-made Worlds from 0x0.st -->
+                <div id="premade-worlds-container" style="display: none;">
+                    <h3 style="font-size: 14px; color: rgba(255,255,255,0.7); margin: 16px 0 8px 0;">Pre-made Worlds</h3>
+                    <div id="premade-worlds-list" class="template-grid"></div>
+                </div>
+
                 <button id="back-btn" class="menu-btn-secondary">Back</button>
             </div>
         </div>

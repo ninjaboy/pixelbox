@@ -1,5 +1,6 @@
 // MenuManager - Handles game menu, templates, and settings
 import WorldTemplates from './WorldTemplates.js';
+import { getAvailableWorlds, loadWorldByName } from '../worlds.config.js';
 
 export default class MenuManager {
     constructor(gameScene) {
@@ -51,9 +52,9 @@ export default class MenuManager {
             });
         });
 
-        // Share World button
-        document.getElementById('share-world-btn')?.addEventListener('click', () => {
-            this.shareWorld();
+        // Export World button
+        document.getElementById('export-world-btn')?.addEventListener('click', () => {
+            this.exportWorld();
         });
 
         // Import World button
@@ -87,6 +88,51 @@ export default class MenuManager {
         this.currentView = 'templates';
         document.getElementById('main-menu').style.display = 'none';
         document.getElementById('template-menu').style.display = 'flex';
+
+        // Show available pre-made worlds if any
+        this.updatePremadeWorldsList();
+    }
+
+    updatePremadeWorldsList() {
+        const availableWorlds = getAvailableWorlds();
+        const container = document.getElementById('premade-worlds-container');
+
+        if (!container) return;
+
+        if (availableWorlds.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        const listContainer = document.getElementById('premade-worlds-list');
+        listContainer.innerHTML = '';
+
+        availableWorlds.forEach(world => {
+            const btn = document.createElement('button');
+            btn.className = 'template-btn';
+            btn.innerHTML = `
+                <div class="template-icon">${world.icon}</div>
+                <div class="template-name">${world.name}</div>
+                <div class="template-desc">${world.description}</div>
+            `;
+            btn.addEventListener('click', () => {
+                this.loadPremadeWorld(world.name);
+            });
+            listContainer.appendChild(btn);
+        });
+    }
+
+    async loadPremadeWorld(worldName) {
+        try {
+            console.log(`🌍 Loading pre-made world: ${worldName}`);
+            await loadWorldByName(worldName, this.gameScene.worldSerializer);
+            this.hideMenu();
+            console.log(`✅ Pre-made world "${worldName}" loaded successfully`);
+        } catch (error) {
+            console.error(`❌ Failed to load pre-made world:`, error);
+            alert(`Failed to load world: ${error.message}`);
+        }
     }
 
     startNewGame() {
@@ -111,14 +157,13 @@ export default class MenuManager {
         this.hideMenu(); // ✅ FIX: Menu now closes after template loads
     }
 
-    shareWorld() {
-        this.gameScene.worldSerializer.copyToClipboard();
-        alert('World code copied to clipboard! 📋\nShare it with friends to let them play your creation.');
+    async exportWorld() {
+        await this.gameScene.worldSerializer.showExportDialog();
         this.hideMenu();
     }
 
-    importWorld() {
-        const success = this.gameScene.worldSerializer.showImportDialog();
+    async importWorld() {
+        const success = await this.gameScene.worldSerializer.showDownloadDialog();
         if (success) {
             this.hideMenu();
         }

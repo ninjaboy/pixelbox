@@ -137,4 +137,136 @@ export default class WorldSerializer {
         }
         return false;
     }
+
+    /**
+     * Upload world to 0x0.st and return public URL
+     */
+    async uploadWorld() {
+        try {
+            const worldCode = this.serializeWorld();
+
+            // Create timestamp for filename
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[-:]/g, '').slice(0, 15); // yyyyMMddTHHmmss
+            const filename = `pixelbox-${timestamp}.json`;
+
+            // Prepare JSON payload
+            const state = {
+                version: '1.0',
+                timestamp: now.toISOString(),
+                world: worldCode,
+                dimensions: {
+                    width: this.gameScene.pixelGrid.width,
+                    height: this.gameScene.pixelGrid.height
+                }
+            };
+
+            const json = JSON.stringify(state);
+
+            // Create FormData for upload
+            const formData = new FormData();
+            formData.append('file', new Blob([json], { type: 'application/json' }), filename);
+
+            console.log(`☁️ Uploading world to 0x0.st... (${json.length} bytes)`);
+
+            // Upload to 0x0.st
+            const response = await fetch('https://0x0.st/', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.status} ${await response.text()}`);
+            }
+
+            const url = (await response.text()).trim();
+            console.log(`✅ World uploaded: ${url}`);
+
+            return url;
+
+        } catch (error) {
+            console.error('❌ Upload failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Download world from 0x0.st URL
+     */
+    async downloadWorld(url) {
+        try {
+            console.log(`☁️ Downloading world from ${url}...`);
+
+            const response = await fetch(url, { cache: 'no-store' });
+
+            if (!response.ok) {
+                throw new Error(`Download failed: ${response.status}`);
+            }
+
+            const state = await response.json();
+
+            // Validate state structure
+            if (!state.world) {
+                throw new Error('Invalid save file: missing world data');
+            }
+
+            console.log(`✅ World downloaded (v${state.version || 'unknown'})`);
+
+            // Load the world
+            return this.deserializeWorld(state.world);
+
+        } catch (error) {
+            console.error('❌ Download failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Show export dialog with 0x0.st upload
+     */
+    async showExportDialog() {
+        try {
+            const url = await this.uploadWorld();
+
+            // Show success message with URL
+            const message = `World uploaded successfully!\n\nURL: ${url}\n\n✅ Bookmark this URL to load your world later.\n📋 URL has been copied to clipboard.`;
+
+            // Copy to clipboard
+            try {
+                await navigator.clipboard.writeText(url);
+            } catch (e) {
+                console.warn('Could not copy to clipboard');
+            }
+
+            alert(message);
+            return url;
+
+        } catch (error) {
+            alert(`Failed to upload world: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Show import dialog with 0x0.st download
+     */
+    async showDownloadDialog() {
+        const url = prompt('Enter 0x0.st URL to load world:');
+
+        if (!url || !url.trim()) {
+            return false;
+        }
+
+        try {
+            const success = await this.downloadWorld(url.trim());
+            if (success) {
+                alert('World loaded successfully!');
+            }
+            return success;
+
+        } catch (error) {
+            alert(`Failed to load world: ${error.message}`);
+            return false;
+        }
+    }
 }
