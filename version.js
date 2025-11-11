@@ -2,4 +2,4 @@
 // Major versions: significant new features or gameplay changes
 // Minor versions: new elements, mechanics, or substantial improvements
 // Patch versions: bug fixes and minor tweaks
-export const VERSION = '3.7.4';
+export const VERSION = '3.7.5';
