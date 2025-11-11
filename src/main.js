@@ -2,6 +2,8 @@ import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
 import profiler from './Profiler.js';
+import WorldSerializer from './WorldSerializer.js';
+import MenuManager from './MenuManager.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -23,6 +25,10 @@ class GameScene extends Phaser.Scene {
         // Create pixel grid (4x4 pixel size for better performance on mobile)
         this.pixelSize = 4;
         this.pixelGrid = new PixelGrid(width, height, this.pixelSize, this.elementRegistry);
+
+        // Initialize WorldSerializer and MenuManager
+        this.worldSerializer = new WorldSerializer(this);
+        this.menuManager = new MenuManager(this);
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
@@ -49,6 +55,9 @@ class GameScene extends Phaser.Scene {
 
         // Element selector UI
         this.setupElementSelector();
+
+        // Initialize menu manager
+        this.menuManager.init();
 
         // Stats
         this.fpsText = document.getElementById('fps');
@@ -96,6 +105,31 @@ class GameScene extends Phaser.Scene {
                 this.pixelGrid.setElement(this.pixelGrid.width - 1 - i, y, wallElement);
             }
         }
+    }
+
+    resetWorld() {
+        console.log('🔄 Resetting world...');
+
+        // Clear the entire grid
+        const empty = this.elementRegistry.get('empty');
+        for (let y = 0; y < this.pixelGrid.height; y++) {
+            for (let x = 0; x < this.pixelGrid.width; x++) {
+                this.pixelGrid.setElement(x, y, empty);
+            }
+        }
+
+        // Add borders
+        this.createBorders();
+
+        // Reset to build mode
+        this.buildMode = true;
+        this.updateModeDisplay();
+
+        // Despawn player
+        this.playerX = null;
+        this.playerY = null;
+
+        console.log('✅ World reset complete');
     }
 
     setupElementSelector() {
