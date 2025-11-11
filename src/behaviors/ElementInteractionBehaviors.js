@@ -155,31 +155,28 @@ export class WaterLavaInteractionBehavior {
     }
 
     apply(x, y, grid) {
-        // Check neighbors but NOT below (lava above water should sink, not crust!)
+        // ONLY CHECK SIDES - no above, no below
+        // Let lava sink through via density physics!
         const neighbors = [
-            [x, y - 1], // above
-            [x - 1, y], // left
-            [x + 1, y]  // right
-            // NOT [x, y + 1] - don't check below!
+            [x - 1, y], // left side only
+            [x + 1, y]  // right side only
+            // NOT above [x, y-1] - lava should sink through!
+            // NOT below [x, y+1] - lava should sink through!
         ];
 
         for (const [nx, ny] of neighbors) {
             const neighbor = grid.getElement(nx, ny);
 
-            // LAVA INTERACTION (only sides and above, NOT below)
+            // LAVA INTERACTION (SIDES ONLY - form obsidian barriers)
             if (neighbor && neighbor.name === 'lava') {
-                // Water touching lava on sides/above: form stone crust or evaporate
-                if (Math.random() < this.lavaCrustChance) {
-                    // Form stone crust over lava
-                    grid.setElement(nx, ny, grid.registry.get('stone'));
-                    const crustCell = grid.getCell(nx, ny);
-                    if (crustCell) {
-                        crustCell.data.isCrust = true;
-                    }
+                // Water touching lava on sides: mostly just evaporate, rarely form obsidian
+                if (Math.random() < 0.3) {
+                    // Form obsidian barrier on side (not stone crust!)
+                    grid.setElement(nx, ny, grid.registry.get('obsidian'));
                     grid.setElement(x, y, grid.registry.get('steam'));
                     return true;
-                } else {
-                    // Evaporate without forming crust
+                } else if (Math.random() < 0.2) {
+                    // Just evaporate water
                     grid.setElement(x, y, grid.registry.get('steam'));
                     return true;
                 }
