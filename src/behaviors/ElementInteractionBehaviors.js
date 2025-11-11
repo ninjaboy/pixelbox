@@ -207,11 +207,13 @@ export class WaterLavaInteractionBehavior {
                     continue; // User-placed obsidian - leave it alone
                 }
 
-                // Water above obsidian = cooling mechanism
-                if (ny === y - 1) { // Water is above obsidian
-                    // Cool down the obsidian
-                    neighborCell.data.temperature -= this.obsidianCoolRate;
+                // Water touching hot obsidian cools it down (any direction)
+                // But cooling is faster from above
+                const coolingRate = (ny === y - 1) ? this.obsidianCoolRate : this.obsidianCoolRate * 0.5;
+                neighborCell.data.temperature -= coolingRate;
 
+                // Water above obsidian = can form stone crust when cool
+                if (ny === y - 1) { // Water is above obsidian
                     // When cool enough, form protective stone crust
                     if (neighborCell.data.temperature <= this.obsidianCoolThreshold) {
                         if (Math.random() < this.obsidianCrustChance) {
@@ -233,7 +235,7 @@ export class WaterLavaInteractionBehavior {
                         }
                     }
                 } else {
-                    // Water on sides or below: evaporate if hot
+                    // Water on sides or below: evaporate if still very hot
                     if (neighborCell.data.temperature > 50 && Math.random() < 0.2) {
                         grid.setElement(x, y, grid.registry.get('steam'));
                         return true;
