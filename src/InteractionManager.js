@@ -177,17 +177,44 @@ class InteractionManager {
                        (element1.name === 'sand' && element2.name === 'water');
             },
             apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
-                // Determine which is sand
-                const [sandX, sandY] = element1.name === 'sand'
-                    ? [x1, y1]
-                    : [x2, y2];
+                // Determine which is sand and which is water
+                const [sandX, sandY, waterX, waterY] = element1.name === 'sand'
+                    ? [x1, y1, x2, y2]
+                    : [x2, y2, x1, y1];
 
-                // 85% chance to convert sand to wet sand - water saturates sand quickly in real life
-                if (Math.random() > 0.15) {
-                    const wetSandElement = registry.get('wet_sand');
-                    if (wetSandElement) {
-                        grid.setElement(sandX, sandY, wetSandElement);
-                        return true;
+                // Check if sand is exposed to air above
+                const aboveSand = grid.getElement(sandX, sandY - 1);
+                const isExposedToAir = !aboveSand || aboveSand.id === 0;
+
+                // Check if water is above the sand (water seeping down)
+                const isWaterAbove = waterY < sandY;
+
+                // Check if sand is surrounded by water/wet sand (fully submerged)
+                const neighbors = [
+                    grid.getElement(sandX, sandY - 1), // above
+                    grid.getElement(sandX, sandY + 1), // below
+                    grid.getElement(sandX - 1, sandY), // left
+                    grid.getElement(sandX + 1, sandY)  // right
+                ];
+                const waterCount = neighbors.filter(n => n && (n.name === 'water' || n.name === 'wet_sand')).length;
+                const isSubmerged = waterCount >= 3; // 3+ sides covered
+
+                // RULE: Sand only gets wet if:
+                // 1. Water is directly above it (absorption from above), OR
+                // 2. Sand is fully submerged (3+ sides covered by water/wet sand)
+                // Sand exposed to air at the same level as water stays DRY
+                if (isWaterAbove || isSubmerged) {
+                    // High conversion rate when conditions are met (85%)
+                    if (Math.random() > 0.15) {
+                        const wetSandElement = registry.get('wet_sand');
+                        if (wetSandElement) {
+                            grid.setElement(sandX, sandY, wetSandElement);
+                            // Water absorbs into sand (remove water when sand gets wet from above)
+                            if (isWaterAbove && Math.random() > 0.6) {
+                                grid.setElement(waterX, waterY, registry.get('empty'));
+                            }
+                            return true;
+                        }
                     }
                 }
                 return false;
