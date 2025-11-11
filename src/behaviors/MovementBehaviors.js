@@ -108,8 +108,8 @@ export class LiquidFlowBehavior {
         }
 
         // Priority 3: Water leveling (spread to equalize depth)
-        // PERFORMANCE: Only check leveling every 3 frames + probability
-        if (this.levelingEnabled && grid.frameCount % 3 === 0 && Math.random() > 0.3) {
+        // PERFORMANCE: Only check leveling every 2 frames + probability
+        if (this.levelingEnabled && grid.frameCount % 2 === 0 && Math.random() > 0.2) {
             const result = this.waterLeveling(x, y, grid);
             if (result) return true;
         }

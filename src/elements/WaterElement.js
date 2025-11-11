@@ -28,7 +28,7 @@ class WaterElement extends Element {
         // Use standardized liquid flow behavior
         this.movement = new LiquidFlowBehavior({
             fallSpeed: 4,
-            dispersionRate: 2,
+            dispersionRate: 3, // Increased from 2 for faster spreading
             viscosity: 0, // Water is not viscous
             levelingEnabled: true
         });
