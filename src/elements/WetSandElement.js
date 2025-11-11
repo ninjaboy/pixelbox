@@ -1,6 +1,5 @@
 import Element from '../Element.js';
 import { STATE } from '../ElementProperties.js';
-import { WetDryTransitionBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class WetSandElement extends Element {
     constructor() {
@@ -14,25 +13,13 @@ class WetSandElement extends Element {
             emissionDensity: 1.0
         });
 
-        // Behavior 1: Wet/dry transition with exposure requirement
-        // WetSand dries via time-based exposure (600 frames), not probabilistic
-        // So we'll handle it manually but use behavior for water contact tracking
-        this.addBehavior(new WetDryTransitionBehavior({
-            dryForm: 'sand',
-            wetForm: 'wet_sand',
-            waterSources: ['water'],
-            wettingChance: 0, // Don't auto-wet (handled by InteractionManager)
-            dryingChance: 0, // Don't use probabilistic drying (use exposureTime instead)
-            requiresExposure: false // We handle this manually
-        }));
+        // REMOVED: WetDryTransitionBehavior - it was interfering with manual moisture logic
+        // Now we handle all wet/dry transitions manually in updateImpl for full control
     }
 
     updateImpl(x, y, grid) {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
-
-        // PRIORITY 1: Check water contact (stores isTouchingWater in cell.data)
-        this.applyBehaviors(x, y, grid);
 
         // Initialize exposure tracking
         if (cell.data.exposureTime === undefined) {
@@ -44,26 +31,34 @@ class WetSandElement extends Element {
         const isExposedToAir = !above || above.id === 0;
         const isUnderWater = above && above.name === 'water';
 
-        // DRYING LOGIC - time-based exposure (more realistic than probabilistic)
-        // FIX: Also check if surrounded by wet_sand - don't dry if in a wet pile
-        const neighbors = [
-            grid.getElement(x - 1, y),
-            grid.getElement(x + 1, y),
-            grid.getElement(x, y + 1)
+        // DRYING LOGIC - VERY conservative
+        // Wet_sand should NEVER dry unless truly isolated and exposed to air
+        // Check all neighbors for any moisture source
+        const allNeighbors = [
+            grid.getElement(x, y - 1), // above
+            grid.getElement(x, y + 1), // below
+            grid.getElement(x - 1, y), // left
+            grid.getElement(x + 1, y), // right
         ];
-        const hasWetSandNeighbors = neighbors.some(n => n && n.name === 'wet_sand');
 
-        if (isExposedToAir && !cell.data.isTouchingWater && !hasWetSandNeighbors) {
-            // Exposed to air, not touching water, and isolated - start drying
+        const hasMoisture = allNeighbors.some(n =>
+            n && (n.name === 'water' || n.name === 'wet_sand')
+        );
+
+        // Only allow drying if:
+        // 1. Exposed to air (empty above)
+        // 2. No water or wet_sand touching at all
+        // 3. Not underwater
+        if (isExposedToAir && !hasMoisture && !isUnderWater) {
             cell.data.exposureTime++;
 
-            // Dry out after 600 frames (10 seconds) of air exposure
+            // Dry out after 600 frames (10 seconds) of complete isolation
             if (cell.data.exposureTime > 600) {
                 grid.setElement(x, y, grid.registry.get('sand'));
                 return true;
             }
         } else {
-            // Underwater, touching water, or in wet pile - stay wet, reset exposure
+            // ANY moisture nearby - stay wet, reset timer
             cell.data.exposureTime = 0;
         }
 
