@@ -182,12 +182,8 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
-                // Check if sand is exposed to air above
-                const aboveSand = grid.getElement(sandX, sandY - 1);
-                const isExposedToAir = !aboveSand || aboveSand.id === 0;
-
-                // Check if water is above the sand (water seeping down)
-                const isWaterAbove = waterY < sandY;
+                // Check if water is DIRECTLY above the sand (same X coordinate, Y-1)
+                const isWaterDirectlyAbove = (waterX === sandX && waterY === sandY - 1);
 
                 // Check if sand is surrounded by water (fully submerged)
                 // IMPORTANT: Only count actual WATER, not wet_sand, to prevent uncontrolled spreading
@@ -201,18 +197,18 @@ class InteractionManager {
                 const isSubmerged = waterCount >= 3; // 3+ sides covered by actual water
 
                 // RULE: Sand only gets wet if:
-                // 1. Water is directly above it (absorption from above), OR
+                // 1. Water is DIRECTLY ABOVE it (same X, Y-1) - realistic seeping, OR
                 // 2. Sand is fully submerged (3+ sides covered by actual WATER)
-                // Sand exposed to air at the same level as water stays DRY
+                // Sand touching water from the SIDE stays DRY
                 // Sand touching only wet_sand (no water) stays DRY
-                if (isWaterAbove || isSubmerged) {
-                    // High conversion rate when conditions are met (85%)
-                    if (Math.random() > 0.15) {
+                if (isWaterDirectlyAbove || isSubmerged) {
+                    // MUCH lower conversion rate to prevent cascade (15% was way too high)
+                    if (Math.random() > 0.95) { // Only 5% chance per frame
                         const wetSandElement = registry.get('wet_sand');
                         if (wetSandElement) {
                             grid.setElement(sandX, sandY, wetSandElement);
-                            // Water absorbs into sand (remove water when sand gets wet from above)
-                            if (isWaterAbove && Math.random() > 0.6) {
+                            // Water rarely absorbs into sand (10% chance)
+                            if (isWaterDirectlyAbove && Math.random() > 0.9) {
                                 grid.setElement(waterX, waterY, registry.get('empty'));
                             }
                             return true;

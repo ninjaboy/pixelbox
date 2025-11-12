@@ -116,16 +116,28 @@ class WetSandElement extends Element {
             }
         }
 
-        // MOVEMENT - WET SAND SHOULD BE COMPLETELY STATIC
-        // FIX: Don't move at all if any moisture is present
-        // This prevents "bubbling" effect from wet_sand trying to settle
+        // MOVEMENT - WET SAND PHYSICS
+        const below = grid.getElement(x, y + 1);
+
+        // PRIORITY 1: Always sink through water (wet sand is denser: 9 > 2)
+        if (below && below.name === 'water') {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        // PRIORITY 2: Fall through empty space
+        if (below && below.id === 0) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
+
+        // PRIORITY 3: When moist (touching water), stay static (no horizontal spreading)
+        // This prevents "bubbling" effect
         if (hasMoisture) {
-            // Has moisture nearby - completely static, no movement
             return false;
         }
 
-        // Only move if completely dry (drying out)
-        // This handles the edge case of wet_sand that's drying
+        // PRIORITY 4: When drying, allow slow settling
         if (grid.canMoveTo(x, y, x, y + 1)) {
             if (Math.random() > 0.9) {
                 grid.swap(x, y, x, y + 1);
