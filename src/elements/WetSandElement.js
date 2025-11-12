@@ -115,7 +115,7 @@ class WetSandElement extends Element {
             }
         }
 
-        // MOVEMENT - WET SAND PHYSICS
+        // MOVEMENT - WET SAND PHYSICS (same spreading as dry sand, but sinks through water)
         // Reuse 'below' variable already declared above
 
         // PRIORITY 1: Always sink through water (wet sand is denser: 9 > 2)
@@ -124,33 +124,28 @@ class WetSandElement extends Element {
             return true;
         }
 
-        // PRIORITY 2: Fall through empty space
+        // PRIORITY 2: Fall straight down through empty space
         if (below && below.id === 0) {
             grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        // PRIORITY 3: When moist (touching water), stay static (no horizontal spreading)
-        // This prevents "bubbling" effect
-        if (hasMoisture) {
-            return false;
+        // PRIORITY 3: Diagonal sliding (angle of repose) - just like dry sand
+        // This allows wet sand to spread and form piles
+        const dir = Math.random() > 0.5 ? -1 : 1;
+        const diagBelow = grid.getElement(x + dir, y + 1);
+
+        // Slide diagonally if space is available
+        if (diagBelow && (diagBelow.id === 0 || diagBelow.name === 'water')) {
+            grid.swap(x, y, x + dir, y + 1);
+            return true;
         }
 
-        // PRIORITY 4: When drying, allow slow settling
-        if (grid.canMoveTo(x, y, x, y + 1)) {
-            if (Math.random() > 0.9) {
-                grid.swap(x, y, x, y + 1);
-                return true;
-            }
-        }
-
-        // Slide when drying out
-        if (Math.random() > 0.995) {
-            const dir = Math.random() > 0.5 ? -1 : 1;
-            if (grid.canMoveTo(x, y, x + dir, y + 1)) {
-                grid.swap(x, y, x + dir, y + 1);
-                return true;
-            }
+        // Try opposite direction
+        const oppDiagBelow = grid.getElement(x - dir, y + 1);
+        if (oppDiagBelow && (oppDiagBelow.id === 0 || oppDiagBelow.name === 'water')) {
+            grid.swap(x, y, x - dir, y + 1);
+            return true;
         }
 
         return false;
