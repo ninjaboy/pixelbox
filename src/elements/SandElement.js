@@ -22,24 +22,9 @@ class SandElement extends Element {
     }
 
     updateImpl(x, y, grid) {
-        // FIX v4: Moisture propagation - sand gets wet from water OR wet_sand
-        // More realistic: moisture spreads from wet particles to dry ones
-        // Sand only stays dry when touching air/dry surfaces
-
-        const neighbors = [
-            grid.getElement(x, y - 1), // above
-            grid.getElement(x, y + 1), // below
-            grid.getElement(x - 1, y), // left
-            grid.getElement(x + 1, y), // right
-        ];
-
-        for (const neighbor of neighbors) {
-            if (neighbor && (neighbor.name === 'water' || neighbor.name === 'wet_sand')) {
-                // Moisture propagates: water OR wet_sand makes sand wet
-                grid.setElement(x, y, grid.registry.get('wet_sand'));
-                return true;
-            }
-        }
+        // Water-sand interaction is handled by InteractionManager
+        // No moisture propagation here - it caused sand on top of water to get wet
+        // Let InteractionManager handle wetting logic (water from above or submersion only)
 
         return this.movement.apply(x, y, grid);
     }
