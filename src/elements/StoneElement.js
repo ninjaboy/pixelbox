@@ -6,7 +6,7 @@ class StoneElement extends Element {
         super(3, 'stone', 0x808080, { // Lighter gray for better visibility
             density: 10, // Higher than lava (8) to prevent displacement
             state: STATE.SOLID,
-            movable: false, // Stone is immovable - acts as container for lava
+            movable: true, // Stone can move (falls, sinks through water)
             tags: [],
             brushSize: 1, // Single pixel brush
             emissionDensity: 1.0 // Solid placement
@@ -77,14 +77,14 @@ class StoneElement extends Element {
             return true;
         }
 
-        // ONLY falling stones (from lava-water) can displace liquids and powders
-        if (isFallingStone) {
-            // Can displace liquids (water, oil, lava, steam)
-            if (belowElement.state === 'liquid' && this.density > belowElement.density) {
-                grid.swap(x, y, x, y + 1);
-                return true;
-            }
+        // All stone sinks through liquids (density 10 > all liquids)
+        if (belowElement.state === 'liquid' && this.density > belowElement.density) {
+            grid.swap(x, y, x, y + 1);
+            return true;
+        }
 
+        // ONLY falling stones (from lava-water) can displace powders
+        if (isFallingStone) {
             // Can displace powders (sand, wet_sand) on their way down
             if (belowElement.state === 'powder' && this.density > belowElement.density) {
                 grid.swap(x, y, x, y + 1);
