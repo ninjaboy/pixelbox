@@ -107,7 +107,6 @@ class WetSandElement extends Element {
         // PERMEABILITY - allow water to slowly seep through
         // Check if there's water above wanting to seep down
         if (isUnderWater) {
-            const below = grid.getElement(x, y + 1);
             // If empty below, water can seep through (5% chance per frame)
             if (below && below.id === 0 && Math.random() > 0.95) {
                 // Swap water down through the wet sand
@@ -117,7 +116,7 @@ class WetSandElement extends Element {
         }
 
         // MOVEMENT - WET SAND PHYSICS
-        const below = grid.getElement(x, y + 1);
+        // Reuse 'below' variable already declared above
 
         // PRIORITY 1: Always sink through water (wet sand is denser: 9 > 2)
         if (below && below.name === 'water') {
