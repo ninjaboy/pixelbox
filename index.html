@@ -527,6 +527,9 @@
         let melodyOscillators = [];
         let chordGain = null;
         let melodyGain = null;
+        let playChord = null;
+        let chordProgression = null;
+        let currentChordIndex = 0;
 
         function setupAmbientDrone() {
             try {
@@ -541,20 +544,25 @@
 
                 // Mystical chord progression (normal frequencies, warm and deep)
                 // Am9 -> Fmaj9 -> Cmaj9 -> G9 (magical, ethereal progression)
-                const chordProgression = [
+                chordProgression = [
                     [110.00, 164.81, 196.00, 246.94, 293.66],  // Am9 (A2, E3, G3, B3, D4)
                     [87.31, 130.81, 155.56, 196.00, 261.63],   // Fmaj9 (F2, C3, Eb3, G3, C4)
                     [130.81, 164.81, 196.00, 246.94, 329.63],  // Cmaj9 (C3, E3, G3, B3, E4)
                     [98.00, 146.83, 196.00, 246.94, 293.66]    // G9 (G2, D3, G3, B3, D4)
                 ];
 
-                let currentChordIndex = 0;
+                currentChordIndex = 0;
 
                 // Create oscillators for current chord
-                function playChord(chordFreqs) {
+                playChord = function(chordFreqs) {
                     // Stop previous oscillators
-                    oscillators.forEach(osc => osc.stop());
+                    oscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
                     oscillators = [];
+
+                    // Don't create new oscillators if muted
+                    if (isMuted) return;
 
                     // Create new chord
                     chordFreqs.forEach(freq => {
@@ -567,7 +575,7 @@
                         osc.start();
                         oscillators.push(osc);
                     });
-                }
+                };
 
                 // Start with first chord
                 playChord(chordProgression[0]);
@@ -599,6 +607,9 @@
                     // Play each note in the sequence
                     sequence.forEach((noteIdx, i) => {
                         setTimeout(() => {
+                            // Don't play if muted
+                            if (isMuted) return;
+
                             // Stop previous melody note
                             melodyOscillators.forEach(osc => {
                                 try { osc.stop(); } catch(e) {}
@@ -659,7 +670,7 @@
                     const pauseDurations = [8000, 13000, 21000];
                     const nextPause = pauseDurations[Math.floor(Math.random() * pauseDurations.length)];
 
-                    setTimeout(playMelodySequence, delay + nextPause);
+                    melodyTimeout = setTimeout(playMelodySequence, delay + nextPause);
                 }
 
                 // Start first melody sequence after 8 seconds (let chord establish + build anticipation)
@@ -678,6 +689,7 @@
         // Start audio context on first user interaction (required by browser policy)
         let audioStarted = false;
         let isMuted = false;
+        let melodyTimeout = null; // Track melody timeout for proper muting
         function startAudioOnInteraction() {
             if (!audioStarted) {
                 setupAmbientDrone();
@@ -707,14 +719,31 @@
                 isMuted = !isMuted;
 
                 if (isMuted) {
-                    // Mute
+                    // Mute - stop all oscillators and set gains to 0
                     if (chordGain) chordGain.gain.value = 0;
                     if (melodyGain) melodyGain.gain.value = 0;
+
+                    // Stop all currently playing oscillators
+                    oscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    melodyOscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    oscillators = [];
+                    melodyOscillators = [];
+
                     muteIcon.textContent = '🔇';
                 } else {
-                    // Unmute
+                    // Unmute - restart chord progression
                     if (chordGain) chordGain.gain.value = 0.025;
                     if (melodyGain) melodyGain.gain.value = 0.015;
+
+                    // Restart the current chord
+                    if (playChord && chordProgression) {
+                        playChord(chordProgression[currentChordIndex]);
+                    }
+
                     muteIcon.textContent = '🔊';
                 }
             });
