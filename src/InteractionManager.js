@@ -38,13 +38,8 @@ class InteractionManager {
 
                 // Probabilistic stonification: 20% chance per contact
                 if (Math.random() < 0.2) {
-                    // Turn lava into falling stone that can sink through water
+                    // Turn lava into stone (sinks naturally due to density: 10 > 2)
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
-                    // ALWAYS mark as falling stone so it sinks
-                    const stoneCell = grid.getCell(lavaX, lavaY);
-                    if (stoneCell) {
-                        stoneCell.data.isFallingStone = true;
-                    }
                     // Water becomes steam
                     grid.setElement(waterX, waterY, registry.get('steam'));
                 } else {

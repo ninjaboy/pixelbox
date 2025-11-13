@@ -25,7 +25,6 @@ import {
     CloudElement,
     PlayerElement,
     IceElement,
-    SaltElement,
     GlassElement,
     LavaElement,
     AcidElement,
@@ -70,7 +69,6 @@ registry.register(new WetGunpowderElement());
 registry.register(new CloudElement());
 registry.register(new PlayerElement());
 registry.register(new IceElement());
-registry.register(new SaltElement());
 registry.register(new GlassElement());
 registry.register(new LavaElement());
 registry.register(new AcidElement());

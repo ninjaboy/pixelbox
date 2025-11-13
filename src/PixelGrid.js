@@ -1,5 +1,6 @@
 // Pixel Grid Class - manages the particle simulation with element objects
 import { CellState } from './CellState.js';
+import { STATE } from './ElementProperties.js';
 
 class PixelGrid {
     constructor(width, height, pixelSize, registry) {
@@ -143,6 +144,11 @@ class PixelGrid {
 
         // Can move into empty space
         if (toElement.id === 0) return true;
+
+        // Prevent powder-powder swapping - powders should form stable piles
+        if (fromElement.state === STATE.POWDER && toElement.state === STATE.POWDER) {
+            return false;
+        }
 
         // Can displace less dense materials
         return fromElement.density > toElement.density && toElement.movable;

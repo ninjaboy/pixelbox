@@ -62,9 +62,6 @@ class StoneElement extends Element {
             return false;
         }
 
-        // Check if this is a falling stone (from lava-water interaction)
-        const isFallingStone = cell.data.isFallingStone;
-
         // Stone is rigid - only falls straight down into empty space or liquids
         const below = grid.getCell(x, y + 1);
         if (!below) return false;
@@ -81,21 +78,6 @@ class StoneElement extends Element {
         if (belowElement.state === 'liquid' && this.density > belowElement.density) {
             grid.swap(x, y, x, y + 1);
             return true;
-        }
-
-        // ONLY falling stones (from lava-water) can displace powders
-        if (isFallingStone) {
-            // Can displace powders (sand, wet_sand) on their way down
-            if (belowElement.state === 'powder' && this.density > belowElement.density) {
-                grid.swap(x, y, x, y + 1);
-                return true;
-            }
-        }
-
-        // Once falling stone hits any solid (stone, obsidian, walls), it stops
-        if (isFallingStone && belowElement.state === 'solid') {
-            delete cell.data.isFallingStone;
-            return false;
         }
 
         // Stone doesn't slide diagonally or swap with powders/solids
