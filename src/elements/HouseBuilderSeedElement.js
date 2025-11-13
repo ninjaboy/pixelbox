@@ -2,14 +2,14 @@ import Element from '../Element.js';
 import { STATE } from '../ElementProperties.js';
 
 /**
- * HouseBuilderSeedElement - Autonomously builds a house structure
- * Phases: Foundation → Walls → Floors → Roof → Complete
+ * HouseBuilderSeedElement - Wandering builder that finds a spot and builds a house
+ * Behavior: Falls → Wanders → Finds good spot → Builds house → Disappears
  */
 class HouseBuilderSeedElement extends Element {
     constructor() {
-        super(41, 'house_seed', 0x8B4513, { // Saddle brown
-            density: 10, // Heavy like stone so it sinks to ground
-            state: STATE.SOLID,
+        super(41, 'house_seed', 0xFFD700, { // Gold color (visible builder)
+            density: 5, // Medium density - can fall through liquids but not powders
+            state: STATE.POWDER, // Falls like powder
             tags: [],
             brushSize: 1,
             emissionDensity: 0.1
@@ -20,211 +20,152 @@ class HouseBuilderSeedElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize building state
-        if (!cell.data.buildPhase) {
-            this.initializeBuild(cell, x, y, grid);
+        // Initialize state
+        if (!cell.data.mode) {
+            cell.data.mode = 'falling'; // falling → wandering → building
+            cell.data.wanderTimer = 0;
+            cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
+            cell.data.buildTimer = 0;
         }
 
-        // Update based on current phase
-        switch (cell.data.buildPhase) {
-            case 'foundation':
-                return this.buildFoundation(cell, x, y, grid);
-            case 'floor1':
-                return this.buildFloor1(cell, x, y, grid);
-            case 'floor2':
-                return this.buildFloor2(cell, x, y, grid);
-            case 'roof':
-                return this.buildRoof(cell, x, y, grid);
-            case 'complete':
-                return this.onComplete(cell, x, y, grid);
+        // Handle different modes
+        switch (cell.data.mode) {
+            case 'falling':
+                return this.handleFalling(cell, x, y, grid);
+            case 'wandering':
+                return this.handleWandering(cell, x, y, grid);
+            case 'building':
+                return this.handleBuilding(cell, x, y, grid);
             default:
                 return false;
         }
     }
 
-    initializeBuild(cell, x, y, grid) {
-        // Find solid ground below
-        let groundY = y + 1;
-        while (groundY < grid.height) {
-            const below = grid.getElement(x, groundY);
-            if (below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
-                break;
-            }
-            groundY++;
-        }
+    handleFalling(cell, x, y, grid) {
+        const below = grid.getElement(x, y + 1);
 
-        cell.data.buildPhase = 'foundation';
-        cell.data.buildTimer = 0;
-        cell.data.foundationY = groundY;
-        cell.data.foundationX = x - 2; // Center of 5-wide foundation
-        cell.data.houseWidth = 5;
-        cell.data.storyHeight = 3;
-        cell.data.currentX = x - 2;
-        cell.data.currentY = groundY;
-        cell.data.buildStep = 0;
-
-        // Change color to indicate building started
-        cell.element.color = 0xD2691E; // Chocolate brown
-    }
-
-    buildFoundation(cell, x, y, grid) {
-        cell.data.buildTimer++;
-
-        // Build foundation blocks one at a time
-        const fx = cell.data.foundationX + cell.data.buildStep;
-        const fy = cell.data.foundationY;
-
-        if (cell.data.buildStep < cell.data.houseWidth) {
-            // Place foundation stone if empty or liquid
-            const targetElement = grid.getElement(fx, fy);
-            if (targetElement && (targetElement.id === 0 || targetElement.state === 'liquid')) {
-                grid.setElement(fx, fy, grid.registry.get('stone'));
-            }
-            cell.data.buildStep++;
+        // Try to fall straight down
+        if (below && (below.id === 0 || below.state === 'liquid')) {
+            grid.swap(x, y, x, y + 1);
             return true;
         }
 
-        // Foundation complete, move to first floor
-        cell.data.buildPhase = 'floor1';
-        cell.data.buildStep = 0;
-        cell.data.currentY = cell.data.foundationY - 1; // Start building above foundation
-        cell.element.color = 0xDEB887; // Burlywood
+        // Landed on solid ground - start wandering
+        if (below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
+            cell.data.mode = 'wandering';
+            cell.data.wanderTimer = 0;
+            return false;
+        }
+
+        // Try diagonal fall
+        const dir = Math.random() > 0.5 ? 1 : -1;
+        const diagBelow = grid.getElement(x + dir, y + 1);
+        if (diagBelow && (diagBelow.id === 0 || diagBelow.state === 'liquid')) {
+            grid.swap(x, y, x + dir, y + 1);
+            return true;
+        }
+
+        return false;
+    }
+
+    handleWandering(cell, x, y, grid) {
+        cell.data.wanderTimer++;
+
+        // Check if we're on solid ground
+        const below = grid.getElement(x, y + 1);
+        if (!below || below.id === 0 || below.state === 'liquid') {
+            // Lost ground - fall again
+            cell.data.mode = 'falling';
+            return false;
+        }
+
+        // Wander for 30-60 frames before checking for a good spot
+        if (cell.data.wanderTimer < 30) {
+            // Keep wandering
+            const dir = cell.data.wanderDirection;
+            const beside = grid.getElement(x + dir, y);
+            const besideBelow = grid.getElement(x + dir, y + 1);
+
+            // Change direction if hit obstacle or edge
+            if (!beside || beside.id !== 0 || !besideBelow || besideBelow.id === 0) {
+                cell.data.wanderDirection *= -1;
+                return false;
+            }
+
+            // Move sideways
+            if (Math.random() < 0.3) { // 30% chance to move each frame
+                grid.swap(x, y, x + dir, y);
+                return true;
+            }
+            return false;
+        }
+
+        // Check if this is a good spot to build
+        if (this.isGoodBuildingSpot(x, y, grid)) {
+            // Start building!
+            cell.data.mode = 'building';
+            return true;
+        }
+
+        // Keep wandering a bit more
+        if (cell.data.wanderTimer < 120) {
+            return false;
+        }
+
+        // Wandered too long - just build here anyway
+        cell.data.mode = 'building';
         return true;
     }
 
-    buildFloor1(cell, x, y, grid) {
-        cell.data.buildTimer++;
-        const baseX = cell.data.foundationX;
-        const baseY = cell.data.currentY;
-        const width = cell.data.houseWidth;
-        const height = cell.data.storyHeight;
-
-        // Build in sequence: left wall, right wall, then ceiling
-        const step = cell.data.buildStep;
-
-        if (step < height) {
-            // Build left wall (bottom to top)
-            this.placeBlock(baseX, baseY - step, 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else if (step < height * 2) {
-            // Build right wall (bottom to top)
-            this.placeBlock(baseX + width - 1, baseY - (step - height), 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else if (step < height * 2 + width) {
-            // Build ceiling/floor separator (left to right)
-            const floorX = baseX + (step - height * 2);
-            this.placeBlock(floorX, baseY - height, 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else {
-            // Floor 1 complete, move to floor 2
-            cell.data.buildPhase = 'floor2';
-            cell.data.buildStep = 0;
-            cell.data.currentY = baseY - height - 1; // Start above floor 1 ceiling
-            cell.element.color = 0xF5DEB3; // Wheat
-            return true;
+    isGoodBuildingSpot(x, y, grid) {
+        // Check if we have solid ground below
+        const below = grid.getElement(x, y + 1);
+        if (!below || (below.state !== STATE.SOLID && below.state !== STATE.POWDER)) {
+            return false;
         }
-    }
 
-    buildFloor2(cell, x, y, grid) {
-        cell.data.buildTimer++;
-        const baseX = cell.data.foundationX;
-        const baseY = cell.data.currentY;
-        const width = cell.data.houseWidth;
-        const height = cell.data.storyHeight;
+        // Check if we have 5 blocks of horizontal space
+        for (let dx = -2; dx <= 2; dx++) {
+            const testX = x + dx;
+            const above = grid.getElement(testX, y - 1);
+            const testBelow = grid.getElement(testX, y + 1);
 
-        const step = cell.data.buildStep;
-
-        if (step < height) {
-            // Build left wall (bottom to top)
-            this.placeBlock(baseX, baseY - step, 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else if (step < height * 2) {
-            // Build right wall (bottom to top)
-            this.placeBlock(baseX + width - 1, baseY - (step - height), 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else if (step < height * 2 + 1) {
-            // Add window in middle of floor 2 left wall
-            const windowY = baseY - Math.floor(height / 2);
-            this.placeBlock(baseX, windowY, 'glass', grid);
-            cell.data.buildStep++;
-            return true;
-        } else if (step < height * 2 + width) {
-            // Build ceiling (left to right)
-            const ceilingX = baseX + (step - height * 2 - 1);
-            this.placeBlock(ceilingX, baseY - height, 'wood', grid);
-            cell.data.buildStep++;
-            return true;
-        } else {
-            // Floor 2 complete, move to roof
-            cell.data.buildPhase = 'roof';
-            cell.data.buildStep = 0;
-            cell.data.roofBaseY = baseY - height - 1;
-            cell.element.color = 0x808080; // Gray
-            return true;
+            // Need clear space above and solid ground below
+            if (!above || above.id !== 0) return false;
+            if (!testBelow || (testBelow.state !== STATE.SOLID && testBelow.state !== STATE.POWDER)) return false;
         }
-    }
 
-    buildRoof(cell, x, y, grid) {
-        cell.data.buildTimer++;
-        const baseX = cell.data.foundationX;
-        const roofY = cell.data.roofBaseY;
-        const width = cell.data.houseWidth;
-        const step = cell.data.buildStep;
-
-        // Build triangular roof
-        // Layer 0: [stone] [empty] [empty] [empty] [stone]
-        // Layer 1: [empty] [stone] [empty] [stone] [empty]
-        // Layer 2: [empty] [empty] [stone] [empty] [empty]
-
-        const roofHeight = Math.ceil(width / 2);
-
-        if (step < roofHeight * width) {
-            const layer = Math.floor(step / width);
-            const posInLayer = step % width;
-
-            // Calculate if this position should have stone
-            const leftEdge = layer;
-            const rightEdge = width - 1 - layer;
-
-            if (posInLayer === leftEdge || posInLayer === rightEdge) {
-                this.placeBlock(baseX + posInLayer, roofY - layer, 'stone', grid);
+        // Check if we have vertical clearance (at least 10 blocks high)
+        for (let dy = 0; dy < 10; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                const testElement = grid.getElement(x + dx, y - dy);
+                if (testElement && testElement.id !== 0) {
+                    return false; // Obstacle in the way
+                }
             }
-
-            cell.data.buildStep++;
-            return true;
-        } else {
-            // Roof complete!
-            cell.data.buildPhase = 'complete';
-            cell.element.color = 0x32CD32; // Lime green (success!)
-            return true;
         }
+
+        return true; // Good spot!
     }
 
-    onComplete(cell, x, y, grid) {
-        // House complete! Seed could:
-        // 1. Stay as a green marker
-        // 2. Transform into a door
-        // 3. Disappear
+    handleBuilding(cell, x, y, grid) {
+        // Builder disappears and creates invisible construction marker
+        grid.setElement(x, y, grid.registry.get('empty'));
 
-        // For now, just stay as green marker
-        return false;
-    }
-
-    placeBlock(x, y, material, grid) {
-        if (!grid.isInBounds(x, y)) return false;
-
-        const existing = grid.getElement(x, y);
-        // Only place if empty or liquid (don't replace solid structures)
-        if (existing && (existing.id === 0 || existing.state === 'liquid')) {
-            grid.setElement(x, y, grid.registry.get(material));
-            return true;
+        // Create construction marker at foundation level
+        const foundationY = y + 1;
+        const foundationCell = grid.getCell(x, foundationY);
+        if (foundationCell && foundationCell.element) {
+            foundationCell.data._houseConstruction = {
+                centerX: x,
+                baseY: foundationY,
+                buildPhase: 'foundation',
+                buildStep: 0,
+                buildTimer: 0
+            };
         }
-        return false;
+
+        return true;
     }
 }
 

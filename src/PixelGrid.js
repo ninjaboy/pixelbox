@@ -1,6 +1,7 @@
 // Pixel Grid Class - manages the particle simulation with element objects
 import { CellState } from './CellState.js';
 import { STATE } from './ElementProperties.js';
+import { ConstructionManager } from './ConstructionManager.js';
 
 class PixelGrid {
     constructor(width, height, pixelSize, registry) {
@@ -250,6 +251,9 @@ class PixelGrid {
                 }
             }
         }
+
+        // Update all active house constructions
+        ConstructionManager.updateConstructions(this);
     }
 
     checkInteractions(x, y) {
