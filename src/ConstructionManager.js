@@ -31,6 +31,11 @@ export class ConstructionManager {
             return;
         }
 
+        // Debug: Log construction progress occasionally
+        if (construction.buildTimer % 30 === 0) {
+            console.log('🏗️ Building:', construction.buildPhase, 'step', construction.buildStep, 'at', x, y);
+        }
+
         // Update based on phase
         switch (construction.buildPhase) {
             case 'foundation':

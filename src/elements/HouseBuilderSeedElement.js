@@ -26,6 +26,7 @@ class HouseBuilderSeedElement extends Element {
             cell.data.wanderTimer = 0;
             cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
             cell.data.buildTimer = 0;
+            console.log('🏠 House builder initialized at', x, y);
         }
 
         // Handle different modes
@@ -52,6 +53,7 @@ class HouseBuilderSeedElement extends Element {
 
         // Landed on solid ground - start wandering
         if (below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
+            console.log('🏠 Builder landed, starting to wander at', x, y);
             cell.data.mode = 'wandering';
             cell.data.wanderTimer = 0;
             return false;
@@ -103,6 +105,7 @@ class HouseBuilderSeedElement extends Element {
         // Check if this is a good spot to build
         if (this.isGoodBuildingSpot(x, y, grid)) {
             // Start building!
+            console.log('🏠 Found good spot! Starting building at', x, y);
             cell.data.mode = 'building';
             return true;
         }
@@ -149,6 +152,8 @@ class HouseBuilderSeedElement extends Element {
     }
 
     handleBuilding(cell, x, y, grid) {
+        console.log('🏠 Starting construction at', x, y);
+
         // Builder disappears and creates invisible construction marker
         grid.setElement(x, y, grid.registry.get('empty'));
 
@@ -163,6 +168,9 @@ class HouseBuilderSeedElement extends Element {
                 buildStep: 0,
                 buildTimer: 0
             };
+            console.log('🏠 Construction marker created at foundation', x, foundationY);
+        } else {
+            console.error('🏠 Failed to create construction marker - no foundation cell');
         }
 
         return true;
