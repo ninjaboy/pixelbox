@@ -795,34 +795,127 @@ class GameScene extends Phaser.Scene {
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
-        // Draw moon with phases (visible during night)
+        // Draw moon with realistic phases (visible during night)
         if (time < 0.3 || time > 0.7) {
             const moonPhase = this.dayNightCycle.moonPhase;
             const radius = this.dayNightCycle.moonRadius;
 
-            // Moon base (light gray)
-            this.celestialGraphics.fillStyle(0xf0f0f0, 0.95);
-            this.celestialGraphics.fillCircle(moonX, moonY, radius);
-
-            // Moon phase shadow
-            if (moonPhase < 0.5) {
-                // Waxing (0 to 0.5): shadow on left side
-                const shadowWidth = radius * 2 * (0.5 - moonPhase) * 2;
-                this.celestialGraphics.fillStyle(0x1a1a2e, 0.8);
-                this.celestialGraphics.fillCircle(moonX - shadowWidth / 2, moonY, shadowWidth);
-            } else if (moonPhase > 0.5) {
-                // Waning (0.5 to 1.0): shadow on right side
-                const shadowWidth = radius * 2 * (moonPhase - 0.5) * 2;
-                this.celestialGraphics.fillStyle(0x1a1a2e, 0.8);
-                this.celestialGraphics.fillCircle(moonX + shadowWidth / 2, moonY, shadowWidth);
-            }
-            // moonPhase === 0.5 is full moon (no shadow)
-
-            // Moon glow
+            // Moon glow (behind moon)
             this.celestialGraphics.fillStyle(0xe8e8ff, 0.3);
             this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.5);
             this.celestialGraphics.fillStyle(0xd0d0ff, 0.15);
             this.celestialGraphics.fillCircle(moonX, moonY, radius * 2.0);
+
+            // Draw moon with proper phase rendering
+            // moonPhase: 0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter, 1.0=new
+
+            // Always draw the dark side first (sky color)
+            this.celestialGraphics.fillStyle(0x16213e, 1.0);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius);
+
+            // Calculate illumination
+            // phase 0->0.5: waxing (right side gets brighter)
+            // phase 0.5->1.0: waning (left side gets brighter)
+            const phaseAngle = moonPhase * Math.PI * 2;
+            const illumination = Math.cos(phaseAngle); // -1 to 1
+
+            // Draw the lit portion using path
+            this.celestialGraphics.fillStyle(0xf0f0f0, 0.95);
+
+            if (moonPhase <= 0.5) {
+                // Waxing: 0 (new) -> 0.5 (full)
+                // Lit portion grows from right edge
+                const coverage = moonPhase * 2; // 0 to 1
+
+                if (coverage < 0.5) {
+                    // Waxing crescent - draw crescent on right
+                    this.drawMoonCrescent(moonX, moonY, radius, coverage, true);
+                } else {
+                    // Waxing gibbous - draw shadow crescent on left
+                    this.drawMoonGibbous(moonX, moonY, radius, coverage, true);
+                }
+            } else {
+                // Waning: 0.5 (full) -> 1.0 (new)
+                // Lit portion shrinks from left edge
+                const coverage = 2 - (moonPhase * 2); // 1 to 0
+
+                if (coverage > 0.5) {
+                    // Waning gibbous - draw shadow crescent on right
+                    this.drawMoonGibbous(moonX, moonY, radius, coverage, false);
+                } else {
+                    // Waning crescent - draw crescent on left
+                    this.drawMoonCrescent(moonX, moonY, radius, coverage, false);
+                }
+            }
+        }
+    }
+
+    drawMoonCrescent(x, y, radius, coverage, rightSide) {
+        // Draw a crescent moon shape
+        // coverage: 0 (new moon) to 0.5 (quarter moon)
+        // rightSide: true for waxing, false for waning
+
+        const graphics = this.celestialGraphics;
+
+        // Calculate the ellipse width based on coverage
+        // coverage 0 = invisible, coverage 0.5 = half circle
+        const ellipseWidth = radius * 2 * (coverage * 2);
+
+        // Begin drawing path
+        graphics.beginPath();
+
+        if (rightSide) {
+            // Right crescent (waxing)
+            // Draw right half circle
+            graphics.arc(x, y, radius, -Math.PI / 2, Math.PI / 2, false);
+            // Draw ellipse on the left to create crescent
+            graphics.arc(x, y, ellipseWidth / 2, Math.PI / 2, -Math.PI / 2, true);
+        } else {
+            // Left crescent (waning)
+            // Draw left half circle
+            graphics.arc(x, y, radius, Math.PI / 2, -Math.PI / 2, false);
+            // Draw ellipse on the right to create crescent
+            graphics.arc(x, y, ellipseWidth / 2, -Math.PI / 2, Math.PI / 2, true);
+        }
+
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
+    drawMoonGibbous(x, y, radius, coverage, rightSide) {
+        // Draw a gibbous moon shape (more than half)
+        // coverage: 0.5 (quarter) to 1.0 (full)
+        // rightSide: true for waxing, false for waning
+
+        const graphics = this.celestialGraphics;
+
+        // For gibbous, draw full circle minus a shadow crescent
+        // First draw the full lit circle
+        graphics.fillCircle(x, y, radius);
+
+        // Then draw a dark ellipse to create the shadow
+        const shadowCoverage = 1.0 - coverage; // 0.5 -> 0
+        const ellipseWidth = radius * 2 * (shadowCoverage * 2);
+
+        if (ellipseWidth > 0) {
+            graphics.fillStyle(0x16213e, 1.0);
+            graphics.beginPath();
+
+            if (rightSide) {
+                // Waxing gibbous - shadow on left
+                graphics.arc(x, y, radius, Math.PI / 2, -Math.PI / 2, false);
+                graphics.arc(x, y, ellipseWidth / 2, -Math.PI / 2, Math.PI / 2, true);
+            } else {
+                // Waning gibbous - shadow on right
+                graphics.arc(x, y, radius, -Math.PI / 2, Math.PI / 2, false);
+                graphics.arc(x, y, ellipseWidth / 2, Math.PI / 2, -Math.PI / 2, true);
+            }
+
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Restore light color for subsequent drawing
+            graphics.fillStyle(0xf0f0f0, 0.95);
         }
     }
 
