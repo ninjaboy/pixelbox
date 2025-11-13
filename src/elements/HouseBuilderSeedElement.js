@@ -81,8 +81,8 @@ class HouseBuilderSeedElement extends Element {
             return false;
         }
 
-        // Wander for 30-60 frames before checking for a good spot
-        if (cell.data.wanderTimer < 30) {
+        // Wander for just 10 frames before building (faster)
+        if (cell.data.wanderTimer < 10) {
             // Keep wandering
             const dir = cell.data.wanderDirection;
             const beside = grid.getElement(x + dir, y);
@@ -95,27 +95,16 @@ class HouseBuilderSeedElement extends Element {
             }
 
             // Move sideways
-            if (Math.random() < 0.3) { // 30% chance to move each frame
+            if (Math.random() < 0.5) { // 50% chance to move each frame
                 grid.swap(x, y, x + dir, y);
                 return true;
             }
             return false;
         }
 
-        // Check if this is a good spot to build
-        if (this.isGoodBuildingSpot(x, y, grid)) {
-            // Start building!
-            console.log('🏠 Found good spot! Starting building at', x, y);
-            cell.data.mode = 'building';
-            return true;
-        }
-
-        // Keep wandering a bit more
-        if (cell.data.wanderTimer < 120) {
-            return false;
-        }
-
-        // Wandered too long - just build here anyway
+        // After minimal wandering, just start building!
+        // The construction manager will handle ground filling
+        console.log('🏠 Starting building at', x, y);
         cell.data.mode = 'building';
         return true;
     }

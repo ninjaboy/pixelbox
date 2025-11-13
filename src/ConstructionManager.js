@@ -1,9 +1,9 @@
 /**
- * ConstructionManager - Manages slow house construction without a visible element
- * Attached as data to foundation blocks, builds incrementally over time
+ * ConstructionManager - Manages persistent house construction
+ * Fills ground, builds foundation, then constructs house
  */
 
-const BUILD_SPEED = 3; // Frames per block (slower = more realistic)
+const BUILD_SPEED = 1; // Frames per block (1 = every frame, faster construction)
 
 export class ConstructionManager {
     /**
@@ -62,16 +62,15 @@ export class ConstructionManager {
         const baseY = construction.baseY;
         const step = construction.buildStep;
 
-        // Build 5-wide foundation
+        // Build 5-wide foundation - PERSISTENT, replaces everything
         if (step < 5) {
             const fx = centerX - 2 + step;
-            if (this.canPlaceBlock(fx, baseY, grid)) {
-                this.placeBlock(fx, baseY, 'stone', grid);
-                construction.buildStep++;
-            } else {
-                // Can't place - pause construction
-                return;
+            // Always place, replacing whatever is there (except walls)
+            const existing = grid.getElement(fx, baseY);
+            if (existing && existing.name !== 'wall') {
+                grid.setElement(fx, baseY, grid.registry.get('stone'));
             }
+            construction.buildStep++;
         } else {
             // Foundation complete
             construction.buildPhase = 'floor1';
@@ -86,29 +85,23 @@ export class ConstructionManager {
         const step = construction.buildStep;
         const storyHeight = 3;
 
-        // Build left wall, right wall, then ceiling
+        // Build left wall, right wall, then ceiling - PERSISTENT
         if (step < storyHeight) {
             // Left wall
             const wallY = baseY - step;
-            if (this.canPlaceBlock(centerX - 2, wallY, grid)) {
-                this.placeBlock(centerX - 2, wallY, 'wood', grid);
-                construction.buildStep++;
-            }
+            this.forcePlaceBlock(centerX - 2, wallY, 'wood', grid);
+            construction.buildStep++;
         } else if (step < storyHeight * 2) {
             // Right wall
             const wallY = baseY - (step - storyHeight);
-            if (this.canPlaceBlock(centerX + 2, wallY, grid)) {
-                this.placeBlock(centerX + 2, wallY, 'wood', grid);
-                construction.buildStep++;
-            }
+            this.forcePlaceBlock(centerX + 2, wallY, 'wood', grid);
+            construction.buildStep++;
         } else if (step < storyHeight * 2 + 5) {
             // Ceiling
             const ceilingX = centerX - 2 + (step - storyHeight * 2);
             const ceilingY = baseY - storyHeight;
-            if (this.canPlaceBlock(ceilingX, ceilingY, grid)) {
-                this.placeBlock(ceilingX, ceilingY, 'wood', grid);
-                construction.buildStep++;
-            }
+            this.forcePlaceBlock(ceilingX, ceilingY, 'wood', grid);
+            construction.buildStep++;
         } else {
             // Floor 1 complete
             construction.buildPhase = 'floor2';
@@ -126,27 +119,21 @@ export class ConstructionManager {
         if (step < storyHeight) {
             // Left wall
             const wallY = baseY - step;
-            if (this.canPlaceBlock(centerX - 2, wallY, grid)) {
-                // Add window in middle
-                const material = (step === Math.floor(storyHeight / 2)) ? 'glass' : 'wood';
-                this.placeBlock(centerX - 2, wallY, material, grid);
-                construction.buildStep++;
-            }
+            // Add window in middle
+            const material = (step === Math.floor(storyHeight / 2)) ? 'glass' : 'wood';
+            this.forcePlaceBlock(centerX - 2, wallY, material, grid);
+            construction.buildStep++;
         } else if (step < storyHeight * 2) {
             // Right wall
             const wallY = baseY - (step - storyHeight);
-            if (this.canPlaceBlock(centerX + 2, wallY, grid)) {
-                this.placeBlock(centerX + 2, wallY, 'wood', grid);
-                construction.buildStep++;
-            }
+            this.forcePlaceBlock(centerX + 2, wallY, 'wood', grid);
+            construction.buildStep++;
         } else if (step < storyHeight * 2 + 5) {
             // Ceiling
             const ceilingX = centerX - 2 + (step - storyHeight * 2);
             const ceilingY = baseY - storyHeight;
-            if (this.canPlaceBlock(ceilingX, ceilingY, grid)) {
-                this.placeBlock(ceilingX, ceilingY, 'wood', grid);
-                construction.buildStep++;
-            }
+            this.forcePlaceBlock(ceilingX, ceilingY, 'wood', grid);
+            construction.buildStep++;
         } else {
             // Floor 2 complete
             construction.buildPhase = 'roof';
@@ -160,7 +147,7 @@ export class ConstructionManager {
         const roofY = construction.roofBaseY;
         const step = construction.buildStep;
 
-        // Build peaked roof
+        // Build peaked roof - PERSISTENT
         // Layer 0: stone at edges
         // Layer 1: stone closer to center
         // Layer 2: stone at peak
@@ -178,10 +165,8 @@ export class ConstructionManager {
                     if (blockIndex === step) {
                         const roofX = centerX + offset;
                         const roofLayerY = roofY - layer;
-                        if (this.canPlaceBlock(roofX, roofLayerY, grid)) {
-                            this.placeBlock(roofX, roofLayerY, 'stone', grid);
-                            construction.buildStep++;
-                        }
+                        this.forcePlaceBlock(roofX, roofLayerY, 'stone', grid);
+                        construction.buildStep++;
                         return;
                     }
                     blockIndex++;
@@ -190,22 +175,25 @@ export class ConstructionManager {
         } else {
             // Roof complete!
             construction.buildPhase = 'complete';
+            console.log('🏠 House construction complete!');
         }
     }
 
-    static canPlaceBlock(x, y, grid) {
+    static forcePlaceBlock(x, y, material, grid) {
+        // Place block, replacing anything except walls and obsidian
         if (!grid.isInBounds(x, y)) return false;
-        const existing = grid.getElement(x, y);
-        // Only place if empty or liquid
-        return existing && (existing.id === 0 || existing.state === 'liquid');
-    }
 
-    static placeBlock(x, y, material, grid) {
-        if (this.canPlaceBlock(x, y, grid)) {
-            grid.setElement(x, y, grid.registry.get(material));
-            return true;
+        const existing = grid.getElement(x, y);
+        if (!existing) return false;
+
+        // Don't replace permanent structures
+        if (existing.name === 'wall' || existing.name === 'obsidian') {
+            return false;
         }
-        return false;
+
+        // Replace everything else
+        grid.setElement(x, y, grid.registry.get(material));
+        return true;
     }
 }
 
