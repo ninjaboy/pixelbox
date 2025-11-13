@@ -37,3 +37,4 @@ export { default as ObsidianElement } from './ObsidianElement.js';
 export { default as SteamVentElement } from './SteamVentElement.js';
 export { default as CoralElement } from './CoralElement.js';
 export { default as ElectricityElement } from './ElectricityElement.js';
+export { default as HouseBuilderSeedElement } from './HouseBuilderSeedElement.js';
