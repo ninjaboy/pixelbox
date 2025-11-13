@@ -130,28 +130,40 @@ class GameScene extends Phaser.Scene {
         const tooltipProps = document.getElementById('tooltip-props');
         const tooltipKey = document.getElementById('tooltip-key');
 
-        // All elements - compact layout
+        // All elements - organized by category
         const elements = [
-            { name: 'sand', key: '1' },
-            { name: 'stone', key: '2' },
-            { name: 'wall', key: '3' },
-            { name: 'glass', key: '4' },
-            { name: 'obsidian', key: '5' },
-            { name: 'water', key: '6' },
-            { name: 'oil', key: '7' },
-            { name: 'acid', key: '8' },
-            { name: 'fire', key: '9' },
-            { name: 'ice', key: '0' },
-            { name: 'lava', key: 'Q' },
-            { name: 'snow', key: 'W' },
-            { name: 'tree_seed', key: 'E' },
-            { name: 'vine', key: 'R' },
-            { name: 'fish', key: 'T' },
-            { name: 'coral', key: 'Y' },
-            { name: 'wood', key: 'U' },
-            { name: 'coal', key: 'I' },
-            { name: 'gunpowder', key: 'O' },
-            { name: 'steam_vent', key: 'P' },
+            // GASES (rise)
+            { name: 'fire', key: '1' },
+            { name: 'steam_vent', key: '2' },
+
+            // LIQUIDS (flow)
+            { name: 'water', key: '3' },
+            { name: 'oil', key: '4' },
+            { name: 'lava', key: '5' },
+            { name: 'acid', key: '6' },
+
+            // POWDERS (fall, pile)
+            { name: 'sand', key: '7' },
+            { name: 'gunpowder', key: '8' },
+            { name: 'snow', key: '9' },
+
+            // SOLIDS (static)
+            { name: 'stone', key: '0' },
+            { name: 'wood', key: 'Q' },
+            { name: 'ice', key: 'W' },
+            { name: 'glass', key: 'E' },
+            { name: 'wall', key: 'R' },
+            { name: 'obsidian', key: 'T' },
+            { name: 'coal', key: 'Y' },
+
+            // ORGANIC (life)
+            { name: 'tree_seed', key: 'U' },
+            { name: 'vine', key: 'I' },
+            { name: 'fish', key: 'O' },
+            { name: 'coral', key: 'P' },
+            { name: 'house_seed', key: 'A' },
+
+            // TOOLS
             { name: 'eraser', key: 'X' }
         ];
 
@@ -180,6 +192,7 @@ class GameScene extends Phaser.Scene {
             coal: { icon: '⚫', color: '#1a1a1a' },
             coral: { icon: '🪸', color: '#ff6b9d' },
             steam_vent: { icon: '🌡️', color: '#555555' },
+            house_seed: { icon: '🏠', color: '#8b4513' },
             eraser: { icon: '🧹', color: '#ff3333' }
         };
 
