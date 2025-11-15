@@ -185,15 +185,27 @@ class HouseBuilderSeedElement extends Element {
         // Place a STONE marker at foundation level to hold construction data
         // This prevents the construction data from being attached to movable sand/powder
         const foundationY = y + 1;
-        const foundationBelow = grid.getElement(x, foundationY);
 
+        // Check if foundation position is in bounds
+        if (!grid.isInBounds(x, foundationY)) {
+            console.error('🏠 Cannot build - foundation position out of bounds');
+            return false;
+        }
+
+        const foundationBelow = grid.getElement(x, foundationY);
         if (!foundationBelow) {
-            console.error('🏠 Cannot build - no ground below');
+            console.error('🏠 Cannot build - no element at foundation position');
             return false;
         }
 
         // Replace whatever is below with a stone foundation marker
-        grid.setElement(x, foundationY, grid.registry.get('stone'));
+        const stoneElement = grid.registry.get('stone');
+        if (!stoneElement) {
+            console.error('🏠 Cannot build - stone element not found in registry');
+            return false;
+        }
+
+        grid.setElement(x, foundationY, stoneElement);
 
         // Now get the new stone cell and attach construction data to it
         const foundationCell = grid.getCell(x, foundationY);
