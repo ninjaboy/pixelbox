@@ -33,6 +33,9 @@ class HouseBuilderSeedElement extends Element {
         if (!cell.data.initiated) {
             cell.data.initiated = true;
             cell.data.settled = false;
+            cell.data.wanderAttempts = 0;
+            cell.data.maxWanderAttempts = 50; // Try 50 times to find good spot
+            cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
             console.log('🏠 House builder placed at', x, y);
         }
 
@@ -61,7 +64,7 @@ class HouseBuilderSeedElement extends Element {
             }
         }
 
-        // Landed on solid ground - mark as settled and start building
+        // Landed on solid ground - mark as settled and validate spot
         if (!cell.data.settled && below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
             cell.data.settled = true;
             cell.data.buildDelay = 5; // Short delay to make sure we're stable
@@ -69,14 +72,46 @@ class HouseBuilderSeedElement extends Element {
             return false;
         }
 
-        // Wait for build delay before starting construction
+        // Wait for build delay, then validate spot
         if (cell.data.settled && cell.data.buildDelay !== undefined) {
             if (cell.data.buildDelay > 0) {
                 cell.data.buildDelay--;
                 return false;
             } else {
-                // Start building!
-                return this.handleBuilding(cell, x, y, grid);
+                // VALIDATE SPOT before building
+                if (this.isGoodBuildingSpot(x, y, grid)) {
+                    // Good spot - start building!
+                    return this.handleBuilding(cell, x, y, grid);
+                } else {
+                    // Bad spot - wander to find better location
+                    cell.data.wanderAttempts++;
+                    console.log('🏠 Bad location, wandering... (attempt', cell.data.wanderAttempts, '/', cell.data.maxWanderAttempts, ')');
+
+                    if (cell.data.wanderAttempts >= cell.data.maxWanderAttempts) {
+                        // Give up after too many attempts - turn to ash
+                        console.log('🏠 Builder gave up after', cell.data.wanderAttempts, 'attempts');
+                        grid.setElement(x, y, grid.registry.get('ash'));
+                        return true;
+                    }
+
+                    // Reset to wander mode
+                    cell.data.settled = false;
+                    cell.data.buildDelay = undefined;
+                    // Try moving sideways
+                    const wanderDir = cell.data.wanderDirection;
+                    const beside = grid.getElement(x + wanderDir, y);
+                    const besideBelow = grid.getElement(x + wanderDir, y + 1);
+
+                    if (beside && beside.id === 0 && besideBelow && besideBelow.id !== 0) {
+                        // Can move sideways
+                        grid.swap(x, y, x + wanderDir, y);
+                        return true;
+                    } else {
+                        // Reverse direction if blocked
+                        cell.data.wanderDirection *= -1;
+                        return false;
+                    }
+                }
             }
         }
 
@@ -151,9 +186,35 @@ class HouseBuilderSeedElement extends Element {
     }
 
     isGoodBuildingSpot(x, y, grid) {
+        // WATER CHECKS: Don't build underwater or near water
+        const buildRadius = 5; // Check 5-block radius for water
+        for (let dy = -1; dy < 10; dy++) { // Check from 1 below to 10 above
+            for (let dx = -buildRadius; dx <= buildRadius; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'water') {
+                    console.log('🏠 Bad spot: Water detected at', x + dx, y + dy);
+                    return false; // Water in building area
+                }
+            }
+        }
+
+        // TREE CHECKS: Don't build near trees
+        const treeRadius = 8; // Check 8-block radius for trees
+        const treeElements = ['tree_trunk', 'tree_branch', 'leaf', 'tree_seed'];
+        for (let dy = -5; dy <= 5; dy++) {
+            for (let dx = -treeRadius; dx <= treeRadius; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && treeElements.includes(element.name)) {
+                    console.log('🏠 Bad spot: Tree detected at', x + dx, y + dy);
+                    return false; // Too close to trees
+                }
+            }
+        }
+
         // Check if we have solid ground below
         const below = grid.getElement(x, y + 1);
         if (!below || (below.state !== STATE.SOLID && below.state !== STATE.POWDER)) {
+            console.log('🏠 Bad spot: No solid ground below');
             return false;
         }
 
@@ -164,8 +225,14 @@ class HouseBuilderSeedElement extends Element {
             const testBelow = grid.getElement(testX, y + 1);
 
             // Need clear space above and solid ground below
-            if (!above || above.id !== 0) return false;
-            if (!testBelow || (testBelow.state !== STATE.SOLID && testBelow.state !== STATE.POWDER)) return false;
+            if (!above || above.id !== 0) {
+                console.log('🏠 Bad spot: Not enough horizontal clearance');
+                return false;
+            }
+            if (!testBelow || (testBelow.state !== STATE.SOLID && testBelow.state !== STATE.POWDER)) {
+                console.log('🏠 Bad spot: Uneven ground');
+                return false;
+            }
         }
 
         // Check if we have vertical clearance (at least 10 blocks high)
@@ -173,11 +240,13 @@ class HouseBuilderSeedElement extends Element {
             for (let dx = -2; dx <= 2; dx++) {
                 const testElement = grid.getElement(x + dx, y - dy);
                 if (testElement && testElement.id !== 0) {
+                    console.log('🏠 Bad spot: Not enough vertical clearance');
                     return false; // Obstacle in the way
                 }
             }
         }
 
+        console.log('🏠 Good spot found at', x, y);
         return true; // Good spot!
     }
 
