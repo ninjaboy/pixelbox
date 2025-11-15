@@ -153,11 +153,11 @@ class HouseBuilderSeedElement extends Element {
             foundationCell.data._houseConstruction = {
                 centerX: x,
                 baseY: foundationY,
-                buildPhase: 'foundation',
+                buildPhase: 'ground_fill', // Start with ground filling to level the surface
                 buildStep: 0,
                 buildTimer: 0
             };
-            console.log('🏠 Construction marker created at foundation', x, foundationY);
+            console.log('🏠 Construction marker created - starting ground fill at', x, foundationY);
         } else {
             console.error('🏠 Failed to create construction marker - no foundation cell');
         }
