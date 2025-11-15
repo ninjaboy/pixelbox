@@ -182,17 +182,27 @@ class HouseBuilderSeedElement extends Element {
     handleBuilding(cell, x, y, grid) {
         console.log('🏠 Starting construction at', x, y);
 
-        // Store construction data on the FOUNDATION block below, not on the builder
-        // This way construction continues even if builder gets destroyed
+        // Place a STONE marker at foundation level to hold construction data
+        // This prevents the construction data from being attached to movable sand/powder
         const foundationY = y + 1;
-        const foundationCell = grid.getCell(x, foundationY);
+        const foundationBelow = grid.getElement(x, foundationY);
 
-        if (!foundationCell || !foundationCell.element) {
-            console.error('🏠 No foundation block found below builder');
+        if (!foundationBelow) {
+            console.error('🏠 Cannot build - no ground below');
             return false;
         }
 
-        // Attach construction data to foundation block
+        // Replace whatever is below with a stone foundation marker
+        grid.setElement(x, foundationY, grid.registry.get('stone'));
+
+        // Now get the new stone cell and attach construction data to it
+        const foundationCell = grid.getCell(x, foundationY);
+        if (!foundationCell) {
+            console.error('🏠 Failed to create foundation marker');
+            return false;
+        }
+
+        // Attach construction data to the stable stone foundation
         foundationCell.data._houseConstruction = {
             centerX: x,
             baseY: foundationY,  // Build foundation at this level
@@ -204,7 +214,7 @@ class HouseBuilderSeedElement extends Element {
         // Mark builder as having started construction
         cell.data._houseConstruction = true; // Just a marker so builder stays still
 
-        console.log('🏠 Construction marker created on foundation at', x, foundationY);
+        console.log('🏠 Construction marker created on stone foundation at', x, foundationY);
         return true;
     }
 }
