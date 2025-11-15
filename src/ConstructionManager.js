@@ -26,6 +26,12 @@ export class ConstructionManager {
 
     static updateConstruction(cell, x, y, grid) {
         const construction = cell.data._houseConstruction;
+
+        // Verify construction data is a valid object, not just a boolean marker
+        if (!construction || typeof construction !== 'object') {
+            return; // Skip builder markers or invalid data
+        }
+
         construction.buildTimer++;
 
         // Only place one block every BUILD_SPEED frames
