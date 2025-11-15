@@ -97,20 +97,46 @@ class HouseBuilderSeedElement extends Element {
                     // Reset to wander mode
                     cell.data.settled = false;
                     cell.data.buildDelay = undefined;
-                    // Try moving sideways
+
+                    // Try SMART MOVEMENT to find better spot
                     const wanderDir = cell.data.wanderDirection;
                     const beside = grid.getElement(x + wanderDir, y);
                     const besideBelow = grid.getElement(x + wanderDir, y + 1);
+                    const besideAbove = grid.getElement(x + wanderDir, y - 1);
 
+                    // 1. Try simple sideways move
                     if (beside && beside.id === 0 && besideBelow && besideBelow.id !== 0) {
-                        // Can move sideways
                         grid.swap(x, y, x + wanderDir, y);
                         return true;
-                    } else {
-                        // Reverse direction if blocked
-                        cell.data.wanderDirection *= -1;
-                        return false;
                     }
+
+                    // 2. Try CLIMBING over 1-block obstacle
+                    if (beside && beside.id !== 0 && besideAbove && besideAbove.id === 0) {
+                        const climbTarget = grid.getElement(x + wanderDir, y - 1);
+                        if (climbTarget && climbTarget.id === 0) {
+                            console.log('🏠 Builder climbing obstacle at', x, y);
+                            grid.swap(x, y, x + wanderDir, y - 1);
+                            return true;
+                        }
+                    }
+
+                    // 3. Try BURROWING through soft materials (sand, ash, leaves, powder)
+                    if (beside && beside.state === STATE.POWDER) {
+                        console.log('🏠 Builder burrowing through', beside.name, 'at', x + wanderDir, y);
+                        grid.setElement(x + wanderDir, y, grid.registry.get('empty'));
+                        grid.swap(x, y, x + wanderDir, y);
+                        return true;
+                    }
+                    if (beside && (beside.name === 'ash' || beside.name === 'leaf')) {
+                        console.log('🏠 Builder burrowing through', beside.name, 'at', x + wanderDir, y);
+                        grid.setElement(x + wanderDir, y, grid.registry.get('empty'));
+                        grid.swap(x, y, x + wanderDir, y);
+                        return true;
+                    }
+
+                    // 4. If all else fails, reverse direction
+                    cell.data.wanderDirection *= -1;
+                    return false;
                 }
             }
         }
