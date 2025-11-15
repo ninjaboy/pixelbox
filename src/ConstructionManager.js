@@ -38,6 +38,9 @@ export class ConstructionManager {
 
         // Update based on phase
         switch (construction.buildPhase) {
+            case 'ground_fill':
+                this.fillGround(construction, grid);
+                break;
             case 'foundation':
                 this.buildFoundation(construction, grid);
                 break;
@@ -54,6 +57,70 @@ export class ConstructionManager {
                 // Remove construction data - we're done!
                 delete cell.data._houseConstruction;
                 break;
+        }
+    }
+
+    static fillGround(construction, grid) {
+        const centerX = construction.centerX;
+        const baseY = construction.baseY;
+
+        // ADAPTIVE GROUND FILLING: Fill gaps and create level surface
+        // Scan 5-wide area and fill any gaps below the base level
+
+        // First pass: Find the lowest point in the build area
+        if (construction.buildStep === 0) {
+            let lowestY = baseY;
+            for (let dx = -2; dx <= 2; dx++) {
+                const testX = centerX + dx;
+                // Scan downward to find the first solid/powder surface
+                for (let scanY = baseY; scanY < Math.min(baseY + 10, grid.height); scanY++) {
+                    const element = grid.getElement(testX, scanY);
+                    if (element && (element.state === STATE.SOLID || element.state === STATE.POWDER)) {
+                        // Found solid ground at this column
+                        break;
+                    }
+                    // Empty or liquid - this is where we'll need to place foundation
+                    if (scanY > lowestY) {
+                        lowestY = scanY;
+                    }
+                }
+            }
+            construction.targetBaseY = lowestY; // Store the level where we'll build foundation
+            construction.buildStep++;
+            console.log('🏗️ Ground analysis complete - target base level:', construction.targetBaseY);
+            return;
+        }
+
+        // Fill from bottom up to create solid platform at targetBaseY
+        const targetY = construction.targetBaseY;
+        const step = construction.buildStep - 1; // Subtract 1 because step 0 was analysis
+
+        // Fill 5-wide area, column by column
+        if (step < 5) {
+            const fx = centerX - 2 + step;
+
+            // Fill this column from targetY down to first solid surface
+            for (let fillY = targetY; fillY < grid.height; fillY++) {
+                const existing = grid.getElement(fx, fillY);
+
+                // Stop when we hit solid ground
+                if (existing && (existing.state === STATE.SOLID || existing.state === STATE.POWDER)) {
+                    break;
+                }
+
+                // Fill empty/liquid spaces with stone
+                if (existing && (existing.id === 0 || existing.state === 'liquid')) {
+                    grid.setElement(fx, fillY, grid.registry.get('stone'));
+                }
+            }
+
+            construction.buildStep++;
+        } else {
+            // Ground fill complete - move to foundation phase
+            construction.buildPhase = 'foundation';
+            construction.buildStep = 0;
+            construction.baseY = targetY; // Update baseY to the filled level
+            console.log('🏗️ Ground fill complete - starting foundation at level', targetY);
         }
     }
 

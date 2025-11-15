@@ -131,6 +131,13 @@ class FishElement extends Element {
         // High hunger makes them sterile (can't reproduce) but they never die from starvation
         const isStarving = cell.data.hunger >= 70; // Very hungry = can't reproduce
 
+        // CORAL SYMBIOSIS: Being near coral provides passive nutrition (microorganisms)
+        const nearCoral = this.isNearCoral(x, y, grid);
+        if (nearCoral && cell.data.hunger > 0) {
+            // Slowly reduce hunger when near coral (10x slower than eating)
+            cell.data.hunger = Math.max(0, cell.data.hunger - 0.007); // Very gradual
+        }
+
         // PERFORMANCE: Cache surface level lookup (only update every 3 frames)
         let surfaceY = cell.data.cachedSurfaceY;
         if (shouldUpdateAI) {
@@ -165,7 +172,12 @@ class FishElement extends Element {
             // PERFORMANCE: Cache food location lookup (only update every 3 frames)
             let foodLocation = cell.data.cachedFoodLocation;
             if (shouldUpdateAI) {
+                // First look for traditional food (leaves, ash, seeds)
                 foodLocation = this.findNearbyFood(x, y, grid);
+                // If no traditional food and moderately hungry, seek corals for passive nutrition
+                if (!foodLocation && cell.data.hunger > 40) {
+                    foodLocation = this.findNearbyCoral(x, y, grid);
+                }
                 cell.data.cachedFoodLocation = foodLocation;
             }
 
@@ -182,6 +194,19 @@ class FishElement extends Element {
                 if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
                     // Eat the food
                     const foodElement = grid.getElement(foodX, foodY);
+
+                    // CORAL: Don't eat coral, just hang around it for passive nutrition
+                    if (foodElement && foodElement.name === 'coral') {
+                        // Reached coral - just stay nearby, don't consume it
+                        // Hunger will slowly decrease from passive nutrition (see CORAL SYMBIOSIS above)
+                        cell.data.seekingFood = false;
+                        cell.data.cachedFoodLocation = null;
+                        // Don't start feeding timer for coral
+                        cell.data.feedingStartTime = null;
+                        return false; // Don't move, just chill near coral
+                    }
+
+                    // Traditional food (leaves, ash, seeds) - consume it
                     if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
                         grid.setElement(foodX, foodY, grid.registry.get('empty'));
                         cell.data.hunger = Math.max(0, cell.data.hunger - 70); // Reduce hunger significantly
@@ -601,6 +626,36 @@ class FishElement extends Element {
         }
 
         return false;
+    }
+
+    isNearCoral(x, y, grid) {
+        // Check if coral is nearby (within 3 pixels)
+        const radius = 3;
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'coral') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    findNearbyCoral(x, y, grid) {
+        // Search for coral in a moderate radius (8 pixels)
+        const searchRadius = 8;
+
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'coral') {
+                    return [x + dx, y + dy];
+                }
+            }
+        }
+
+        return null;
     }
 }
 
