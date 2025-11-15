@@ -103,17 +103,9 @@ class FishElement extends Element {
             cell.data.cachedNearbyFishCount = nearbyFishCount;
         }
 
-        // OVERPOPULATION CONTROL: Die if too crowded (stronger control)
-        if (nearbyFishCount > 8) { // More than 8 fish within 5 pixels = overcrowding
-            // Progressive death chance based on crowding severity
-            const crowdingLevel = nearbyFishCount - 8; // 1-10+
-            const deathChance = Math.min(0.05 + (crowdingLevel * 0.01), 0.15); // 5-15% chance
-
-            if (Math.random() < deathChance) {
-                grid.setElement(x, y, grid.registry.get('ash'));
-                return true;
-            }
-        }
+        // OVERPOPULATION CONTROL: No death, but track stress level for reproduction
+        // Fish don't die from crowding, but become sterile when stressed
+        const isStressed = nearbyFishCount > 4; // More than 4 nearby = stressed
 
         // FEEDING COOLDOWN SYSTEM
         // Decrement cooldown timer if active
@@ -135,11 +127,9 @@ class FishElement extends Element {
         // HUNGER SYSTEM
         cell.data.hunger = Math.min(100, cell.data.hunger + 0.015); // Hunger increases slowly (66+ seconds between meals)
 
-        // STARVATION DEATH: Die if hunger reaches 100
-        if (cell.data.hunger >= 100) {
-            grid.setElement(x, y, grid.registry.get('ash'));
-            return true;
-        }
+        // NO STARVATION DEATH: Fish just get increasingly desperate for food
+        // High hunger makes them sterile (can't reproduce) but they never die from starvation
+        const isStarving = cell.data.hunger >= 70; // Very hungry = can't reproduce
 
         // PERFORMANCE: Cache surface level lookup (only update every 3 frames)
         let surfaceY = cell.data.cachedSurfaceY;
@@ -198,10 +188,16 @@ class FishElement extends Element {
                         cell.data.seekingFood = false;
                         cell.data.cachedFoodLocation = null; // Clear cache after eating
 
-                        // REPRODUCTION: If well-fed and not overcrowded, lay egg
-                        // Stricter conditions to prevent overpopulation
-                        if (cell.data.hunger < 30 && nearbyFishCount < 6) {
-                            if (Math.random() < 0.15) { // 15% chance to lay egg (reduced from 50%)
+                        // REPRODUCTION: Very strict conditions to maintain stable population
+                        // Fish can only reproduce when: well-fed, not stressed, not starving, not overcrowded
+                        const canReproduce =
+                            cell.data.hunger < 20 &&  // Very well-fed (was 30)
+                            !isStressed &&             // Not stressed from crowding
+                            !isStarving &&             // Not starving
+                            nearbyFishCount < 3;       // Maximum 2 nearby fish (was 6)
+
+                        if (canReproduce) {
+                            if (Math.random() < 0.05) { // Only 5% chance to lay egg (was 15%)
                                 this.layEgg(x, y, grid);
                             }
                         }
