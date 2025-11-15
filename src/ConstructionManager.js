@@ -3,6 +3,8 @@
  * Fills ground, builds foundation, then constructs house
  */
 
+import { STATE } from './ElementProperties.js';
+
 const BUILD_SPEED = 1; // Frames per block (1 = every frame, faster construction)
 
 export class ConstructionManager {
