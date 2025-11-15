@@ -125,10 +125,13 @@ export class LiquidFlowBehavior {
                 let pathClear = true;
                 for (let checkX = x + spreadDir; spreadDir > 0 ? checkX <= targetX : checkX >= targetX; checkX += spreadDir) {
                     const pathElement = grid.getElement(checkX, y);
-                    // Can't go through solid walls or non-movable elements
-                    if (pathElement && pathElement.id !== 0 && !pathElement.movable) {
-                        pathClear = false;
-                        break;
+                    // STRICT: Can't go through ANY solid or powder elements
+                    // Water can ONLY pass through empty space or other liquids
+                    if (pathElement && pathElement.id !== 0) {
+                        if (pathElement.state !== 'liquid') {
+                            pathClear = false;
+                            break;
+                        }
                     }
                 }
 
