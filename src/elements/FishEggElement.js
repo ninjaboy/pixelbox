@@ -55,52 +55,18 @@ class FishEggElement extends Element {
 
         // Hatch after 600 frames (10 seconds)
         if (cell.data.incubationTime > 600) {
-            // POPULATION CONTROL: Check if area is overcrowded before hatching
-            const nearbyFishCount = this.countNearbyFish(x, y, grid, 3);
+            // STRICT POPULATION CONTROL: Check if area is overcrowded before hatching
+            const nearbyFishCount = this.countNearbyFish(x, y, grid, 8); // Wider radius
 
-            // If too crowded (>10 fish nearby), egg dies without hatching
-            if (nearbyFishCount > 10) {
+            // If too crowded (>6 fish nearby in 8-pixel radius), egg dies without hatching
+            if (nearbyFishCount > 6) {
                 grid.setElement(x, y, grid.registry.get('ash'));
                 return true;
             }
 
-            // Adjust spawn count based on population density
-            // If moderately crowded (8-10 fish), spawn fewer fish (1-2 instead of 3-5)
-            let fishCount;
-            if (nearbyFishCount >= 8) {
-                fishCount = 1 + Math.floor(Math.random() * 2); // 1-2 fish
-            } else if (nearbyFishCount >= 5) {
-                fishCount = 2 + Math.floor(Math.random() * 2); // 2-3 fish
-            } else {
-                fishCount = 3 + Math.floor(Math.random() * 3); // 3-5 fish (original)
-            }
-
-            let spawned = 0;
-
-            const spawnOffsets = [
-                [0, 0], // Replace egg with first fish
-                [0, -1], [0, 1], [-1, 0], [1, 0],
-                [-1, -1], [1, -1], [-1, 1], [1, 1],
-                [0, -2], [0, 2], [-2, 0], [2, 0]
-            ];
-
-            // Shuffle spawn positions
-            spawnOffsets.sort(() => Math.random() - 0.5);
-
-            for (const [dx, dy] of spawnOffsets) {
-                if (spawned >= fishCount) break;
-
-                const spawnX = x + dx;
-                const spawnY = y + dy;
-                const element = grid.getElement(spawnX, spawnY);
-
-                // Spawn in water or replace egg
-                if (element && (element.name === 'water' || (dx === 0 && dy === 0))) {
-                    grid.setElement(spawnX, spawnY, grid.registry.get('fish'));
-                    spawned++;
-                }
-            }
-
+            // SINGLE FISH PER EGG: Each egg hatches into exactly 1 fish
+            // This prevents population explosions
+            grid.setElement(x, y, grid.registry.get('fish'));
             return true;
         }
 
