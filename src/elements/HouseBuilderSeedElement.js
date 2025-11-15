@@ -8,8 +8,8 @@ import { STATE } from '../ElementProperties.js';
 class HouseBuilderSeedElement extends Element {
     constructor() {
         super(41, 'house_seed', 0xFFD700, { // Gold color (visible builder)
-            density: 5, // Medium density - can fall through liquids but not powders
-            state: STATE.POWDER, // Falls like powder
+            density: 5, // Medium density
+            state: STATE.SOLID, // SOLID so it doesn't get pushed around by sand/powders
             tags: [],
             brushSize: 1,
             emissionDensity: 0.1
@@ -20,26 +20,22 @@ class HouseBuilderSeedElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize state
-        if (!cell.data.mode) {
-            cell.data.mode = 'falling'; // falling → wandering → building
-            cell.data.wanderTimer = 0;
-            cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
-            cell.data.buildTimer = 0;
-            console.log('🏠 House builder initialized at', x, y);
+        // Initialize state - start building immediately after 1 frame
+        if (!cell.data.initiated) {
+            cell.data.initiated = true;
+            cell.data.buildDelay = 1; // Just 1 frame delay to let it settle
+            console.log('🏠 House builder placed at', x, y);
+            return false;
         }
 
-        // Handle different modes
-        switch (cell.data.mode) {
-            case 'falling':
-                return this.handleFalling(cell, x, y, grid);
-            case 'wandering':
-                return this.handleWandering(cell, x, y, grid);
-            case 'building':
-                return this.handleBuilding(cell, x, y, grid);
-            default:
-                return false;
+        // Wait for build delay
+        if (cell.data.buildDelay > 0) {
+            cell.data.buildDelay--;
+            return false;
         }
+
+        // Start building immediately!
+        return this.handleBuilding(cell, x, y, grid);
     }
 
     handleFalling(cell, x, y, grid) {
@@ -143,24 +139,16 @@ class HouseBuilderSeedElement extends Element {
     handleBuilding(cell, x, y, grid) {
         console.log('🏠 Starting construction at', x, y);
 
-        // Builder disappears and creates invisible construction marker
-        grid.setElement(x, y, grid.registry.get('empty'));
-
-        // Create construction marker at foundation level
-        const foundationY = y + 1;
-        const foundationCell = grid.getCell(x, foundationY);
-        if (foundationCell && foundationCell.element) {
-            foundationCell.data._houseConstruction = {
-                centerX: x,
-                baseY: foundationY,
-                buildPhase: 'ground_fill', // Start with ground filling to level the surface
-                buildStep: 0,
-                buildTimer: 0
-            };
-            console.log('🏠 Construction marker created - starting ground fill at', x, foundationY);
-        } else {
-            console.error('🏠 Failed to create construction marker - no foundation cell');
-        }
+        // Keep builder in place and attach construction data to THIS cell
+        // The construction will eventually build over this spot too
+        cell.data._houseConstruction = {
+            centerX: x,
+            baseY: y,  // Build at this level
+            buildPhase: 'ground_fill',
+            buildStep: 0,
+            buildTimer: 0
+        };
+        console.log('🏠 Construction marker created - starting ground fill at', x, y);
 
         return true;
     }

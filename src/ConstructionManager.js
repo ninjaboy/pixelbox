@@ -131,14 +131,11 @@ export class ConstructionManager {
         const baseY = construction.baseY;
         const step = construction.buildStep;
 
-        // Build 5-wide foundation - PERSISTENT, replaces everything
+        // Build 5-wide foundation - PERSISTENT, replaces EVERYTHING (including builder)
         if (step < 5) {
             const fx = centerX - 2 + step;
-            // Always place, replacing whatever is there (except walls)
-            const existing = grid.getElement(fx, baseY);
-            if (existing && existing.name !== 'wall') {
-                grid.setElement(fx, baseY, grid.registry.get('stone'));
-            }
+            // Use forcePlaceBlock to replace everything and preserve construction data
+            this.forcePlaceBlock(fx, baseY, 'stone', grid);
             construction.buildStep++;
         } else {
             // Foundation complete
@@ -249,19 +246,26 @@ export class ConstructionManager {
     }
 
     static forcePlaceBlock(x, y, material, grid) {
-        // Place block, replacing anything except walls and obsidian
+        // Place block, replacing anything (even walls, obsidian, builders, etc.)
         if (!grid.isInBounds(x, y)) return false;
 
-        const existing = grid.getElement(x, y);
-        if (!existing) return false;
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
 
-        // Don't replace permanent structures
-        if (existing.name === 'wall' || existing.name === 'obsidian') {
-            return false;
+        // Preserve construction data if it exists
+        const constructionData = cell.data._houseConstruction;
+
+        // Replace with new material (builds over EVERYTHING)
+        grid.setElement(x, y, grid.registry.get(material));
+
+        // Restore construction data after replacement
+        if (constructionData) {
+            const newCell = grid.getCell(x, y);
+            if (newCell) {
+                newCell.data._houseConstruction = constructionData;
+            }
         }
 
-        // Replace everything else
-        grid.setElement(x, y, grid.registry.get(material));
         return true;
     }
 }
