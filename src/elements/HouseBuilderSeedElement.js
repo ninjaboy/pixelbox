@@ -34,7 +34,7 @@ class HouseBuilderSeedElement extends Element {
             cell.data.initiated = true;
             cell.data.settled = false;
             cell.data.wanderAttempts = 0;
-            cell.data.maxWanderAttempts = 50; // Try 50 times to find good spot
+            cell.data.maxWanderAttempts = 100; // Increased to 100 attempts
             cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
             console.log('🏠 House builder placed at', x, y);
         }
@@ -144,132 +144,59 @@ class HouseBuilderSeedElement extends Element {
         return false;
     }
 
-    handleFalling(cell, x, y, grid) {
-        const below = grid.getElement(x, y + 1);
-
-        // Try to fall straight down
-        if (below && (below.id === 0 || below.state === 'liquid')) {
-            grid.swap(x, y, x, y + 1);
-            return true;
-        }
-
-        // Landed on solid ground - start wandering
-        if (below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
-            console.log('🏠 Builder landed, starting to wander at', x, y);
-            cell.data.mode = 'wandering';
-            cell.data.wanderTimer = 0;
-            return false;
-        }
-
-        // Try diagonal fall
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        const diagBelow = grid.getElement(x + dir, y + 1);
-        if (diagBelow && (diagBelow.id === 0 || diagBelow.state === 'liquid')) {
-            grid.swap(x, y, x + dir, y + 1);
-            return true;
-        }
-
-        return false;
-    }
-
-    handleWandering(cell, x, y, grid) {
-        cell.data.wanderTimer++;
-
-        // Check if we're on solid ground
-        const below = grid.getElement(x, y + 1);
-        if (!below || below.id === 0 || below.state === 'liquid') {
-            // Lost ground - fall again
-            cell.data.mode = 'falling';
-            return false;
-        }
-
-        // Wander for just 10 frames before building (faster)
-        if (cell.data.wanderTimer < 10) {
-            // Keep wandering
-            const dir = cell.data.wanderDirection;
-            const beside = grid.getElement(x + dir, y);
-            const besideBelow = grid.getElement(x + dir, y + 1);
-
-            // Change direction if hit obstacle or edge
-            if (!beside || beside.id !== 0 || !besideBelow || besideBelow.id === 0) {
-                cell.data.wanderDirection *= -1;
-                return false;
-            }
-
-            // Move sideways
-            if (Math.random() < 0.5) { // 50% chance to move each frame
-                grid.swap(x, y, x + dir, y);
-                return true;
-            }
-            return false;
-        }
-
-        // After minimal wandering, just start building!
-        // The construction manager will handle ground filling
-        console.log('🏠 Starting building at', x, y);
-        cell.data.mode = 'building';
-        return true;
-    }
-
     isGoodBuildingSpot(x, y, grid) {
-        // WATER CHECKS: Don't build underwater or near water
-        const buildRadius = 5; // Check 5-block radius for water
+        // WATER CHECKS: Don't build underwater (only check building footprint)
+        // Check 5-wide, 10-high area directly where house will be
         for (let dy = -1; dy < 10; dy++) { // Check from 1 below to 10 above
-            for (let dx = -buildRadius; dx <= buildRadius; dx++) {
+            for (let dx = -2; dx <= 2; dx++) { // Only 5-wide (house footprint)
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && element.name === 'water') {
-                    console.log('🏠 Bad spot: Water detected at', x + dx, y + dy);
-                    return false; // Water in building area
+                    console.log('🏠 Bad spot: Water in building area at', x + dx, y + dy);
+                    return false;
                 }
             }
         }
 
-        // TREE CHECKS: Don't build near trees
-        const treeRadius = 8; // Check 8-block radius for trees
-        const treeElements = ['tree_trunk', 'tree_branch', 'leaf', 'tree_seed'];
-        for (let dy = -5; dy <= 5; dy++) {
-            for (let dx = -treeRadius; dx <= treeRadius; dx++) {
+        // TREE CHECKS: Don't build if trees are in the immediate building area
+        // Only check 5x10 footprint where house will be built
+        const treeElements = ['tree_trunk', 'tree_branch', 'leaf'];
+        for (let dy = -1; dy < 10; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && treeElements.includes(element.name)) {
-                    console.log('🏠 Bad spot: Tree detected at', x + dx, y + dy);
-                    return false; // Too close to trees
+                    console.log('🏠 Bad spot: Tree in building area at', x + dx, y + dy);
+                    return false;
                 }
             }
         }
 
-        // Check if we have solid ground below
-        const below = grid.getElement(x, y + 1);
-        if (!below || (below.state !== STATE.SOLID && below.state !== STATE.POWDER)) {
-            console.log('🏠 Bad spot: No solid ground below');
+        // Check if we have SOME solid ground below (at least 3 of 5 positions)
+        // Ground doesn't need to be perfect - ground_fill phase will level it
+        let solidGroundCount = 0;
+        for (let dx = -2; dx <= 2; dx++) {
+            const testBelow = grid.getElement(x + dx, y + 1);
+            if (testBelow && (testBelow.state === STATE.SOLID || testBelow.state === STATE.POWDER)) {
+                solidGroundCount++;
+            }
+        }
+        if (solidGroundCount < 3) {
+            console.log('🏠 Bad spot: Not enough solid ground (only', solidGroundCount, '/5)');
             return false;
         }
 
-        // Check if we have 5 blocks of horizontal space
-        for (let dx = -2; dx <= 2; dx++) {
-            const testX = x + dx;
-            const above = grid.getElement(testX, y - 1);
-            const testBelow = grid.getElement(testX, y + 1);
-
-            // Need clear space above and solid ground below
-            if (!above || above.id !== 0) {
-                console.log('🏠 Bad spot: Not enough horizontal clearance');
-                return false;
-            }
-            if (!testBelow || (testBelow.state !== STATE.SOLID && testBelow.state !== STATE.POWDER)) {
-                console.log('🏠 Bad spot: Uneven ground');
-                return false;
+        // Check vertical clearance - make sure there's SOME space to build (at least 5 blocks up)
+        let hasVerticalSpace = true;
+        for (let dy = 1; dy <= 5; dy++) { // Only check 5 blocks instead of 10
+            const above = grid.getElement(x, y - dy);
+            if (above && above.id !== 0 && above.state === STATE.SOLID) {
+                // Solid obstacle directly above - can't build
+                console.log('🏠 Bad spot: Solid obstacle', dy, 'blocks above');
+                hasVerticalSpace = false;
+                break;
             }
         }
-
-        // Check if we have vertical clearance (at least 10 blocks high)
-        for (let dy = 0; dy < 10; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-                const testElement = grid.getElement(x + dx, y - dy);
-                if (testElement && testElement.id !== 0) {
-                    console.log('🏠 Bad spot: Not enough vertical clearance');
-                    return false; // Obstacle in the way
-                }
-            }
+        if (!hasVerticalSpace) {
+            return false;
         }
 
         console.log('🏠 Good spot found at', x, y);
