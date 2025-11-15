@@ -10,7 +10,7 @@ class HouseBuilderSeedElement extends Element {
         super(41, 'house_seed', 0xFFD700, { // Gold color (visible builder)
             density: 5, // Medium density
             state: STATE.SOLID, // SOLID so it doesn't get pushed around by sand/powders
-            tags: [],
+            tags: ['flammable', 'meltable'], // Can be destroyed like stone
             brushSize: 1,
             emissionDensity: 0.1
         });
@@ -20,22 +20,65 @@ class HouseBuilderSeedElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
-        // Initialize state - start building immediately after 1 frame
+        // Check if construction is already in progress
+        if (cell.data._houseConstruction) {
+            // Builder has started construction, just stay still
+            // Construction manager will handle building
+            return false;
+        }
+
+        // Initialize state
         if (!cell.data.initiated) {
             cell.data.initiated = true;
-            cell.data.buildDelay = 1; // Just 1 frame delay to let it settle
+            cell.data.settled = false;
             console.log('🏠 House builder placed at', x, y);
+        }
+
+        // GRAVITY: Try to fall even though we're SOLID
+        const below = grid.getElement(x, y + 1);
+
+        // Fall through empty space and liquids
+        if (below && (below.id === 0 || below.state === 'liquid')) {
+            grid.swap(x, y, x, y + 1);
+            cell.data.settled = false;
+            return true;
+        }
+
+        // Try diagonal fall if can't fall straight down
+        if (below && below.id !== 0 && below.state !== 'liquid') {
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            const diagBelow = grid.getElement(x + dir, y + 1);
+            const diag = grid.getElement(x + dir, y);
+
+            if (diagBelow && diag &&
+                (diagBelow.id === 0 || diagBelow.state === 'liquid') &&
+                (diag.id === 0 || diag.state === 'liquid')) {
+                grid.swap(x, y, x + dir, y + 1);
+                cell.data.settled = false;
+                return true;
+            }
+        }
+
+        // Landed on solid ground - mark as settled and start building
+        if (!cell.data.settled && below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
+            cell.data.settled = true;
+            cell.data.buildDelay = 5; // Short delay to make sure we're stable
+            console.log('🏠 Builder landed at', x, y);
             return false;
         }
 
-        // Wait for build delay
-        if (cell.data.buildDelay > 0) {
-            cell.data.buildDelay--;
-            return false;
+        // Wait for build delay before starting construction
+        if (cell.data.settled && cell.data.buildDelay !== undefined) {
+            if (cell.data.buildDelay > 0) {
+                cell.data.buildDelay--;
+                return false;
+            } else {
+                // Start building!
+                return this.handleBuilding(cell, x, y, grid);
+            }
         }
 
-        // Start building immediately!
-        return this.handleBuilding(cell, x, y, grid);
+        return false;
     }
 
     handleFalling(cell, x, y, grid) {
@@ -139,17 +182,29 @@ class HouseBuilderSeedElement extends Element {
     handleBuilding(cell, x, y, grid) {
         console.log('🏠 Starting construction at', x, y);
 
-        // Keep builder in place and attach construction data to THIS cell
-        // The construction will eventually build over this spot too
-        cell.data._houseConstruction = {
+        // Store construction data on the FOUNDATION block below, not on the builder
+        // This way construction continues even if builder gets destroyed
+        const foundationY = y + 1;
+        const foundationCell = grid.getCell(x, foundationY);
+
+        if (!foundationCell || !foundationCell.element) {
+            console.error('🏠 No foundation block found below builder');
+            return false;
+        }
+
+        // Attach construction data to foundation block
+        foundationCell.data._houseConstruction = {
             centerX: x,
-            baseY: y,  // Build at this level
+            baseY: foundationY,  // Build foundation at this level
             buildPhase: 'ground_fill',
             buildStep: 0,
             buildTimer: 0
         };
-        console.log('🏠 Construction marker created - starting ground fill at', x, y);
 
+        // Mark builder as having started construction
+        cell.data._houseConstruction = true; // Just a marker so builder stays still
+
+        console.log('🏠 Construction marker created on foundation at', x, foundationY);
         return true;
     }
 }
