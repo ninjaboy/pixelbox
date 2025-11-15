@@ -1,5 +1,5 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, TAG } from '../ElementProperties.js';
 
 /**
  * HouseBuilderSeedElement - Wandering builder that finds a spot and builds a house
@@ -10,7 +10,9 @@ class HouseBuilderSeedElement extends Element {
         super(41, 'house_seed', 0xFFD700, { // Gold color (visible builder)
             density: 5, // Medium density
             state: STATE.SOLID, // SOLID so it doesn't get pushed around by sand/powders
-            tags: ['flammable', 'meltable'], // Can be destroyed like stone
+            tags: [TAG.COMBUSTIBLE], // Burnable and destructible
+            ignitionResistance: 0.5, // Fairly flammable (50% resistance)
+            burnsInto: 'ash', // Burns into ash when destroyed
             brushSize: 1,
             emissionDensity: 0.1
         });
