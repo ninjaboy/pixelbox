@@ -18,6 +18,8 @@ export { default as FossilElement } from './FossilElement.js';
 export { default as AshElement } from './AshElement.js';
 export { default as FishElement } from './FishElement.js';
 export { default as FishEggElement } from './FishEggElement.js';
+export { default as BirdElement } from './BirdElement.js';
+export { default as BirdEggElement } from './BirdEggElement.js';
 export { default as WetSandElement } from './WetSandElement.js';
 export { default as WallElement } from './WallElement.js';
 export { default as WetGunpowderElement } from './WetGunpowderElement.js';

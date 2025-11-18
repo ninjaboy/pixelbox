@@ -44,6 +44,8 @@ import {
     GrassSeedElement,
     FishElement,
     FishEggElement,
+    BirdElement,
+    BirdEggElement,
     CoralElement,
     HouseBuilderSeedElement,
 
@@ -103,6 +105,8 @@ registry.register(new VineElement());
 registry.register(new GrassSeedElement());
 registry.register(new FishElement());
 registry.register(new FishEggElement());
+registry.register(new BirdElement());
+registry.register(new BirdEggElement());
 registry.register(new CoralElement());
 registry.register(new HouseBuilderSeedElement());
 

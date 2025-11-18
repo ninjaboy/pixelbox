@@ -160,6 +160,7 @@ class GameScene extends Phaser.Scene {
             { name: 'tree_seed', key: 'U' },
             { name: 'vine', key: 'I' },
             { name: 'fish', key: 'O' },
+            { name: 'bird', key: 'L' },
             { name: 'coral', key: 'P' },
             { name: 'house_seed', key: 'A' },
 
@@ -179,6 +180,7 @@ class GameScene extends Phaser.Scene {
             gunpowder: { icon: '💣', color: '#333' },
             fossil: { icon: '🦴', color: '#8b7355' },
             fish: { icon: '🐟', color: '#1a5f7a' },
+            bird: { icon: '🐦', color: '#ffffff' },
             tree_seed: { icon: '🌰', color: '#654321' },
             ash: { icon: '∵', color: '#999' },
             ice: { icon: '❄️', color: '#87ceeb' },
@@ -628,8 +630,8 @@ class GameScene extends Phaser.Scene {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
 
             if (cell && cell.element.id !== 0) {
-                // Use per-cell color if available (for fish), otherwise use element color
-                const baseColor = cell.data.fishColor || cell.element.color;
+                // Use per-cell color if available (for fish and birds), otherwise use element color
+                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.element.color;
 
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);
