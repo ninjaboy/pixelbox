@@ -3,7 +3,7 @@ import { STATE, TAG } from '../ElementProperties.js';
 
 class BirdEggElement extends Element {
     constructor() {
-        super(43, 'bird_egg', 0xf0e68c, { // Khaki/light brown color (bird egg)
+        super(43, 'bird_egg', 0xffff99, { // Yellowish color (bird egg)
             density: 3, // Heavy enough to fall
             state: STATE.SOLID,
             movable: true,

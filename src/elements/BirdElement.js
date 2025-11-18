@@ -42,6 +42,15 @@ class BirdElement extends Element {
             cell.data.altitude = y; // Target altitude for flying
             cell.data.glidePhase = 0; // For smooth bobbing motion
 
+            // PAIRING & NESTING BEHAVIOR
+            cell.data.isPaired = false;
+            cell.data.partnerX = null;
+            cell.data.partnerY = null;
+            cell.data.pairingDuration = 0; // How long they've been paired
+            cell.data.nestLocation = null; // Shared nest location {x, y}
+            cell.data.isNesting = false; // Building nest / laying egg
+            cell.data.pairSearchCooldown = 0; // Cooldown between pair searches
+
             // PERFORMANCE: Cache expensive lookups
             cell.data.cachedTreeLocation = null;
             cell.data.cachedFoodLocation = null;
@@ -89,7 +98,67 @@ class BirdElement extends Element {
         const isStressed = nearbyBirdCount > 4; // More than 4 nearby = stressed
         const isStarving = cell.data.hunger >= 70; // Very hungry = can't reproduce
 
-        // PRIORITY 0: PERCHING BEHAVIOR
+        // PAIRING SYSTEM MANAGEMENT
+        if (cell.data.pairSearchCooldown > 0) {
+            cell.data.pairSearchCooldown--;
+        }
+
+        // Validate existing pair bond
+        if (cell.data.isPaired) {
+            cell.data.pairingDuration++;
+
+            // Check if partner is still valid (alive and nearby)
+            const partnerValid = this.isPartnerValid(x, y, cell.data.partnerX, cell.data.partnerY, grid);
+
+            if (!partnerValid || cell.data.pairingDuration > 1800) { // Break bond after 30 seconds or if partner lost
+                cell.data.isPaired = false;
+                cell.data.partnerX = null;
+                cell.data.partnerY = null;
+                cell.data.pairingDuration = 0;
+                cell.data.nestLocation = null;
+                cell.data.isNesting = false;
+            }
+        }
+
+        // PRIORITY 0: NESTING BEHAVIOR (highest priority when paired and ready)
+        if (cell.data.isPaired && cell.data.nestLocation) {
+            const [nestX, nestY] = [cell.data.nestLocation.x, cell.data.nestLocation.y];
+
+            // Check if we've reached the nest location (on top of tree)
+            if (Math.abs(x - nestX) <= 1 && Math.abs(y - nestY) <= 1) {
+                // At nest! Lay egg here
+                if (!cell.data.isNesting) {
+                    cell.data.isNesting = true;
+
+                    // Lay egg on the tree (nest location)
+                    const eggPlaced = this.layEggAtNest(nestX, nestY, grid);
+
+                    if (eggPlaced) {
+                        // Egg laid successfully - break pair bond and rest
+                        cell.data.isPaired = false;
+                        cell.data.partnerX = null;
+                        cell.data.partnerY = null;
+                        cell.data.pairingDuration = 0;
+                        cell.data.nestLocation = null;
+                        cell.data.isNesting = false;
+                        cell.data.pairSearchCooldown = 600; // 10 second cooldown before finding new mate
+
+                        // Perch for a bit after laying egg
+                        cell.data.isPerching = true;
+                        cell.data.perchTimer = 0;
+                        return false;
+                    }
+                }
+                return false; // Stay at nest
+            } else {
+                // Fly toward nest location
+                if (this.flyToward(x, y, nestX, nestY, grid)) {
+                    return true;
+                }
+            }
+        }
+
+        // PRIORITY 1: PERCHING BEHAVIOR
         if (cell.data.isPerching) {
             cell.data.perchTimer++;
 
@@ -141,16 +210,22 @@ class BirdElement extends Element {
                         cell.data.seekingFood = false;
                         cell.data.cachedFoodLocation = null;
 
-                        // REPRODUCTION: Similar to fish
-                        const canReproduce =
-                            cell.data.hunger < 20 &&  // Very well-fed
-                            !isStressed &&             // Not stressed from crowding
-                            !isStarving &&             // Not starving
-                            nearbyBirdCount < 3;       // Maximum 2 nearby birds
+                        // PAIRING: After eating, well-fed birds look for mates
+                        const canPair =
+                            cell.data.hunger < 20 &&       // Very well-fed
+                            !isStressed &&                 // Not stressed from crowding
+                            !isStarving &&                 // Not starving
+                            !cell.data.isPaired &&         // Not already paired
+                            cell.data.pairSearchCooldown === 0 && // Not on cooldown
+                            nearbyBirdCount < 6;           // Not too crowded
 
-                        if (canReproduce) {
-                            if (Math.random() < 0.05) { // 5% chance to lay egg
-                                this.layEgg(x, y, grid);
+                        if (canPair && shouldUpdateAI) {
+                            if (Math.random() < 0.15) { // 15% chance to seek mate after eating
+                                const mate = this.findUnpairedMate(x, y, grid);
+                                if (mate) {
+                                    // Form pair bond!
+                                    this.formPair(x, y, mate.x, mate.y, grid);
+                                }
                             }
                         }
                         return true;
@@ -399,6 +474,114 @@ class BirdElement extends Element {
         // Can perch on trees or solid surfaces
         const perchableSurfaces = ['tree_trunk', 'tree_branch', 'wood', 'stone', 'wall', 'sand', 'wet_sand'];
         return perchableSurfaces.includes(below.name);
+    }
+
+    // Find an unpaired mate nearby
+    findUnpairedMate(x, y, grid) {
+        const searchRadius = 20; // Wide search for mates
+
+        // Look for nearby unpaired birds
+        const potentialMates = [];
+
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && element.name === 'bird') {
+                    const mateCell = grid.getCell(x + dx, y + dy);
+                    if (mateCell && !mateCell.data.isPaired && mateCell.data.hunger < 30) {
+                        // Found unpaired, well-fed bird
+                        potentialMates.push({ x: x + dx, y: y + dy });
+                    }
+                }
+            }
+        }
+
+        // Return random mate from candidates
+        if (potentialMates.length > 0) {
+            return potentialMates[Math.floor(Math.random() * potentialMates.length)];
+        }
+
+        return null;
+    }
+
+    // Form a pair bond with another bird
+    formPair(x, y, mateX, mateY, grid) {
+        const cell = grid.getCell(x, y);
+        const mateCell = grid.getCell(mateX, mateY);
+
+        if (!cell || !mateCell) return false;
+
+        // Both birds establish pair bond
+        cell.data.isPaired = true;
+        cell.data.partnerX = mateX;
+        cell.data.partnerY = mateY;
+        cell.data.pairingDuration = 0;
+
+        mateCell.data.isPaired = true;
+        mateCell.data.partnerX = x;
+        mateCell.data.partnerY = y;
+        mateCell.data.pairingDuration = 0;
+
+        // Find a tree for nesting together
+        const nestTree = this.findNearbyTree(x, y, grid);
+        if (nestTree) {
+            // Set shared nest location (on top of tree)
+            const nestLocation = { x: nestTree[0], y: nestTree[1] - 1 }; // One pixel above tree
+            cell.data.nestLocation = nestLocation;
+            mateCell.data.nestLocation = nestLocation;
+        } else {
+            // No tree found - pair will just fly together without nesting
+            cell.data.nestLocation = null;
+            mateCell.data.nestLocation = null;
+        }
+
+        return true;
+    }
+
+    // Check if partner is still valid (alive and reasonably nearby)
+    isPartnerValid(x, y, partnerX, partnerY, grid) {
+        if (partnerX === null || partnerY === null) return false;
+
+        // Check if partner position is still a bird
+        const partnerElement = grid.getElement(partnerX, partnerY);
+        if (!partnerElement || partnerElement.name !== 'bird') {
+            return false; // Partner is gone or changed
+        }
+
+        // Check if partner is within reasonable distance (40 pixels)
+        const distance = Math.sqrt((partnerX - x) ** 2 + (partnerY - y) ** 2);
+        if (distance > 40) {
+            return false; // Partner too far away
+        }
+
+        return true;
+    }
+
+    // Lay egg at nest location (on tree)
+    layEggAtNest(nestX, nestY, grid) {
+        // Try to lay egg at exact nest location or nearby
+        const spawnOffsets = [
+            [0, 0],           // Exact nest spot (on tree top)
+            [0, 1],           // Just below nest
+            [-1, 0], [1, 0],  // Adjacent to nest
+            [-1, 1], [1, 1],  // Diagonal below
+        ];
+
+        for (const [dx, dy] of spawnOffsets) {
+            const spawnX = nestX + dx;
+            const spawnY = nestY + dy;
+            const element = grid.getElement(spawnX, spawnY);
+
+            // Lay egg in empty space (it will fall to tree branch)
+            if (element && element.name === 'empty') {
+                grid.setElement(spawnX, spawnY, grid.registry.get('bird_egg'));
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
