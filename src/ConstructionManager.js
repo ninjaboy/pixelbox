@@ -39,11 +39,6 @@ export class ConstructionManager {
             return;
         }
 
-        // Debug: Log construction progress occasionally
-        if (construction.buildTimer % 30 === 0) {
-            console.log('🏗️ Building:', construction.buildPhase, 'step', construction.buildStep, 'at', x, y);
-        }
-
         // Update based on phase
         switch (construction.buildPhase) {
             case 'ground_fill':
@@ -95,7 +90,6 @@ export class ConstructionManager {
             }
             construction.targetBaseY = lowestY; // Store the level where we'll build foundation
             construction.buildStep++;
-            console.log('🏗️ Ground analysis complete - target base level:', construction.targetBaseY);
             return;
         }
 
@@ -128,7 +122,6 @@ export class ConstructionManager {
             construction.buildPhase = 'foundation';
             construction.buildStep = 0;
             construction.baseY = targetY; // Update baseY to the filled level
-            console.log('🏗️ Ground fill complete - starting foundation at level', targetY);
         }
     }
 
@@ -247,7 +240,6 @@ export class ConstructionManager {
         } else {
             // Roof complete!
             construction.buildPhase = 'complete';
-            console.log('🏠 House construction complete!');
         }
     }
 

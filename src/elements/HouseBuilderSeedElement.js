@@ -36,7 +36,6 @@ class HouseBuilderSeedElement extends Element {
             cell.data.wanderAttempts = 0;
             cell.data.maxWanderAttempts = 100; // Increased to 100 attempts
             cell.data.wanderDirection = Math.random() > 0.5 ? 1 : -1;
-            console.log('🏠 House builder placed at', x, y);
         }
 
         // GRAVITY: Try to fall even though we're SOLID
@@ -68,7 +67,6 @@ class HouseBuilderSeedElement extends Element {
         if (!cell.data.settled && below && (below.state === STATE.SOLID || below.state === STATE.POWDER)) {
             cell.data.settled = true;
             cell.data.buildDelay = 5; // Short delay to make sure we're stable
-            console.log('🏠 Builder landed at', x, y);
             return false;
         }
 
@@ -85,11 +83,9 @@ class HouseBuilderSeedElement extends Element {
                 } else {
                     // Bad spot - wander to find better location
                     cell.data.wanderAttempts++;
-                    console.log('🏠 Bad location, wandering... (attempt', cell.data.wanderAttempts, '/', cell.data.maxWanderAttempts, ')');
 
                     if (cell.data.wanderAttempts >= cell.data.maxWanderAttempts) {
                         // Give up after too many attempts - turn to ash
-                        console.log('🏠 Builder gave up after', cell.data.wanderAttempts, 'attempts');
                         grid.setElement(x, y, grid.registry.get('ash'));
                         return true;
                     }
@@ -114,7 +110,6 @@ class HouseBuilderSeedElement extends Element {
                     if (beside && beside.id !== 0 && besideAbove && besideAbove.id === 0) {
                         const climbTarget = grid.getElement(x + wanderDir, y - 1);
                         if (climbTarget && climbTarget.id === 0) {
-                            console.log('🏠 Builder climbing obstacle at', x, y);
                             grid.swap(x, y, x + wanderDir, y - 1);
                             return true;
                         }
@@ -122,13 +117,11 @@ class HouseBuilderSeedElement extends Element {
 
                     // 3. Try BURROWING through soft materials (sand, ash, leaves, powder)
                     if (beside && beside.state === STATE.POWDER) {
-                        console.log('🏠 Builder burrowing through', beside.name, 'at', x + wanderDir, y);
                         grid.setElement(x + wanderDir, y, grid.registry.get('empty'));
                         grid.swap(x, y, x + wanderDir, y);
                         return true;
                     }
                     if (beside && (beside.name === 'ash' || beside.name === 'leaf')) {
-                        console.log('🏠 Builder burrowing through', beside.name, 'at', x + wanderDir, y);
                         grid.setElement(x + wanderDir, y, grid.registry.get('empty'));
                         grid.swap(x, y, x + wanderDir, y);
                         return true;
@@ -151,7 +144,6 @@ class HouseBuilderSeedElement extends Element {
             for (let dx = -2; dx <= 2; dx++) { // Only 5-wide (house footprint)
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && element.name === 'water') {
-                    console.log('🏠 Bad spot: Water in building area at', x + dx, y + dy);
                     return false;
                 }
             }
@@ -164,7 +156,6 @@ class HouseBuilderSeedElement extends Element {
             for (let dx = -2; dx <= 2; dx++) {
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && treeElements.includes(element.name)) {
-                    console.log('🏠 Bad spot: Tree in building area at', x + dx, y + dy);
                     return false;
                 }
             }
@@ -180,7 +171,6 @@ class HouseBuilderSeedElement extends Element {
             }
         }
         if (solidGroundCount < 3) {
-            console.log('🏠 Bad spot: Not enough solid ground (only', solidGroundCount, '/5)');
             return false;
         }
 
@@ -190,7 +180,6 @@ class HouseBuilderSeedElement extends Element {
             const above = grid.getElement(x, y - dy);
             if (above && above.id !== 0 && above.state === STATE.SOLID) {
                 // Solid obstacle directly above - can't build
-                console.log('🏠 Bad spot: Solid obstacle', dy, 'blocks above');
                 hasVerticalSpace = false;
                 break;
             }
@@ -199,33 +188,27 @@ class HouseBuilderSeedElement extends Element {
             return false;
         }
 
-        console.log('🏠 Good spot found at', x, y);
         return true; // Good spot!
     }
 
     handleBuilding(cell, x, y, grid) {
-        console.log('🏠 Starting construction at', x, y);
-
         // Place a STONE marker at foundation level to hold construction data
         // This prevents the construction data from being attached to movable sand/powder
         const foundationY = y + 1;
 
         // Check if foundation position is in bounds
         if (!grid.isInBounds(x, foundationY)) {
-            console.error('🏠 Cannot build - foundation position out of bounds');
             return false;
         }
 
         const foundationBelow = grid.getElement(x, foundationY);
         if (!foundationBelow) {
-            console.error('🏠 Cannot build - no element at foundation position');
             return false;
         }
 
         // Replace whatever is below with a stone foundation marker
         const stoneElement = grid.registry.get('stone');
         if (!stoneElement) {
-            console.error('🏠 Cannot build - stone element not found in registry');
             return false;
         }
 
@@ -234,7 +217,6 @@ class HouseBuilderSeedElement extends Element {
         // Now get the new stone cell and attach construction data to it
         const foundationCell = grid.getCell(x, foundationY);
         if (!foundationCell) {
-            console.error('🏠 Failed to create foundation marker');
             return false;
         }
 
@@ -250,7 +232,6 @@ class HouseBuilderSeedElement extends Element {
         // Mark builder as having started construction
         cell.data._houseConstruction = true; // Just a marker so builder stays still
 
-        console.log('🏠 Construction marker created on stone foundation at', x, foundationY);
         return true;
     }
 }
