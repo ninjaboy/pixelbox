@@ -42,6 +42,7 @@ class IceElement extends Element {
 
         // PRIORITY 2: Ice physics - floats on water, falls in air
         const below = grid.getElement(x, y + 1);
+        const above = grid.getElement(x, y - 1);
 
         // Fall through empty space
         if (below && below.id === 0) {
@@ -49,7 +50,17 @@ class IceElement extends Element {
             return true;
         }
 
-        // Float on water (ice is less dense than water: 1.8 < 2)
+        // Piled ice sinks in water (ice piles have weight)
+        // If there's ice above us AND water below, sink slowly
+        if (below && below.name === 'water' && above && above.name === 'ice') {
+            // 30% chance to sink when piled
+            if (Math.random() < 0.30) {
+                grid.swap(x, y, x, y + 1);
+                return true;
+            }
+        }
+
+        // Single ice block floats on water (ice is less dense than water: 1.8 < 2)
         // Water will naturally push ice up via density physics in canMoveTo
         if (below && below.name === 'water') {
             // Ice floats - water should move down, ice stays/moves up

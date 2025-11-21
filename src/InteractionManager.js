@@ -97,7 +97,8 @@ class InteractionManager {
 
                 // Extinguish fire (70% chance)
                 if (Math.random() < 0.7) {
-                    grid.setElement(fireX, fireY, registry.get('smoke'));
+                    // Fire is extinguished - becomes steam or empty (no smoke)
+                    grid.setElement(fireX, fireY, Math.random() < 0.3 ? registry.get('steam') : registry.get('empty'));
 
                     // Water becomes steam (50% chance)
                     if (Math.random() < 0.5) {

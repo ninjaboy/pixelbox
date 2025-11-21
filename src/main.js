@@ -902,30 +902,43 @@ class GameScene extends Phaser.Scene {
                 this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
             }
 
-            // Moon body - gray lunar surface
-            this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
-            this.celestialGraphics.fillCircle(moonX, moonY, radius);
-
-            // Draw shadow for moon phases using two-circle method
-            // moonPhase: 0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter, 1.0=new
-
-            if (brightness < 0.98) { // Don't draw shadow if nearly full
-                // Determine which side is shadowed
-                // Waxing (0 to 0.5): right side lit, left shadowed
-                // Waning (0.5 to 1): left side lit, right shadowed
+            // Draw moon phases using proper geometric clipping
+            if (brightness < 0.98) { // Moon has phases
                 const isWaxing = moonPhase < 0.5;
 
-                // Shadow position: move shadow circle horizontally
-                // At new moon (brightness=0): shadow centered (offset=0)
-                // At full moon (brightness=1): shadow completely off to side (offset=2*radius)
+                // Create a mask for the moon phase
+                // We'll draw the illuminated crescent by combining two circles
+                this.celestialGraphics.save();
+
+                // Begin path for the illuminated portion
+                this.celestialGraphics.beginPath();
+
+                // Draw the full moon circle as the base shape
+                this.celestialGraphics.arc(moonX, moonY, radius, 0, Math.PI * 2);
+                this.celestialGraphics.closePath();
+                this.celestialGraphics.clip();
+
+                // Draw the lit portion
+                this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+
+                // Now draw the shadow portion by clipping it out
+                // Calculate the shadow circle position
                 const maxOffset = radius * 2;
                 const shadowX = isWaxing ?
-                    moonX - maxOffset * (1 - brightness) : // Waxing: shadow on left, moves left
-                    moonX + maxOffset * (1 - brightness);  // Waning: shadow on right, moves right
+                    moonX - maxOffset * (1 - brightness) :
+                    moonX + maxOffset * (1 - brightness);
 
-                // Draw shadow circle (same size as moon)
-                this.celestialGraphics.fillStyle(0x0a0a1a, 0.98);
+                // Draw the shadow as a sky-colored circle (not pure black)
+                const skyColor = time < 0.2 || time > 0.85 ? 0x000033 : 0x0a0a3a;
+                this.celestialGraphics.fillStyle(skyColor, 1.0);
                 this.celestialGraphics.fillCircle(shadowX, moonY, radius);
+
+                this.celestialGraphics.restore();
+            } else {
+                // Full moon - just draw it normally
+                this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius);
             }
         }
     }

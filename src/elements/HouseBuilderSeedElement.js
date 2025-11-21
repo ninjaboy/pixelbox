@@ -138,6 +138,22 @@ class HouseBuilderSeedElement extends Element {
     }
 
     isGoodBuildingSpot(x, y, grid) {
+        // EXISTING HOUSE SPACING: Prevent houses from being built too close together
+        // Houses are 5 blocks wide, so require minimum 20 block horizontal spacing between centers
+        if (grid.houses && grid.houses.length > 0) {
+            const minHouseSpacing = 20; // Minimum distance between house centers
+
+            for (const existingHouse of grid.houses) {
+                const horizontalDistance = Math.abs(existingHouse.centerX - x);
+                const verticalDistance = Math.abs(existingHouse.baseY - y);
+
+                // Check both horizontal and vertical spacing
+                if (horizontalDistance < minHouseSpacing && verticalDistance < 15) {
+                    return false; // Too close to existing house
+                }
+            }
+        }
+
         // WATER CHECKS: Don't build underwater (only check building footprint)
         // Check 5-wide, 10-high area directly where house will be
         for (let dy = -1; dy < 10; dy++) { // Check from 1 below to 10 above

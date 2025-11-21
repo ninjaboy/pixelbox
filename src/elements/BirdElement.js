@@ -33,9 +33,7 @@ class BirdElement extends Element {
             cell.data.flyDirection = Math.random() > 0.5 ? 1 : -1;
             cell.data.flyTimer = 0;
             cell.data.hunger = 0; // Hunger level (0-100, higher = hungrier)
-            cell.data.seekingFood = false;
             cell.data.age = 0;
-            cell.data.feedingStartTime = null;
             cell.data.feedingCooldown = 0; // Frames until can eat again
             cell.data.perchTimer = 0; // Time spent perching
             cell.data.isPerching = false;
@@ -44,7 +42,6 @@ class BirdElement extends Element {
 
             // PERFORMANCE: Cache expensive lookups
             cell.data.cachedTreeLocation = null;
-            cell.data.cachedFoodLocation = null;
             cell.data.cachedNearbyBirdCount = 0;
             cell.data.cacheFrame = 0;
 
@@ -62,17 +59,6 @@ class BirdElement extends Element {
         // FEEDING COOLDOWN SYSTEM
         if (cell.data.feedingCooldown > 0) {
             cell.data.feedingCooldown--;
-        }
-
-        // Check if bird has been feeding for too long (7 real seconds = 420 frames)
-        if (cell.data.feedingStartTime !== null) {
-            const feedingDuration = cell.data.age - cell.data.feedingStartTime;
-            if (feedingDuration >= 420) {
-                // Stop feeding - enter 3 game hour cooldown (1250 frames ~21 seconds)
-                cell.data.feedingCooldown = 1250;
-                cell.data.feedingStartTime = null;
-                cell.data.seekingFood = false;
-            }
         }
 
         // HUNGER SYSTEM
@@ -113,103 +99,90 @@ class BirdElement extends Element {
             }
         }
 
-        // PRIORITY 1: FOOD SEEKING (when hungry AND not on cooldown)
+        // PRIORITY 1: ESCAPE MODE - Detect enclosed spaces and escape!
+        const isTrapped = this.isEnclosed(x, y, grid);
+        if (isTrapped) {
+            // Panic! Fly upward aggressively to escape
+            const escapeDir = -1; // Always go up when trapped
+            const newY = y + escapeDir;
+            const element = grid.getElement(x, newY);
+
+            if (element && element.name === 'empty') {
+                grid.swap(x, y, x, newY);
+                return true;
+            }
+
+            // Try diagonal up-left or up-right
+            const horizDir = Math.random() > 0.5 ? 1 : -1;
+            const diagElement = grid.getElement(x + horizDir, newY);
+            if (diagElement && diagElement.name === 'empty') {
+                grid.swap(x, y, x + horizDir, newY);
+                return true;
+            }
+        }
+
+        // PRIORITY 2: FEEDING - Simplified! Birds feed when touching any solid surface
         if (cell.data.hunger > 50 && cell.data.feedingCooldown === 0) {
-            // PERFORMANCE: Cache food location lookup
-            let foodLocation = cell.data.cachedFoodLocation;
+            // Check if touching any solid surface below or adjacent
+            const solidBelow = this.checkAdjacentSolid(x, y, grid);
+
+            if (solidBelow) {
+                // Feed on any solid surface!
+                cell.data.hunger = Math.max(0, cell.data.hunger - 50); // Reduce hunger
+                cell.data.feedingCooldown = 600; // 10 second cooldown
+
+                // REPRODUCTION: Similar to fish
+                const canReproduce =
+                    cell.data.hunger < 20 &&  // Very well-fed
+                    !isStressed &&             // Not stressed from crowding
+                    !isStarving &&             // Not starving
+                    nearbyBirdCount < 3;       // Maximum 2 nearby birds
+
+                if (canReproduce) {
+                    if (Math.random() < 0.05) { // 5% chance to lay egg
+                        this.layEgg(x, y, grid);
+                    }
+                }
+                return false; // Stay in place while feeding
+            }
+        }
+
+        // PRIORITY 3: TREE-SITTING BEHAVIOR (occasional, when not trapped)
+        // Randomly decide to find a tree to perch (2% chance = less frequent)
+        if (!isTrapped && !cell.data.isPerching && Math.random() > 0.98 && shouldUpdateAI) {
+            let treeLocation = cell.data.cachedTreeLocation;
             if (shouldUpdateAI) {
-                foodLocation = this.findNearbyFood(x, y, grid);
-                cell.data.cachedFoodLocation = foodLocation;
+                treeLocation = this.findNearbyTree(x, y, grid);
+                cell.data.cachedTreeLocation = treeLocation;
             }
 
-            if (foodLocation) {
-                const [foodX, foodY] = foodLocation;
+            if (treeLocation) {
+                const [treeX, treeY] = treeLocation;
 
-                // Start feeding timer when first approaching food
-                if (cell.data.feedingStartTime === null) {
-                    cell.data.feedingStartTime = cell.data.age;
-                }
-
-                // Check if food is adjacent (can eat it)
-                if (Math.abs(foodX - x) <= 1 && Math.abs(foodY - y) <= 1) {
-                    // Eat the food
-                    const foodElement = grid.getElement(foodX, foodY);
-
-                    if (foodElement && (foodElement.name === 'leaf' || foodElement.name === 'ash' || foodElement.name === 'tree_seed')) {
-                        grid.setElement(foodX, foodY, grid.registry.get('empty'));
-                        cell.data.hunger = Math.max(0, cell.data.hunger - 70); // Reduce hunger
-                        cell.data.seekingFood = false;
-                        cell.data.cachedFoodLocation = null;
-
-                        // REPRODUCTION: Similar to fish
-                        const canReproduce =
-                            cell.data.hunger < 20 &&  // Very well-fed
-                            !isStressed &&             // Not stressed from crowding
-                            !isStarving &&             // Not starving
-                            nearbyBirdCount < 3;       // Maximum 2 nearby birds
-
-                        if (canReproduce) {
-                            if (Math.random() < 0.05) { // 5% chance to lay egg
-                                this.layEgg(x, y, grid);
-                            }
-                        }
-                        return true;
-                    }
+                // Check if we're on top of a tree (can perch)
+                if (Math.abs(treeX - x) <= 1 && treeY === y - 1) {
+                    // Land on tree!
+                    cell.data.isPerching = true;
+                    cell.data.perchTimer = 0;
+                    cell.data.cachedTreeLocation = null;
+                    return false;
                 } else {
-                    // Food is not adjacent - fly toward it
-                    cell.data.seekingFood = true;
-                    if (this.flyToward(x, y, foodX, foodY, grid)) {
+                    // Fly toward tree
+                    if (this.flyToward(x, y, treeX, treeY - 1, grid)) {
                         return true;
                     }
                 }
-            } else {
-                // No food found - reset feeding timer
-                cell.data.feedingStartTime = null;
-                cell.data.seekingFood = false;
-            }
-        } else {
-            cell.data.seekingFood = false;
-        }
-
-        // PRIORITY 2: TREE-SITTING BEHAVIOR
-        // When not seeking food and occasionally, look for trees to perch on
-        if (!cell.data.seekingFood && !cell.data.isPerching) {
-            // Randomly decide to find a tree to perch (5% chance per update)
-            if (Math.random() > 0.95 && shouldUpdateAI) {
-                let treeLocation = cell.data.cachedTreeLocation;
-                if (shouldUpdateAI) {
-                    treeLocation = this.findNearbyTree(x, y, grid);
-                    cell.data.cachedTreeLocation = treeLocation;
-                }
-
-                if (treeLocation) {
-                    const [treeX, treeY] = treeLocation;
-
-                    // Check if we're on top of a tree (can perch)
-                    if (Math.abs(treeX - x) <= 1 && treeY === y - 1) {
-                        // Land on tree!
-                        cell.data.isPerching = true;
-                        cell.data.perchTimer = 0;
-                        cell.data.cachedTreeLocation = null;
-                        return false;
-                    } else {
-                        // Fly toward tree
-                        if (this.flyToward(x, y, treeX, treeY - 1, grid)) {
-                            return true;
-                        }
-                    }
-                }
             }
         }
 
-        // PRIORITY 3: FLYING BEHAVIOR (smooth gliding with bobbing)
+        // PRIORITY 4: FLYING BEHAVIOR (smooth gliding with strong upward bias)
         cell.data.flyTimer++;
         cell.data.glidePhase += 0.05; // Increment phase for smooth sine wave
 
-        // Update target altitude occasionally
+        // Update target altitude occasionally - HIGHER AND LONGER
         if (shouldUpdateAI && Math.random() > 0.98) {
-            // Prefer mid-to-upper air (10-40 pixels from top)
-            cell.data.altitude = 10 + Math.floor(Math.random() * 30);
+            // Prefer upper air (5-25 pixels from top) - fly much higher!
+            cell.data.altitude = 5 + Math.floor(Math.random() * 20);
         }
 
         // Change direction occasionally
@@ -220,21 +193,23 @@ class BirdElement extends Element {
 
         // FLYING MOVEMENT (70% chance to move, smoother than fish)
         if (Math.random() > 0.3) {
-            // Vertical movement - smooth bobbing with tendency toward target altitude
+            // Vertical movement - smooth bobbing with STRONG upward bias
             const bobbing = Math.sin(cell.data.glidePhase) * 0.5; // Sine wave bobbing
             const altitudeDiff = cell.data.altitude - y;
-            let verticalBias = 0.5; // Default 50/50
+            let verticalBias = 0.25; // Default bias toward going UP (25% down, 75% up)
 
-            // Bias toward target altitude
+            // Strong bias toward target altitude
+            // altitudeDiff < 0 means bird is BELOW target (y is larger, needs to go UP)
+            // altitudeDiff > 0 means bird is ABOVE target (y is smaller, needs to go DOWN)
             if (altitudeDiff < -5) {
-                verticalBias = 0.7; // Go down
+                verticalBias = 0.1; // Very strong upward - bird is too low!
             } else if (altitudeDiff > 5) {
-                verticalBias = 0.3; // Go up
+                verticalBias = 0.7; // Strong downward - bird is too high!
             }
 
             // Add bobbing influence
-            if (bobbing > 0.2) verticalBias -= 0.2; // Slight upward bob
-            if (bobbing < -0.2) verticalBias += 0.2; // Slight downward bob
+            if (bobbing > 0.2) verticalBias -= 0.1; // Upward bob
+            if (bobbing < -0.2) verticalBias += 0.1; // Downward bob
 
             // 50% chance for vertical movement
             if (Math.random() > 0.5) {
@@ -286,22 +261,6 @@ class BirdElement extends Element {
             }
         }
         return count;
-    }
-
-    // Find nearby food (same as fish)
-    findNearbyFood(x, y, grid) {
-        const searchRadius = 7; // PERFORMANCE: Reduced from 15 to 7 for faster scanning
-
-        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
-            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
-                const element = grid.getElement(x + dx, y + dy);
-                if (element && (element.name === 'leaf' || element.name === 'ash' || element.name === 'tree_seed')) {
-                    return [x + dx, y + dy];
-                }
-            }
-        }
-
-        return null;
     }
 
     // Find nearby tree to perch on
@@ -413,6 +372,52 @@ class BirdElement extends Element {
         // Can perch on trees or solid surfaces
         const perchableSurfaces = ['tree_trunk', 'tree_branch', 'wood', 'stone', 'wall', 'sand', 'wet_sand'];
         return perchableSurfaces.includes(below.name);
+    }
+
+    // Detect if bird is enclosed/trapped (too many solid blocks nearby)
+    isEnclosed(x, y, grid) {
+        let solidCount = 0;
+        const checkRadius = 2;
+
+        // Count solid blocks in 5x5 area around bird
+        for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+            for (let dx = -checkRadius; dx <= checkRadius; dx++) {
+                if (dx === 0 && dy === 0) continue; // Skip bird's own position
+
+                const element = grid.getElement(x + dx, y + dy);
+                // Count non-empty, non-dangerous elements as "solid"
+                if (element && element.name !== 'empty' &&
+                    element.name !== 'lava' && element.name !== 'fire' &&
+                    element.name !== 'bird' && element.name !== 'fish') {
+                    solidCount++;
+                }
+            }
+        }
+
+        // If more than 16 solid blocks out of 24 cells, bird is trapped
+        return solidCount > 16;
+    }
+
+    // Check if bird is touching any solid surface (for feeding)
+    checkAdjacentSolid(x, y, grid) {
+        // Check all 8 adjacent cells
+        const offsets = [
+            [0, 1], [0, -1], [1, 0], [-1, 0],  // Cardinals
+            [1, 1], [1, -1], [-1, 1], [-1, -1] // Diagonals
+        ];
+
+        for (const [dx, dy] of offsets) {
+            const element = grid.getElement(x + dx, y + dy);
+            // Any solid (non-empty, non-dangerous) surface counts
+            if (element && element.name !== 'empty' &&
+                element.name !== 'lava' && element.name !== 'fire' &&
+                element.name !== 'water' && element.name !== 'acid' &&
+                element.name !== 'bird' && element.name !== 'fish') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
