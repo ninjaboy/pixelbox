@@ -13,8 +13,7 @@ class FireElement extends Element {
             lifetime: 60, // Ephemeral flames - dissipate after 1 second
             tags: new Set([TAG.HEAT_SOURCE]),
             brushSize: 2, // Small controlled brush
-            emissionDensity: 0.5, // Moderate sparse placement
-            glowing: true // Mark as glowing for special rendering
+            emissionDensity: 0.5 // Moderate sparse placement
         });
 
         // Behavior 1: Emit smoke upward and diagonally

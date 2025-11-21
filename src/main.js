@@ -40,12 +40,7 @@ class GameScene extends Phaser.Scene {
         this.skyGraphics = this.add.graphics();
         this.celestialGraphics = this.add.graphics();
         this.graphics = this.add.graphics();
-        this.glowGraphics = this.add.graphics(); // Separate layer for glowing elements
         this.overlayGraphics = this.add.graphics();
-
-        // Apply post-FX to the glow layer for enhanced visual effects
-        const glowFX = this.glowGraphics.postFX.addGlow(0xffaa00, 4, 0, false, 0.1, 10);
-        this.glowFX = glowFX;
 
         // Add glow to celestial graphics for sun/moon - will be updated dynamically
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
@@ -630,12 +625,10 @@ class GameScene extends Phaser.Scene {
         // 3. RENDER PIXEL GRID WITH LIGHTING
         profiler.start('render:particles');
         this.graphics.clear();
-        this.glowGraphics.clear();
         const lightingColor = this.getLightingColor(time);
 
         // PERFORMANCE: Render active cells using cached coordinates (no keyToCoord!)
         const particlesByColor = new Map();
-        const glowingParticlesByColor = new Map();
 
         for (const [numericKey, coords] of this.pixelGrid.activeCells) {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
@@ -647,35 +640,18 @@ class GameScene extends Phaser.Scene {
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);
 
-                // Separate glowing elements into their own rendering batch
-                const isGlowing = cell.element.glowing || cell.element.name === 'lava';
-                const targetMap = isGlowing ? glowingParticlesByColor : particlesByColor;
-
-                if (!targetMap.has(tintedColor)) {
-                    targetMap.set(tintedColor, []);
+                if (!particlesByColor.has(tintedColor)) {
+                    particlesByColor.set(tintedColor, []);
                 }
-                targetMap.get(tintedColor).push(coords);
+                particlesByColor.get(tintedColor).push(coords);
             }
         }
 
-        // Render normal particles
+        // Render all particles of the same color in one batch
         for (const [color, particles] of particlesByColor) {
             this.graphics.fillStyle(color, 1);
             for (const coords of particles) {
                 this.graphics.fillRect(
-                    coords.x * this.pixelSize,
-                    coords.y * this.pixelSize,
-                    this.pixelSize,
-                    this.pixelSize
-                );
-            }
-        }
-
-        // Render glowing particles on separate layer with FX
-        for (const [color, particles] of glowingParticlesByColor) {
-            this.glowGraphics.fillStyle(color, 1);
-            for (const coords of particles) {
-                this.glowGraphics.fillRect(
                     coords.x * this.pixelSize,
                     coords.y * this.pixelSize,
                     this.pixelSize,
