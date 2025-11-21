@@ -2,6 +2,7 @@
 import { CellState } from './CellState.js';
 import { STATE } from './ElementProperties.js';
 import { ConstructionManager } from './ConstructionManager.js';
+import { ParticleEngine } from './ParticleEngine.js';
 
 class PixelGrid {
     constructor(width, height, pixelSize, registry) {
@@ -13,6 +14,16 @@ class PixelGrid {
         this.particleCount = 0;
         this.frameCount = 0; // Track frames
         this.boulderCache = new Map(); // boulderId → Set of "x,y" position strings
+
+        // HYBRID PHYSICS: Particle engine for dynamic elements
+        this.particleEngine = new ParticleEngine(this, {
+            gravity: 0.5,
+            maxSpeed: 10,
+            airDrag: 0.99,
+            spatialCellSize: 3,
+            repulsionStrength: 0.3,
+            liquidSpreadForce: 0.2
+        });
 
         // PERFORMANCE: Track active cells with numeric keys and cached coordinates
         // Key formula: y * width + x (avoids expensive string parsing)
@@ -252,8 +263,21 @@ class PixelGrid {
             }
         }
 
+        // HYBRID PHYSICS: Update particle engine for dynamic elements
+        this.particleEngine.update(1);
+
         // Update all active house constructions
         ConstructionManager.updateConstructions(this);
+    }
+
+    /**
+     * Spawn a particle (used by dynamic elements like sand, water, oil)
+     * @param {number} x - Grid x position
+     * @param {number} y - Grid y position
+     * @param {string|Element} elementType - Element type
+     */
+    spawnParticle(x, y, elementType) {
+        return this.particleEngine.spawnParticle(x, y, elementType);
     }
 
     checkInteractions(x, y) {

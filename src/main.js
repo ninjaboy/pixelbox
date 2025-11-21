@@ -507,6 +507,10 @@ class GameScene extends Phaser.Scene {
         // Don't generate boulder IDs for user-drawn stones - let them fall individually
         const boulderId = null;
 
+        // HYBRID PHYSICS: Check if element should spawn particles
+        const isDynamicParticle = element.useParticlePhysics ||
+            (element.state === 'powder' || element.state === 'liquid' || element.state === 'gas');
+
         // Draw in a circle around the cursor
         for (let dy = -brushSize; dy <= brushSize; dy++) {
             for (let dx = -brushSize; dx <= brushSize; dx++) {
@@ -529,7 +533,14 @@ class GameScene extends Phaser.Scene {
                             continue; // Skip this cell, don't affect player
                         }
 
-                        this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
+                        // HYBRID PHYSICS: Spawn particles for dynamic elements
+                        if (isDynamicParticle && element.id !== 0) {
+                            // Spawn particle instead of placing in grid
+                            this.pixelGrid.spawnParticle(targetX, targetY, element);
+                        } else {
+                            // Use traditional grid for static elements
+                            this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
+                        }
                     }
                 }
             }
@@ -643,7 +654,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Render all particles of the same color in one batch
+        // Render all static grid particles of the same color in one batch
         for (const [color, particles] of particlesByColor) {
             this.graphics.fillStyle(color, 1);
             for (const coords of particles) {
@@ -655,6 +666,36 @@ class GameScene extends Phaser.Scene {
                 );
             }
         }
+
+        // HYBRID PHYSICS: Render dynamic particles
+        const activeParticles = this.pixelGrid.particleEngine.getActiveParticles();
+        const particleRenderSize = this.pixelSize * 0.8; // Slightly smaller than grid cells
+
+        // Group particles by color for batch rendering
+        const dynamicParticlesByColor = new Map();
+        for (const particle of activeParticles) {
+            const baseColor = particle.getColor();
+            const tintedColor = this.applyLighting(baseColor, lightingColor);
+
+            if (!dynamicParticlesByColor.has(tintedColor)) {
+                dynamicParticlesByColor.set(tintedColor, []);
+            }
+            dynamicParticlesByColor.get(tintedColor).push(particle);
+        }
+
+        // Render dynamic particles
+        for (const [color, particles] of dynamicParticlesByColor) {
+            this.graphics.fillStyle(color, 1);
+            for (const particle of particles) {
+                this.graphics.fillRect(
+                    particle.x * this.pixelSize - particleRenderSize / 2,
+                    particle.y * this.pixelSize - particleRenderSize / 2,
+                    particleRenderSize,
+                    particleRenderSize
+                );
+            }
+        }
+
         profiler.end('render:particles');
 
         // 4. RENDER WORLD BORDER (visual only, not particles)

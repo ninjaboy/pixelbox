@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Physics Test - Pixelbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        #test-output {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 3px solid #4CAF50;
+            background: #333;
+        }
+        .test-pass { border-left-color: #4CAF50; }
+        .test-fail { border-left-color: #f44336; }
+        .test-info { border-left-color: #2196F3; }
+        h2 { margin-top: 0; }
+        code {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        pre {
+            background: #444;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-output">
+        <h1>🧪 Particle Physics System Test</h1>
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { Particle, ParticlePool } from './src/Particle.js';
+        import { SpatialGrid } from './src/SpatialGrid.js';
+        import { ParticleEngine } from './src/ParticleEngine.js';
+        import { STATE } from './src/ElementProperties.js';
+        import registry from './src/init.js';
+
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-section test-${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function test(name, fn) {
+            try {
+                const result = fn();
+                if (result === false) {
+                    log(`❌ <strong>${name}</strong>: Test returned false`, 'fail');
+                } else {
+                    log(`✅ <strong>${name}</strong>: ${result || 'Passed'}`, 'pass');
+                }
+            } catch (error) {
+                log(`❌ <strong>${name}</strong>: ${error.message}<br><pre>${error.stack}</pre>`, 'fail');
+            }
+        }
+
+        // Run tests
+        log('<h2>Module Import Tests</h2>', 'info');
+
+        test('Import Particle class', () => {
+            return typeof Particle === 'function' ? 'Successfully imported' : false;
+        });
+
+        test('Import ParticlePool class', () => {
+            return typeof ParticlePool === 'function' ? 'Successfully imported' : false;
+        });
+
+        test('Import SpatialGrid class', () => {
+            return typeof SpatialGrid === 'function' ? 'Successfully imported' : false;
+        });
+
+        test('Import ParticleEngine class', () => {
+            return typeof ParticleEngine === 'function' ? 'Successfully imported' : false;
+        });
+
+        test('Import ElementRegistry', () => {
+            return registry ? 'Element registry loaded' : false;
+        });
+
+        log('<h2>Particle Tests</h2>', 'info');
+
+        test('Create particle', () => {
+            const waterElement = registry.get('water');
+            const particle = new Particle(10.5, 20.5, waterElement, 0);
+            return particle.x === 10.5 && particle.y === 20.5 ? 'Particle created with float positions' : false;
+        });
+
+        test('Particle integration', () => {
+            const sandElement = registry.get('sand');
+            const particle = new Particle(5, 5, sandElement, 0);
+            particle.vx = 1;
+            particle.vy = 2;
+            particle.integrate(1);
+            return particle.x === 6 && particle.y === 7 ? 'Velocity integrated correctly' : false;
+        });
+
+        test('Particle force application', () => {
+            const particle = new Particle(0, 0, registry.get('water'), 0);
+            particle.mass = 2;
+            particle.applyForce(4, 6);
+            return particle.vx === 2 && particle.vy === 3 ? 'Force applied (F=ma, a=F/m)' : false;
+        });
+
+        test('Particle grid position', () => {
+            const particle = new Particle(10.7, 20.3, registry.get('sand'), 0);
+            return particle.getGridX() === 10 && particle.getGridY() === 20 ? 'Grid position calculated' : false;
+        });
+
+        log('<h2>ParticlePool Tests</h2>', 'info');
+
+        test('Create particle pool', () => {
+            const pool = new ParticlePool(10);
+            return pool.particles.length === 10 ? 'Pool initialized with 10 particles' : false;
+        });
+
+        test('Acquire particle from pool', () => {
+            const pool = new ParticlePool(5);
+            const particle = pool.acquire(1, 2, registry.get('water'));
+            return particle && particle.active ? `Acquired active particle, pool stats: ${pool.activeCount}/5` : false;
+        });
+
+        test('Release particle to pool', () => {
+            const pool = new ParticlePool(5);
+            const particle = pool.acquire(1, 2, registry.get('water'));
+            pool.release(particle);
+            return !particle.active && pool.activeCount === 0 ? 'Particle released and deactivated' : false;
+        });
+
+        test('Pool reuse', () => {
+            const pool = new ParticlePool(2);
+            const p1 = pool.acquire(1, 1, registry.get('sand'));
+            pool.release(p1);
+            const p2 = pool.acquire(2, 2, registry.get('water'));
+            return p1 === p2 ? 'Pool reused deactivated particle' : false;
+        });
+
+        log('<h2>SpatialGrid Tests</h2>', 'info');
+
+        test('Create spatial grid', () => {
+            const grid = new SpatialGrid(100, 100, 3);
+            return grid.gridWidth === 34 && grid.gridHeight === 34 ? 'Grid dimensions calculated (100/3 = ~34)' : false;
+        });
+
+        test('Insert particle into spatial grid', () => {
+            const grid = new SpatialGrid(100, 100, 3);
+            const pool = new ParticlePool(10);
+            const particle = pool.acquire(10, 10, registry.get('water'));
+            grid.insert(0, particle);
+            return grid.cells.size > 0 ? `Particle inserted, ${grid.cells.size} cells occupied` : false;
+        });
+
+        test('Query neighbors', () => {
+            const grid = new SpatialGrid(100, 100, 3);
+            const pool = new ParticlePool(10);
+
+            // Insert particles
+            const p1 = pool.acquire(10, 10, registry.get('water'));
+            const p2 = pool.acquire(11, 10, registry.get('water'));
+            const p3 = pool.acquire(50, 50, registry.get('water'));
+
+            grid.insert(0, p1);
+            grid.insert(1, p2);
+            grid.insert(2, p3);
+
+            const neighbors = grid.queryNeighbors(p1, 1);
+            return neighbors.size === 1 ? 'Found 1 neighbor (p2), p3 too far away' : false;
+        });
+
+        test('Grid density calculation', () => {
+            const grid = new SpatialGrid(100, 100, 3);
+            const pool = new ParticlePool(20);
+
+            for (let i = 0; i < 10; i++) {
+                const p = pool.acquire(10 + i * 0.1, 10, registry.get('water'));
+                grid.insert(i, p);
+            }
+
+            const density = grid.getDensity(10, 10, 1);
+            return density >= 10 ? `High density: ${density} particles` : false;
+        });
+
+        log('<h2>ParticleEngine Integration Tests</h2>', 'info');
+
+        test('Create mock world for engine', () => {
+            // Create minimal mock world
+            const mockWorld = {
+                width: 100,
+                height: 100,
+                registry: registry,
+                grid: [],
+                getElement: (x, y) => {
+                    if (x < 0 || x >= 100 || y < 0 || y >= 100) return null;
+                    if (y >= 98) return registry.get('wall'); // Bottom wall
+                    return registry.get('empty');
+                },
+                getCell: (x, y) => {
+                    return { element: this.getElement(x, y) };
+                },
+                setElement: (x, y, element) => {}
+            };
+
+            return mockWorld.width === 100 ? 'Mock world created' : false;
+        });
+
+        test('Initialize ParticleEngine', () => {
+            const mockWorld = {
+                width: 100,
+                height: 100,
+                registry: registry,
+                grid: [],
+                getElement: (x, y) => registry.get('empty'),
+                getCell: (x, y) => ({ element: registry.get('empty') }),
+                setElement: (x, y, element) => {}
+            };
+
+            const engine = new ParticleEngine(mockWorld);
+            return engine ? `Engine initialized, gravity=${engine.gravity}` : false;
+        });
+
+        test('Spawn particle through engine', () => {
+            const mockWorld = {
+                width: 100,
+                height: 100,
+                registry: registry,
+                grid: [],
+                getElement: (x, y) => registry.get('empty'),
+                getCell: (x, y) => ({ element: registry.get('empty') }),
+                setElement: (x, y, element) => {}
+            };
+
+            const engine = new ParticleEngine(mockWorld);
+            const particle = engine.spawnParticle(50, 50, 'water');
+            return particle && particle.active ? `Spawned water particle at (50, 50)` : false;
+        });
+
+        test('Particle physics update', () => {
+            const mockWorld = {
+                width: 100,
+                height: 100,
+                registry: registry,
+                grid: [],
+                getElement: (x, y) => {
+                    if (y >= 98) return registry.get('wall');
+                    return registry.get('empty');
+                },
+                getCell: (x, y) => ({ element: this.getElement(x, y) }),
+                setElement: (x, y, element) => {}
+            };
+
+            const engine = new ParticleEngine(mockWorld);
+            const particle = engine.spawnParticle(50, 10, 'sand');
+            const initialY = particle.y;
+
+            // Run 10 updates
+            for (let i = 0; i < 10; i++) {
+                engine.update(1);
+            }
+
+            return particle.y > initialY ? `Particle fell from y=${initialY.toFixed(1)} to y=${particle.y.toFixed(1)}` : false;
+        });
+
+        test('Get engine statistics', () => {
+            const mockWorld = {
+                width: 100,
+                height: 100,
+                registry: registry,
+                grid: [],
+                getElement: (x, y) => registry.get('empty'),
+                getCell: (x, y) => ({ element: registry.get('empty') }),
+                setElement: (x, y, element) => {}
+            };
+
+            const engine = new ParticleEngine(mockWorld);
+            engine.spawnParticle(50, 50, 'water');
+            engine.spawnParticle(51, 50, 'sand');
+
+            const stats = engine.getStats();
+            return stats.particleCount === 2 ? `Stats: ${JSON.stringify(stats, null, 2)}` : false;
+        });
+
+        log('<h2>Element Integration Tests</h2>', 'info');
+
+        test('Water element exists', () => {
+            const water = registry.get('water');
+            return water && water.state === STATE.LIQUID ? 'Water is STATE.LIQUID' : false;
+        });
+
+        test('Sand element exists', () => {
+            const sand = registry.get('sand');
+            return sand && sand.state === STATE.POWDER ? 'Sand is STATE.POWDER' : false;
+        });
+
+        test('Stone element exists (static)', () => {
+            const stone = registry.get('stone');
+            return stone && stone.state === STATE.SOLID ? 'Stone is STATE.SOLID (will use grid)' : false;
+        });
+
+        log('<h2>Summary</h2>', 'info');
+
+        const passCount = document.querySelectorAll('.test-pass').length;
+        const failCount = document.querySelectorAll('.test-fail').length;
+        const total = passCount + failCount;
+
+        log(`
+            <h2>✨ Test Results</h2>
+            <p><strong>Passed:</strong> ${passCount}/${total}</p>
+            <p><strong>Failed:</strong> ${failCount}/${total}</p>
+            <p><strong>Success Rate:</strong> ${((passCount/total)*100).toFixed(1)}%</p>
+        `, failCount === 0 ? 'pass' : 'fail');
+
+        if (failCount === 0) {
+            log('🎉 All tests passed! Particle physics system is ready to use.', 'pass');
+        } else {
+            log('⚠️ Some tests failed. Check the errors above.', 'fail');
+        }
+
+    </script>
+</body>
+</html>
