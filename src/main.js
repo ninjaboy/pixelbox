@@ -919,6 +919,15 @@ class GameScene extends Phaser.Scene {
                     // Moon has phases - draw the crescent/gibbous shape
                     const isWaxing = moonPhase < 0.5;
 
+                    // Use clipping to prevent shadow from extending beyond moon boundary
+                    this.celestialGraphics.save();
+
+                    // Create circular clipping mask for this moon
+                    this.celestialGraphics.beginPath();
+                    this.celestialGraphics.arc(displayX, displayY, radius * 1.5, 0, Math.PI * 2);
+                    this.celestialGraphics.closePath();
+                    this.celestialGraphics.clip();
+
                     // Draw the full moon body first
                     this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
                     this.celestialGraphics.fillCircle(displayX, displayY, radius);
@@ -932,6 +941,8 @@ class GameScene extends Phaser.Scene {
                     // Draw shadow as a dark gray/blue that's transparent
                     this.celestialGraphics.fillStyle(0x1a1a2a, 0.85);
                     this.celestialGraphics.fillCircle(shadowX, displayY, radius);
+
+                    this.celestialGraphics.restore();
                 } else {
                     // Full moon - just draw it normally
                     this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
