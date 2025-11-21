@@ -902,39 +902,29 @@ class GameScene extends Phaser.Scene {
                 this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
             }
 
-            // Draw moon phases using proper geometric clipping
-            if (brightness < 0.98) { // Moon has phases
+            // Draw moon phases - only draw the visible lit portion
+            if (brightness < 0.05) {
+                // New moon - barely visible, very dim
+                this.celestialGraphics.fillStyle(0x3a3a3a, 0.3);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+            } else if (brightness < 0.98) {
+                // Moon has phases - draw the crescent/gibbous shape
                 const isWaxing = moonPhase < 0.5;
 
-                // Create a mask for the moon phase
-                // We'll draw the illuminated crescent by combining two circles
-                this.celestialGraphics.save();
-
-                // Begin path for the illuminated portion
-                this.celestialGraphics.beginPath();
-
-                // Draw the full moon circle as the base shape
-                this.celestialGraphics.arc(moonX, moonY, radius, 0, Math.PI * 2);
-                this.celestialGraphics.closePath();
-                this.celestialGraphics.clip();
-
-                // Draw the lit portion
+                // Draw the full moon body first
                 this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
                 this.celestialGraphics.fillCircle(moonX, moonY, radius);
 
-                // Now draw the shadow portion by clipping it out
-                // Calculate the shadow circle position
+                // Now draw the dark portion as a semi-transparent darker moon color
+                // This creates the shadow effect without blocking the halo
                 const maxOffset = radius * 2;
                 const shadowX = isWaxing ?
                     moonX - maxOffset * (1 - brightness) :
                     moonX + maxOffset * (1 - brightness);
 
-                // Draw the shadow as a sky-colored circle (not pure black)
-                const skyColor = time < 0.2 || time > 0.85 ? 0x000033 : 0x0a0a3a;
-                this.celestialGraphics.fillStyle(skyColor, 1.0);
+                // Draw shadow as a dark gray/blue that's transparent
+                this.celestialGraphics.fillStyle(0x1a1a2a, 0.85);
                 this.celestialGraphics.fillCircle(shadowX, moonY, radius);
-
-                this.celestialGraphics.restore();
             } else {
                 // Full moon - just draw it normally
                 this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
