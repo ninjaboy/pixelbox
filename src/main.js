@@ -652,11 +652,11 @@ class GameScene extends Phaser.Scene {
                 // Use per-cell color if available (for fish, birds, lights), otherwise use element color
                 const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.element.color;
 
-                // Apply atmospheric lighting to particle colors
-                const tintedColor = this.applyLighting(baseColor, lightingColor);
-
                 // Check if this is a light element (glowing house light)
                 const isLight = cell.element.name === 'light';
+
+                // Apply atmospheric lighting to particle colors (but not to lights - they emit light)
+                const tintedColor = isLight ? baseColor : this.applyLighting(baseColor, lightingColor);
 
                 // Check if this is lava surface (lava with air/empty directly above only)
                 const isLavaSurface = cell.element.name === 'lava' &&

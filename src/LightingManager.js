@@ -39,21 +39,11 @@ export class LightingManager {
                 // Evening - turn on lights
                 this.turnOnLights(house, grid, false);
             } else if (isNight) {
-                // Deep night - gradually turn off some lights
-                // Calculate how deep into night we are (0.85-1.0 or 0.0-0.2)
-                let nightProgress;
-                if (time >= 0.85) {
-                    nightProgress = (time - 0.85) / 0.15; // 0.85->1.0 maps to 0->1
-                } else {
-                    nightProgress = 1 + time / 0.2; // 0->0.2 maps to 1->2
-                }
-
-                // Very rarely (every 600 frames = 10 seconds), randomly turn off lights
-                if (grid.frameCount % 600 === 0 && nightProgress > 0.3) {
-                    const shouldTurnOff = Math.random() < nightProgress * 0.5; // Higher chance as night progresses
-                    if (shouldTurnOff) {
-                        this.turnOffRandomLight(house, grid);
-                    }
+                // Deep night - randomly turn off individual lights throughout the night
+                // Each light has independent random chance every frame
+                // ~1% chance per second per light = 0.6% per frame at 60fps
+                if (Math.random() < 0.006) {
+                    this.turnOffRandomLight(house, grid);
                 }
             } else if (isMorning) {
                 // Morning - turn off remaining lights
