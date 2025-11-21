@@ -15,6 +15,12 @@ export class LightingManager {
             return;
         }
 
+        // Occasionally spawn builders during daytime (0.3-0.6, avoid dawn/dusk)
+        // Very rare: 0.01% chance per frame = ~1 builder every 10000 frames = ~2.7 minutes at 60fps
+        if (time > 0.3 && time < 0.6 && Math.random() < 0.0001) {
+            this.spawnBuilderFromHouse(grid);
+        }
+
         // Determine if lights should be on based on time
         // Evening starts at 0.7 (dusk), lights start turning on
         // Night is 0.8-0.2 (fully dark)
@@ -60,14 +66,40 @@ export class LightingManager {
         const lightElement = grid.registry.get('light');
         if (!lightElement) return;
 
-        // Turn on lights in window positions
-        for (const window of house.windows) {
+        // Initialize light colors for this house if not already done
+        if (!house.lightColors) {
+            house.lightColors = house.windows.map(() => this.randomLightColor());
+        }
+
+        // Turn on lights in window positions with varied colors
+        for (let i = 0; i < house.windows.length; i++) {
+            const window = house.windows[i];
             const element = grid.getElement(window.x, window.y);
             if (element && element.id === 0) { // Only place if empty
                 grid.setElement(window.x, window.y, lightElement);
+                // Store the light color in cell data
+                const cell = grid.getCell(window.x, window.y);
+                if (cell) {
+                    cell.data.lightColor = house.lightColors[i];
+                }
             }
         }
         house.lightsOn = true;
+    }
+
+    // Generate random light colors with variations
+    static randomLightColor() {
+        const variants = [
+            0xffffff,    // Pure white (bright)
+            0xfff8f0,    // Warm white
+            0xfff4e0,    // Soft warm white
+            0xffe8d0,    // Cream
+            0xffd0c0,    // Peachy warm
+            0xffd8e8,    // Subtle pink
+            0xffe0ff,    // Light pink/purple
+            0xf0f0f0,    // Soft white (dimmer)
+        ];
+        return variants[Math.floor(Math.random() * variants.length)];
     }
 
     static turnOffLights(house, grid) {
@@ -104,6 +136,42 @@ export class LightingManager {
             // Turn off a random light
             const randomWindow = litWindows[Math.floor(Math.random() * litWindows.length)];
             grid.setElement(randomWindow.x, randomWindow.y, grid.registry.get('empty'));
+        }
+    }
+
+    // Spawn a builder from a random house
+    static spawnBuilderFromHouse(grid) {
+        if (!grid.houses || grid.houses.length === 0) return;
+
+        // Pick a random house
+        const house = grid.houses[Math.floor(Math.random() * grid.houses.length)];
+
+        // Don't spawn multiple builders from same house
+        if (house.hasBuilder) return;
+
+        // Try to spawn builder on top of the house roof
+        const spawnX = house.centerX;
+        const spawnY = house.baseY - 10; // Approximately on roof
+
+        // Find the actual roof surface
+        for (let searchY = spawnY; searchY < house.baseY; searchY++) {
+            const element = grid.getElement(spawnX, searchY);
+            const below = grid.getElement(spawnX, searchY + 1);
+
+            // Found roof (empty above, solid below)
+            if (element && element.id === 0 && below && below.name === 'stone') {
+                const builderElement = grid.registry.get('house_seed');
+                if (builderElement) {
+                    grid.setElement(spawnX, searchY, builderElement);
+                    house.hasBuilder = true;
+
+                    // Reset after some time to allow another builder eventually
+                    setTimeout(() => {
+                        house.hasBuilder = false;
+                    }, 180000); // 3 minutes
+                }
+                return;
+            }
         }
     }
 }

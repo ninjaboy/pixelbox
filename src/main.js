@@ -48,8 +48,8 @@ class GameScene extends Phaser.Scene {
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
         this.celestialGlow = celestialGlow;
 
-        // Add glow to house lights (soft warm white glow)
-        const lightGlow = this.lightGlowGraphics.postFX.addGlow(0xffdd99, 3, 1, false, 0.1, 6);
+        // Add glow to house lights (very subtle warm glow)
+        const lightGlow = this.lightGlowGraphics.postFX.addGlow(0xffdd99, 2, 0, false, 0.1, 4);
         this.lightGlow = lightGlow;
 
         // Add glow to lava surface layer
@@ -649,8 +649,8 @@ class GameScene extends Phaser.Scene {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
 
             if (cell && cell.element.id !== 0) {
-                // Use per-cell color if available (for fish and birds), otherwise use element color
-                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.element.color;
+                // Use per-cell color if available (for fish, birds, lights), otherwise use element color
+                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.element.color;
 
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);

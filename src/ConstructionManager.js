@@ -255,7 +255,8 @@ export class ConstructionManager {
                 centerX: centerX,
                 baseY: construction.baseY,
                 windows: windowPositions,
-                lightsOn: false
+                lightsOn: false,
+                hasBuilder: false // Track if builder has spawned
             });
 
             construction.buildPhase = 'complete';
