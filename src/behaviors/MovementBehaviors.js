@@ -176,7 +176,7 @@ export class LiquidFlowBehavior {
 
     /**
      * Measures how deep the liquid is at a given position
-     * PERFORMANCE: Limited to max depth of 5 to avoid deep scans
+     * PERFORMANCE: Limited to max depth of 3 and cached for 10 frames
      */
     measureLiquidDepth(x, y, grid, liquidState) {
         const element = grid.getElement(x, y);
@@ -186,11 +186,21 @@ export class LiquidFlowBehavior {
             return 0;
         }
 
+        const cell = grid.getCell(x, y);
+        if (!cell) return 0;
+
+        // PERFORMANCE: Use cached depth if available and recent (within 10 frames)
+        if (cell.data.cachedDepth !== undefined &&
+            cell.data.cachedDepthFrame !== undefined &&
+            grid.frameCount - cell.data.cachedDepthFrame < 10) {
+            return cell.data.cachedDepth;
+        }
+
         let depth = 0;
         let checkY = y;
-        const maxDepth = 5; // PERFORMANCE: Limit depth measurement
+        const maxDepth = 3; // PERFORMANCE: Reduced from 5 to 3
 
-        // Count downward until we hit non-liquid (max 5 cells)
+        // Count downward until we hit non-liquid (max 3 cells)
         while (checkY < grid.height && depth < maxDepth) {
             const checkElement = grid.getElement(x, checkY);
             if (!checkElement || checkElement.state !== liquidState) {
@@ -199,6 +209,10 @@ export class LiquidFlowBehavior {
             depth++;
             checkY++;
         }
+
+        // Cache the result
+        cell.data.cachedDepth = depth;
+        cell.data.cachedDepthFrame = grid.frameCount;
 
         return depth;
     }

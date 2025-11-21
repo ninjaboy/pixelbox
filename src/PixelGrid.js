@@ -20,6 +20,10 @@ class PixelGrid {
         // Value: {x, y} coordinates (eliminates keyToCoord() calls)
         this.activeCells = new Map(); // Map<number, {x: number, y: number}>
 
+        // PERFORMANCE: Track active house constructions (avoids full grid scan)
+        // Stores numeric keys of cells with construction data
+        this.activeConstructions = new Set(); // Set<number>
+
         // PERFORMANCE: Reusable neighbor offset arrays (no per-call allocation)
         this.neighborOffsets = [
             [0, -1], [0, 1], [-1, 0], [1, 0],           // Cardinal
@@ -53,6 +57,18 @@ class PixelGrid {
             x: key % this.width,
             y: Math.floor(key / this.width)
         };
+    }
+
+    // PERFORMANCE: Register a construction position for efficient updates
+    registerConstruction(x, y) {
+        const key = this.coordToKey(x, y);
+        this.activeConstructions.add(key);
+    }
+
+    // PERFORMANCE: Unregister a construction when complete
+    unregisterConstruction(x, y) {
+        const key = this.coordToKey(x, y);
+        this.activeConstructions.delete(key);
     }
 
     getCell(x, y) {

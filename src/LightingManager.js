@@ -4,6 +4,9 @@
  */
 
 export class LightingManager {
+    // PERFORMANCE: Track previous time state to avoid redundant updates
+    static previousTimeState = null;
+    static builderSpawnFrameCounter = 0;
     /**
      * Update all house lights based on time of day
      * Called once per frame from PixelGrid.update()
@@ -15,39 +18,63 @@ export class LightingManager {
             return;
         }
 
-        // Occasionally spawn builders during daytime (0.3-0.6, avoid dawn/dusk)
-        // Very rare: 0.01% chance per frame = ~1 builder every 10000 frames = ~2.7 minutes at 60fps
-        if (time > 0.3 && time < 0.6 && Math.random() < 0.0001) {
-            this.spawnBuilderFromHouse(grid);
+        // PERFORMANCE: Builder spawning every 60 frames instead of every frame
+        this.builderSpawnFrameCounter++;
+        if (this.builderSpawnFrameCounter >= 60) {
+            this.builderSpawnFrameCounter = 0;
+            // Occasionally spawn builders during daytime (0.3-0.6, avoid dawn/dusk)
+            // Check probability: 0.01% chance per frame = 0.6% chance per 60 frames
+            if (time > 0.3 && time < 0.6 && Math.random() < 0.006) {
+                this.spawnBuilderFromHouse(grid);
+            }
         }
 
-        // Determine if lights should be on based on time
-        // Evening starts at 0.7 (dusk), lights start turning on
-        // Night is 0.8-0.2 (fully dark)
-        // Morning starts at 0.2 (dawn), lights start turning off
+        // PERFORMANCE: Check house integrity every 60 frames (once per second)
+        if (!this.integrityCheckCounter) this.integrityCheckCounter = 0;
+        this.integrityCheckCounter++;
+        if (this.integrityCheckCounter >= 60) {
+            this.integrityCheckCounter = 0;
+            this.checkAndRemoveDestroyedHouses(grid);
+        }
 
-        const isEvening = time > 0.7 && time < 0.85; // 0.7-0.85: lights turning on
-        const isNight = time >= 0.85 || time < 0.2;  // 0.85-0.2: night (most lights on)
-        const isMorning = time >= 0.2 && time < 0.3; // 0.2-0.3: lights turning off
-        const isDay = time >= 0.3 && time <= 0.7;    // 0.3-0.7: day (no lights)
+        // Determine time state
+        let currentTimeState;
+        if (time >= 0.3 && time <= 0.7) {
+            currentTimeState = 'day';
+        } else if (time > 0.7 && time < 0.85) {
+            currentTimeState = 'evening';
+        } else if (time >= 0.85 || time < 0.2) {
+            currentTimeState = 'night';
+        } else {
+            currentTimeState = 'morning'; // 0.2-0.3
+        }
 
-        for (const house of grid.houses) {
-            if (isDay) {
-                // Day time - turn off all lights
-                this.turnOffLights(house, grid);
-            } else if (isEvening) {
-                // Evening - turn on lights
-                this.turnOnLights(house, grid, false);
-            } else if (isNight) {
+        // PERFORMANCE: Only update lights on state transitions
+        const stateChanged = this.previousTimeState !== currentTimeState;
+
+        if (stateChanged) {
+            // State transition - update all houses
+            for (const house of grid.houses) {
+                if (currentTimeState === 'day') {
+                    this.turnOffLights(house, grid);
+                } else if (currentTimeState === 'evening') {
+                    this.turnOnLights(house, grid, false);
+                } else if (currentTimeState === 'morning') {
+                    this.turnOffLights(house, grid);
+                }
+            }
+            this.previousTimeState = currentTimeState;
+        }
+
+        // Night light switching happens every frame (only when in night state)
+        if (currentTimeState === 'night') {
+            for (const house of grid.houses) {
                 // Deep night - randomly turn off individual lights throughout the night
                 // Each light has independent random chance every frame
                 // ~1% chance per second per light = 0.6% per frame at 60fps
                 if (Math.random() < 0.006) {
                     this.turnOffRandomLight(house, grid);
                 }
-            } else if (isMorning) {
-                // Morning - turn off remaining lights
-                this.turnOffLights(house, grid);
             }
         }
     }
@@ -163,6 +190,46 @@ export class LightingManager {
                 return;
             }
         }
+    }
+
+    /**
+     * Check if houses are destroyed (burned/demolished) and remove them from tracking
+     * A house is considered destroyed if key structural elements are missing
+     */
+    static checkAndRemoveDestroyedHouses(grid) {
+        if (!grid.houses || grid.houses.length === 0) return;
+
+        // Filter out destroyed houses
+        grid.houses = grid.houses.filter(house => {
+            // Check key structural positions: walls, foundation, windows
+            const checkPositions = [
+                { x: house.centerX - 2, y: house.baseY - 1 }, // Left wall, floor 1
+                { x: house.centerX - 2, y: house.baseY - 2 }, // Left wall, floor 1 upper
+                { x: house.centerX + 2, y: house.baseY - 1 }, // Right wall, floor 1
+                { x: house.centerX + 2, y: house.baseY - 2 }, // Right wall, floor 1 upper
+                { x: house.centerX, y: house.baseY }           // Foundation center
+            ];
+
+            // Count remaining structural elements
+            let structureCount = 0;
+            const validMaterials = ['wood', 'glass', 'stone'];
+
+            for (const pos of checkPositions) {
+                const element = grid.getElement(pos.x, pos.y);
+                if (element && validMaterials.includes(element.name)) {
+                    structureCount++;
+                }
+            }
+
+            // If less than 2 structural elements remain, house is destroyed
+            if (structureCount < 2) {
+                // Remove any remaining lights before removing house from tracking
+                this.turnOffLights(house, grid);
+                return false; // Remove from tracking
+            }
+
+            return true; // Keep house in tracking
+        });
     }
 }
 

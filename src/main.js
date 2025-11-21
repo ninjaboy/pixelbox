@@ -658,14 +658,8 @@ class GameScene extends Phaser.Scene {
                 // Apply atmospheric lighting to particle colors (but not to lights - they emit light)
                 const tintedColor = isLight ? baseColor : this.applyLighting(baseColor, lightingColor);
 
-                // Check if this is lava surface (lava with air/empty directly above only)
-                const isLavaSurface = cell.element.name === 'lava' &&
-                    coords.y > 0 &&
-                    this.pixelGrid.grid[coords.y - 1]?.[coords.x]?.element?.id === 0 &&
-                    // Only glow if it's truly the top surface (not side-exposed)
-                    (coords.x === 0 || coords.x === this.pixelGrid.width - 1 ||
-                     this.pixelGrid.grid[coords.y]?.[coords.x - 1]?.element?.name === 'lava' ||
-                     this.pixelGrid.grid[coords.y]?.[coords.x + 1]?.element?.name === 'lava');
+                // PERFORMANCE: Use cached lava surface flag (set during physics update)
+                const isLavaSurface = cell.data.isLavaSurface === true;
 
                 if (isLight) {
                     lightParticles.push({ coords, color: tintedColor });
@@ -897,36 +891,46 @@ class GameScene extends Phaser.Scene {
             const moonPhase = this.dayNightCycle.moonPhase;
             const radius = this.dayNightCycle.moonRadius;
 
-            // Subtle moon glow (softer and more realistic)
-            this.celestialGraphics.fillStyle(0xd0d0e0, 0.2);
-            this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.8);
-            this.celestialGraphics.fillStyle(0xc0c0d0, 0.15);
-            this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
+            // Extremely subtle moon glow (barely visible halo)
+            this.celestialGraphics.fillStyle(0xa0a0b0, 0.03);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.5);
+            this.celestialGraphics.fillStyle(0xb0b0c0, 0.02);
+            this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.2);
 
-            // Draw moon body - simple approach
-            // Full moon: draw complete lit circle
-            // Other phases: draw lit circle, then shadow ellipse over it
-
-            // Base moon (lit portion) - slightly off-white for realism
-            this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
+            // Base moon body - dimmer, more realistic lunar surface color
+            this.celestialGraphics.fillStyle(0xb0b0b0, 0.85);
             this.celestialGraphics.fillCircle(moonX, moonY, radius);
 
-            // Calculate shadow based on phase
+            // Calculate mathematically correct moon phase shadow
             // moonPhase: 0=new moon, 0.5=full moon, 1.0=new moon
-            const phaseOffset = Math.abs(moonPhase - 0.5) * 2; // 0 (full) to 1 (new)
+            // Phase angle: 0° to 360° (0=new, 90=first quarter, 180=full, 270=last quarter)
+            const phaseAngle = moonPhase * Math.PI * 2;
 
-            if (phaseOffset > 0.05) { // Don't draw shadow if nearly full
-                // Shadow ellipse parameters
-                const shadowWidth = radius * 2 * phaseOffset; // Wider as phase approaches new
-                const shadowSide = moonPhase < 0.5 ? 1 : -1; // Left for waxing, right for waning
+            // Illumination from the right (sun direction convention)
+            // cos(phaseAngle) gives us the illumination: -1 (new) to +1 (full)
+            const illumination = Math.cos(phaseAngle);
 
-                // Draw shadow as dark circle
+            // Only draw shadow if not full moon
+            if (Math.abs(illumination) < 0.99) {
+                // Create terminator line (the boundary between light and shadow)
+                // For waxing (0 to 0.5): shadow on left, light on right
+                // For waning (0.5 to 1.0): shadow on right, light on left
+
+                const shadowSide = illumination > 0 ? -1 : 1; // -1 = left, 1 = right
+
+                // Draw shadow using a filled circle positioned to create the crescent
+                // Make shadow circle slightly smaller to avoid edge overflow
                 this.celestialGraphics.fillStyle(0x0a0a1a, 0.95);
-                this.celestialGraphics.beginPath();
 
-                // Draw curved shadow using ellipse
-                const shadowX = moonX + (shadowSide * radius * (1 - phaseOffset));
-                this.celestialGraphics.fillEllipse(shadowX, moonY, shadowWidth, radius * 2);
+                // Offset the shadow circle to create realistic lunar phase
+                const shadowOffset = shadowSide * radius * (1 - Math.abs(illumination));
+                this.celestialGraphics.fillCircle(moonX + shadowOffset, moonY, radius - 0.5);
+
+                // For new moon, add additional darkening
+                if (Math.abs(illumination) < 0.1) {
+                    this.celestialGraphics.fillStyle(0x000000, 0.7);
+                    this.celestialGraphics.fillCircle(moonX, moonY, radius);
+                }
             }
         }
     }

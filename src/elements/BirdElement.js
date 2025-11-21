@@ -56,8 +56,8 @@ class BirdElement extends Element {
         // Age tracking
         cell.data.age++;
 
-        // PERFORMANCE: Update bird AI every 3 frames (reduces CPU by 66%)
-        const shouldUpdateAI = (grid.frameCount + (x + y) % 3) % 3 === 0;
+        // PERFORMANCE: Update bird AI every 5 frames (reduces CPU by 80%)
+        const shouldUpdateAI = (grid.frameCount + (x + y) % 5) % 5 === 0;
 
         // FEEDING COOLDOWN SYSTEM
         if (cell.data.feedingCooldown > 0) {
@@ -81,7 +81,7 @@ class BirdElement extends Element {
         // PERFORMANCE: Cache nearby bird count
         let nearbyBirdCount = cell.data.cachedNearbyBirdCount;
         if (shouldUpdateAI) {
-            nearbyBirdCount = this.countNearbyBirds(x, y, grid, 5);
+            nearbyBirdCount = this.countNearbyBirds(x, y, grid, 3); // Reduced from 5 to 3 for performance
             cell.data.cachedNearbyBirdCount = nearbyBirdCount;
         }
 
@@ -290,7 +290,7 @@ class BirdElement extends Element {
 
     // Find nearby food (same as fish)
     findNearbyFood(x, y, grid) {
-        const searchRadius = 15; // Larger than fish (birds have better vision)
+        const searchRadius = 7; // PERFORMANCE: Reduced from 15 to 7 for faster scanning
 
         for (let dy = -searchRadius; dy <= searchRadius; dy++) {
             for (let dx = -searchRadius; dx <= searchRadius; dx++) {
@@ -306,7 +306,7 @@ class BirdElement extends Element {
 
     // Find nearby tree to perch on
     findNearbyTree(x, y, grid) {
-        const searchRadius = 12;
+        const searchRadius = 7; // PERFORMANCE: Reduced from 12 to 7 for faster scanning
 
         for (let dy = -searchRadius; dy <= searchRadius; dy++) {
             for (let dx = -searchRadius; dx <= searchRadius; dx++) {

@@ -285,12 +285,30 @@ class InteractionManager {
 
     // Check and apply interactions between two elements
     checkInteraction(element1, element2, grid, x1, y1, x2, y2, registry) {
+        // PERFORMANCE: Early exit for common non-interacting pairs
+        // Empty space never interacts
+        if (element1.id === 0 || element2.id === 0) return false;
+
+        // PERFORMANCE: Early exit if both elements have no tags
+        const e1HasTags = element1.tags && element1.tags.size > 0;
+        const e2HasTags = element2.tags && element2.tags.size > 0;
+
+        // If neither element has tags and no custom interaction logic, skip
+        if (!e1HasTags && !e2HasTags && !element1.onInteract && !element2.onInteract) {
+            return false;
+        }
+
         // First check if elements have custom interaction logic
         const customResult1 = element1.onInteract?.(element2, grid, x1, y1, x2, y2);
         if (customResult1) return true;
 
         const customResult2 = element2.onInteract?.(element1, grid, x2, y2, x1, y1);
         if (customResult2) return true;
+
+        // PERFORMANCE: Skip interaction rules if neither element has tags
+        if (!e1HasTags && !e2HasTags) {
+            return false;
+        }
 
         // Then check registered interaction rules
         for (const interaction of this.interactions) {

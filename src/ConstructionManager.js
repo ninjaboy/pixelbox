@@ -11,15 +11,15 @@ export class ConstructionManager {
     /**
      * Update all active constructions in the grid
      * Called once per frame from PixelGrid.update()
+     * PERFORMANCE: Iterate tracked constructions instead of full grid scan
      */
     static updateConstructions(grid) {
-        // Scan for cells with _houseConstruction data
-        for (let y = 0; y < grid.height; y++) {
-            for (let x = 0; x < grid.width; x++) {
-                const cell = grid.getCell(x, y);
-                if (cell && cell.data._houseConstruction) {
-                    this.updateConstruction(cell, x, y, grid);
-                }
+        // PERFORMANCE: Only iterate tracked construction positions
+        for (const key of grid.activeConstructions) {
+            const coords = grid.keyToCoord(key);
+            const cell = grid.getCell(coords.x, coords.y);
+            if (cell && cell.data._houseConstruction) {
+                this.updateConstruction(cell, coords.x, coords.y, grid);
             }
         }
     }
@@ -59,6 +59,8 @@ export class ConstructionManager {
             case 'complete':
                 // Remove construction data - we're done!
                 delete cell.data._houseConstruction;
+                // PERFORMANCE: Unregister construction from tracking
+                grid.unregisterConstruction(x, y);
                 break;
         }
     }

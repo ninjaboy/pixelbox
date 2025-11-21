@@ -67,6 +67,19 @@ class LavaElement extends Element {
     }
 
     updateImpl(x, y, grid) {
+        const cell = grid.getCell(x, y);
+
+        // PERFORMANCE: Cache lava surface detection in cell data
+        // This avoids 3 grid lookups per lava pixel during rendering
+        const hasEmptyAbove = y > 0 && grid.grid[y - 1]?.[x]?.element?.id === 0;
+        const hasLavaOnSide = (x === 0 || x === grid.width - 1 ||
+                               grid.grid[y]?.[x - 1]?.element?.name === 'lava' ||
+                               grid.grid[y]?.[x + 1]?.element?.name === 'lava');
+
+        if (cell) {
+            cell.data.isLavaSurface = hasEmptyAbove && hasLavaOnSide;
+        }
+
         // Apply all behaviors (sand, water, ignition, melting, smoke)
         const behaviorResult = this.applyBehaviors(x, y, grid);
         if (behaviorResult) return true;

@@ -229,6 +229,9 @@ class HouseBuilderSeedElement extends Element {
             buildTimer: 0
         };
 
+        // PERFORMANCE: Register construction for efficient updates
+        grid.registerConstruction(x, foundationY);
+
         // Mark builder as having started construction
         cell.data._houseConstruction = true; // Just a marker so builder stays still
 

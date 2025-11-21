@@ -55,9 +55,9 @@ class FishElement extends Element {
         // Age tracking (no natural death - only starvation kills fish)
         cell.data.age++;
 
-        // PERFORMANCE: Update fish AI every 3 frames (reduces CPU by 66%)
+        // PERFORMANCE: Update fish AI every 5 frames (reduces CPU by 80%)
         // Still allows for basic movement and physics every frame
-        const shouldUpdateAI = (grid.frameCount + (x + y) % 3) % 3 === 0;
+        const shouldUpdateAI = (grid.frameCount + (x + y) % 5) % 5 === 0;
 
         // Check if in water
         const inWater = this.isInWater(x, y, grid);
@@ -96,10 +96,10 @@ class FishElement extends Element {
         // In water - reset death timer
         cell.data.outOfWaterTime = 0;
 
-        // PERFORMANCE: Cache nearby fish count (only update every 3 frames)
+        // PERFORMANCE: Cache nearby fish count (only update every 5 frames)
         let nearbyFishCount = cell.data.cachedNearbyFishCount;
         if (shouldUpdateAI) {
-            nearbyFishCount = this.countNearbyFish(x, y, grid, 5); // Increased radius to 5
+            nearbyFishCount = this.countNearbyFish(x, y, grid, 3); // Reduced radius from 5 to 3 for performance
             cell.data.cachedNearbyFishCount = nearbyFishCount;
         }
 
@@ -169,7 +169,7 @@ class FishElement extends Element {
 
         // PRIORITY 1: Food seeking (when hungry AND not on cooldown)
         if (cell.data.hunger > 20 && cell.data.feedingCooldown === 0) { // Can only eat if cooldown is over
-            // PERFORMANCE: Cache food location lookup (only update every 3 frames)
+            // PERFORMANCE: Cache food location lookup (only update every 5 frames)
             let foodLocation = cell.data.cachedFoodLocation;
             if (shouldUpdateAI) {
                 // First look for traditional food (leaves, ash, seeds)
@@ -434,7 +434,7 @@ class FishElement extends Element {
         let avgX = 0;
         let avgY = 0;
         let avgDirection = 0;
-        const radius = 5; // Check 5-pixel radius for school
+        const radius = 3; // PERFORMANCE: Reduced from 5 to 3 for faster scanning
 
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
@@ -517,7 +517,7 @@ class FishElement extends Element {
 
     findNearbyFood(x, y, grid) {
         // Search in a wider radius for food (leaves, ash, or seeds)
-        const searchRadius = 12; // Increased from 8 to 12
+        const searchRadius = 7; // PERFORMANCE: Reduced from 12 to 7 for faster scanning
 
         for (let dy = -searchRadius; dy <= searchRadius; dy++) {
             for (let dx = -searchRadius; dx <= searchRadius; dx++) {

@@ -1,7 +1,6 @@
 import Element from '../Element.js';
 import { STATE, TEMPERATURE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { GasBehavior } from '../behaviors/MovementBehaviors.js';
-import { EmissionBehavior } from '../behaviors/CombustionBehaviors.js';
 
 class FireElement extends Element {
     constructor() {
@@ -16,14 +15,7 @@ class FireElement extends Element {
             emissionDensity: 0.5 // Moderate sparse placement
         });
 
-        // Behavior 1: Emit smoke upward and diagonally
-        this.addBehavior(new EmissionBehavior({
-            emitElement: 'smoke',
-            emissionRate: 0.30, // 30% chance per frame
-            directions: [[-1, -1], [1, -1]], // Diagonal smoke
-            requiresEmpty: true
-        }));
-
+        // Fire itself doesn't emit smoke - only burning materials produce smoke
         // Use standardized gas behavior
         this.movement = new GasBehavior({
             riseSpeed: 0.7, // 70% chance to rise (chaotic flickering)
@@ -33,12 +25,7 @@ class FireElement extends Element {
     }
 
     updateImpl(x, y, grid) {
-        // PRIORITY 1: Emit smoke (via behavior)
-        if (this.applyBehaviors(x, y, grid)) {
-            return true;
-        }
-
-        // PRIORITY 2: Delegate to standardized gas behavior
+        // Delegate to standardized gas behavior (rise and spread)
         return this.movement.apply(x, y, grid);
     }
 }
