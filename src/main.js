@@ -41,11 +41,16 @@ class GameScene extends Phaser.Scene {
         this.celestialGraphics = this.add.graphics();
         this.graphics = this.add.graphics();
         this.lavaGlowGraphics = this.add.graphics(); // Separate layer for lava surface glow
+        this.lightGlowGraphics = this.add.graphics(); // Separate layer for glowing house lights
         this.overlayGraphics = this.add.graphics();
 
         // Add glow to celestial graphics for sun/moon - will be updated dynamically
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
         this.celestialGlow = celestialGlow;
+
+        // Add glow to house lights (warm yellow glow)
+        const lightGlow = this.lightGlowGraphics.postFX.addGlow(0xffaa44, 8, 4, false, 0.1, 12);
+        this.lightGlow = lightGlow;
 
         // Add glow to lava surface layer
         const lavaGlow = this.lavaGlowGraphics.postFX.addGlow(0xff6600, 6, 2, false, 0.1, 8);
@@ -588,6 +593,7 @@ class GameScene extends Phaser.Scene {
 
         // Update physics
         profiler.start('physics:update');
+        this.pixelGrid.setTimeOfDay(this.dayNightCycle.time); // Pass time to grid for house lighting
         this.pixelGrid.update();
         profiler.end('physics:update');
 
@@ -631,11 +637,13 @@ class GameScene extends Phaser.Scene {
         profiler.start('render:particles');
         this.graphics.clear();
         this.lavaGlowGraphics.clear();
+        this.lightGlowGraphics.clear();
         const lightingColor = this.getLightingColor(time);
 
         // PERFORMANCE: Render active cells using cached coordinates (no keyToCoord!)
         const particlesByColor = new Map();
         const lavaSurfaceParticles = [];
+        const lightParticles = [];
 
         for (const [numericKey, coords] of this.pixelGrid.activeCells) {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
@@ -647,6 +655,9 @@ class GameScene extends Phaser.Scene {
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);
 
+                // Check if this is a light element (glowing house light)
+                const isLight = cell.element.name === 'light';
+
                 // Check if this is lava surface (lava with air/empty directly above only)
                 const isLavaSurface = cell.element.name === 'lava' &&
                     coords.y > 0 &&
@@ -656,7 +667,9 @@ class GameScene extends Phaser.Scene {
                      this.pixelGrid.grid[coords.y]?.[coords.x - 1]?.element?.name === 'lava' ||
                      this.pixelGrid.grid[coords.y]?.[coords.x + 1]?.element?.name === 'lava');
 
-                if (isLavaSurface) {
+                if (isLight) {
+                    lightParticles.push({ coords, color: tintedColor });
+                } else if (isLavaSurface) {
                     lavaSurfaceParticles.push({ coords, color: tintedColor });
                 } else {
                     if (!particlesByColor.has(tintedColor)) {
@@ -695,6 +708,29 @@ class GameScene extends Phaser.Scene {
                 this.lavaGlowGraphics.fillStyle(color, 1);
                 for (const coords of particles) {
                     this.lavaGlowGraphics.fillRect(
+                        coords.x * this.pixelSize,
+                        coords.y * this.pixelSize,
+                        this.pixelSize,
+                        this.pixelSize
+                    );
+                }
+            }
+        }
+
+        // Render light particles with glow on separate layer
+        if (lightParticles.length > 0) {
+            const lightByColor = new Map();
+            for (const particle of lightParticles) {
+                if (!lightByColor.has(particle.color)) {
+                    lightByColor.set(particle.color, []);
+                }
+                lightByColor.get(particle.color).push(particle.coords);
+            }
+
+            for (const [color, particles] of lightByColor) {
+                this.lightGlowGraphics.fillStyle(color, 1);
+                for (const coords of particles) {
+                    this.lightGlowGraphics.fillRect(
                         coords.x * this.pixelSize,
                         coords.y * this.pixelSize,
                         this.pixelSize,

@@ -2,6 +2,7 @@
 import { CellState } from './CellState.js';
 import { STATE } from './ElementProperties.js';
 import { ConstructionManager } from './ConstructionManager.js';
+import { LightingManager } from './LightingManager.js';
 
 class PixelGrid {
     constructor(width, height, pixelSize, registry) {
@@ -254,6 +255,16 @@ class PixelGrid {
 
         // Update all active house constructions
         ConstructionManager.updateConstructions(this);
+
+        // Update house lighting based on time of day
+        if (this.timeOfDay !== undefined) {
+            LightingManager.updateHouseLights(this, this.timeOfDay);
+        }
+    }
+
+    // Set time of day (called from main game scene)
+    setTimeOfDay(time) {
+        this.timeOfDay = time;
     }
 
     checkInteractions(x, y) {

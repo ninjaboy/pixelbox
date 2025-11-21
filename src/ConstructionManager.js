@@ -189,9 +189,10 @@ export class ConstructionManager {
             this.forcePlaceBlock(centerX - 2, wallY, material, grid);
             construction.buildStep++;
         } else if (step < storyHeight * 2) {
-            // Right wall
+            // Right wall with window
             const wallY = baseY - (step - storyHeight);
-            this.forcePlaceBlock(centerX + 2, wallY, 'wood', grid);
+            const material = (step - storyHeight === Math.floor(storyHeight / 2)) ? 'glass' : 'wood';
+            this.forcePlaceBlock(centerX + 2, wallY, material, grid);
             construction.buildStep++;
         } else if (step < storyHeight * 2 + 5) {
             // Ceiling
@@ -238,7 +239,25 @@ export class ConstructionManager {
                 }
             }
         } else {
-            // Roof complete!
+            // Roof complete! Now track this house for lighting
+            // Store house info in a global houses array on the grid
+            if (!grid.houses) {
+                grid.houses = [];
+            }
+
+            // Track window positions (inside the house, behind glass)
+            const windowPositions = [
+                { x: centerX - 1, y: construction.currentY - 1 }, // Floor 2, left window interior
+                { x: centerX + 1, y: construction.currentY - 1 }  // Floor 2, right window interior
+            ];
+
+            grid.houses.push({
+                centerX: centerX,
+                baseY: construction.baseY,
+                windows: windowPositions,
+                lightsOn: false
+            });
+
             construction.buildPhase = 'complete';
         }
     }

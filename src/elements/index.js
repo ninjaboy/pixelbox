@@ -40,3 +40,4 @@ export { default as SteamVentElement } from './SteamVentElement.js';
 export { default as CoralElement } from './CoralElement.js';
 export { default as ElectricityElement } from './ElectricityElement.js';
 export { default as HouseBuilderSeedElement } from './HouseBuilderSeedElement.js';
+export { default as LightElement } from './LightElement.js';

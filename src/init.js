@@ -34,6 +34,7 @@ import {
     ObsidianElement,
     CoalElement,
     FossilElement,
+    LightElement,
 
     // === ORGANIC (life & growth) ===
     TreeSeedElement,
@@ -95,6 +96,7 @@ registry.register(new WallElement());
 registry.register(new ObsidianElement());
 registry.register(new CoalElement());
 registry.register(new FossilElement());
+registry.register(new LightElement());
 
 // === ORGANIC (life & growth) ===
 registry.register(new TreeSeedElement());
