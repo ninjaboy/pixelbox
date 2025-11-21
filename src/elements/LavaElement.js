@@ -14,7 +14,8 @@ class LavaElement extends Element {
             tags: new Set([TAG.HEAT_SOURCE, TAG.VERY_HOT]),
             brushSize: 3,
             emissionDensity: 0.7,
-            lifetime: -1 // Eternal - lava never disappears
+            lifetime: -1, // Eternal - lava never disappears
+            glowing: true // Lava should glow
         });
 
         // Behavior 1: Ignite combustible materials nearby
