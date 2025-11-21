@@ -23,8 +23,8 @@ export class LightingManager {
         if (this.builderSpawnFrameCounter >= 60) {
             this.builderSpawnFrameCounter = 0;
             // Occasionally spawn builders during daytime (0.3-0.6, avoid dawn/dusk)
-            // Check probability: 0.01% chance per frame = 0.6% chance per 60 frames
-            if (time > 0.3 && time < 0.6 && Math.random() < 0.006) {
+            // Check probability: 0.005% chance per frame = 0.3% chance per 60 frames (half as frequent)
+            if (time > 0.3 && time < 0.6 && Math.random() < 0.003) {
                 this.spawnBuilderFromHouse(grid);
             }
         }
