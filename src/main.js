@@ -40,11 +40,16 @@ class GameScene extends Phaser.Scene {
         this.skyGraphics = this.add.graphics();
         this.celestialGraphics = this.add.graphics();
         this.graphics = this.add.graphics();
+        this.lavaGlowGraphics = this.add.graphics(); // Separate layer for lava surface glow
         this.overlayGraphics = this.add.graphics();
 
         // Add glow to celestial graphics for sun/moon - will be updated dynamically
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
         this.celestialGlow = celestialGlow;
+
+        // Add glow to lava surface layer
+        const lavaGlow = this.lavaGlowGraphics.postFX.addGlow(0xff6600, 6, 2, false, 0.1, 8);
+        this.lavaGlow = lavaGlow;
 
         // Setup input
         this.input.on('pointerdown', this.startDrawing, this);
@@ -625,10 +630,12 @@ class GameScene extends Phaser.Scene {
         // 3. RENDER PIXEL GRID WITH LIGHTING
         profiler.start('render:particles');
         this.graphics.clear();
+        this.lavaGlowGraphics.clear();
         const lightingColor = this.getLightingColor(time);
 
         // PERFORMANCE: Render active cells using cached coordinates (no keyToCoord!)
         const particlesByColor = new Map();
+        const lavaSurfaceParticles = [];
 
         for (const [numericKey, coords] of this.pixelGrid.activeCells) {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
@@ -640,14 +647,23 @@ class GameScene extends Phaser.Scene {
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);
 
-                if (!particlesByColor.has(tintedColor)) {
-                    particlesByColor.set(tintedColor, []);
+                // Check if this is lava surface (lava with air/empty above)
+                const isLavaSurface = cell.element.name === 'lava' &&
+                    coords.y > 0 &&
+                    this.pixelGrid.grid[coords.y - 1]?.[coords.x]?.element?.id === 0;
+
+                if (isLavaSurface) {
+                    lavaSurfaceParticles.push({ coords, color: tintedColor });
+                } else {
+                    if (!particlesByColor.has(tintedColor)) {
+                        particlesByColor.set(tintedColor, []);
+                    }
+                    particlesByColor.get(tintedColor).push(coords);
                 }
-                particlesByColor.get(tintedColor).push(coords);
             }
         }
 
-        // Render all particles of the same color in one batch
+        // Render all normal particles of the same color in one batch
         for (const [color, particles] of particlesByColor) {
             this.graphics.fillStyle(color, 1);
             for (const coords of particles) {
@@ -657,6 +673,30 @@ class GameScene extends Phaser.Scene {
                     this.pixelSize,
                     this.pixelSize
                 );
+            }
+        }
+
+        // Render lava surface particles with glow on separate layer
+        if (lavaSurfaceParticles.length > 0) {
+            // Group by color for batching
+            const lavaSurfaceByColor = new Map();
+            for (const particle of lavaSurfaceParticles) {
+                if (!lavaSurfaceByColor.has(particle.color)) {
+                    lavaSurfaceByColor.set(particle.color, []);
+                }
+                lavaSurfaceByColor.get(particle.color).push(particle.coords);
+            }
+
+            for (const [color, particles] of lavaSurfaceByColor) {
+                this.lavaGlowGraphics.fillStyle(color, 1);
+                for (const coords of particles) {
+                    this.lavaGlowGraphics.fillRect(
+                        coords.x * this.pixelSize,
+                        coords.y * this.pixelSize,
+                        this.pixelSize,
+                        this.pixelSize
+                    );
+                }
             }
         }
         profiler.end('render:particles');
