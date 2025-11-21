@@ -26,8 +26,8 @@ class GameScene extends Phaser.Scene {
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
-            time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
-            speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
+            time: 0.0, // TEMPORARY: Eternal night (midnight)
+            speed: 0, // TEMPORARY: No time passing - frozen at night
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
 
@@ -886,49 +886,57 @@ class GameScene extends Phaser.Scene {
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
-        // Draw moon with realistic phases (visible during night)
+        // TEMPORARY: Draw 12 moons showing all phases (visible during night)
         if (time < 0.3 || time > 0.7) {
-            const moonPhase = this.dayNightCycle.moonPhase;
             const radius = this.dayNightCycle.moonRadius;
+            const moonCount = 12;
+            const spacing = width / (moonCount + 1); // Evenly space across screen width
 
-            // Subtle moon glow - only when illuminated enough
-            const phaseAngle = moonPhase * Math.PI * 2;
-            const illumination = Math.cos(phaseAngle); // -1 (new) to +1 (full)
-            const brightness = (illumination + 1) / 2; // 0 to 1
+            // Draw all 12 phases
+            for (let i = 0; i < moonCount; i++) {
+                const moonPhase = i / moonCount; // 0, 1/12, 2/12, ... 11/12
+                const displayX = spacing * (i + 1); // Horizontal position
+                const displayY = height * 0.3; // Fixed vertical position (30% from top)
 
-            if (brightness > 0.3) { // Only show glow when moon is reasonably lit
-                const glowAlpha = brightness * 0.04; // Scale with brightness
-                this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
-            }
+                // Calculate brightness for this phase
+                const phaseAngle = moonPhase * Math.PI * 2;
+                const illumination = Math.cos(phaseAngle); // -1 (new) to +1 (full)
+                const brightness = (illumination + 1) / 2; // 0 to 1
 
-            // Draw moon phases - only draw the visible lit portion
-            if (brightness < 0.05) {
-                // New moon - barely visible, very dim
-                this.celestialGraphics.fillStyle(0x3a3a3a, 0.3);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius);
-            } else if (brightness < 0.98) {
-                // Moon has phases - draw the crescent/gibbous shape
-                const isWaxing = moonPhase < 0.5;
+                // Subtle moon glow - only when illuminated enough
+                if (brightness > 0.3) {
+                    const glowAlpha = brightness * 0.04;
+                    this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
+                    this.celestialGraphics.fillCircle(displayX, displayY, radius * 1.4);
+                }
 
-                // Draw the full moon body first
-                this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+                // Draw moon phases - only draw the visible lit portion
+                if (brightness < 0.05) {
+                    // New moon - barely visible, very dim
+                    this.celestialGraphics.fillStyle(0x3a3a3a, 0.3);
+                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
+                } else if (brightness < 0.98) {
+                    // Moon has phases - draw the crescent/gibbous shape
+                    const isWaxing = moonPhase < 0.5;
 
-                // Now draw the dark portion as a semi-transparent darker moon color
-                // This creates the shadow effect without blocking the halo
-                const maxOffset = radius * 2;
-                const shadowX = isWaxing ?
-                    moonX - maxOffset * (1 - brightness) :
-                    moonX + maxOffset * (1 - brightness);
+                    // Draw the full moon body first
+                    this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
+                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
 
-                // Draw shadow as a dark gray/blue that's transparent
-                this.celestialGraphics.fillStyle(0x1a1a2a, 0.85);
-                this.celestialGraphics.fillCircle(shadowX, moonY, radius);
-            } else {
-                // Full moon - just draw it normally
-                this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+                    // Now draw the dark portion as a semi-transparent darker moon color
+                    const maxOffset = radius * 2;
+                    const shadowX = isWaxing ?
+                        displayX - maxOffset * (1 - brightness) :
+                        displayX + maxOffset * (1 - brightness);
+
+                    // Draw shadow as a dark gray/blue that's transparent
+                    this.celestialGraphics.fillStyle(0x1a1a2a, 0.85);
+                    this.celestialGraphics.fillCircle(shadowX, displayY, radius);
+                } else {
+                    // Full moon - just draw it normally
+                    this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
+                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
+                }
             }
         }
     }
