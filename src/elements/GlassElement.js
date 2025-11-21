@@ -1,5 +1,5 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, TAG } from '../ElementProperties.js';
 
 class GlassElement extends Element {
     constructor() {
@@ -7,7 +7,9 @@ class GlassElement extends Element {
             density: 5,
             state: STATE.SOLID,
             movable: false,
-            tags: [],
+            tags: [TAG.COMBUSTIBLE],
+            ignitionResistance: 0.9, // Very resistant to fire, but can eventually break
+            burnsInto: 'empty', // Glass shatters/melts into nothing when destroyed by fire
             brushSize: 1,
             emissionDensity: 0.8,
             canInteract: false  // PERFORMANCE: Skip interaction checks
