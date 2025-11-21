@@ -114,7 +114,7 @@ class BirdElement extends Element {
         }
 
         // PRIORITY 1: FOOD SEEKING (when hungry AND not on cooldown)
-        if (cell.data.hunger > 20 && cell.data.feedingCooldown === 0) {
+        if (cell.data.hunger > 50 && cell.data.feedingCooldown === 0) {
             // PERFORMANCE: Cache food location lookup
             let foodLocation = cell.data.cachedFoodLocation;
             if (shouldUpdateAI) {
@@ -242,8 +242,8 @@ class BirdElement extends Element {
                 const newY = y + verticalDir;
                 const element = grid.getElement(x, newY);
 
-                // Birds can fly in empty space or replace empty
-                if (element && element.name === 'empty') {
+                // Birds can fly in empty space - avoid lava and fire
+                if (element && element.name === 'empty' && !this.isDangerousNearby(x, newY, grid)) {
                     grid.swap(x, y, x, newY);
                     return true;
                 }
@@ -255,7 +255,7 @@ class BirdElement extends Element {
                 const newX = x + dir;
                 const element = grid.getElement(newX, y);
 
-                if (element && element.name === 'empty') {
+                if (element && element.name === 'empty' && !this.isDangerousNearby(newX, y, grid)) {
                     grid.swap(x, y, newX, y);
                     return true;
                 }
@@ -263,7 +263,7 @@ class BirdElement extends Element {
                 // If blocked, try diagonal
                 const verticalDir = Math.random() > 0.5 ? 1 : -1;
                 const diagonalElement = grid.getElement(newX, y + verticalDir);
-                if (diagonalElement && diagonalElement.name === 'empty') {
+                if (diagonalElement && diagonalElement.name === 'empty' && !this.isDangerousNearby(newX, y + verticalDir, grid)) {
                     grid.swap(x, y, newX, y + verticalDir);
                     return true;
                 }
@@ -325,6 +325,20 @@ class BirdElement extends Element {
         return null;
     }
 
+    // Check if there's dangerous elements (lava, fire) nearby
+    isDangerousNearby(x, y, grid) {
+        // Check adjacent cells for lava or fire
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && (element.name === 'lava' || element.name === 'fire')) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Fly toward a target position
     flyToward(x, y, targetX, targetY, grid) {
         const dx = targetX - x;
@@ -334,7 +348,7 @@ class BirdElement extends Element {
         if (Math.abs(dy) > 0 && Math.random() > 0.1) {
             const vertDir = dy > 0 ? 1 : -1;
             const element = grid.getElement(x, y + vertDir);
-            if (element && element.name === 'empty') {
+            if (element && element.name === 'empty' && !this.isDangerousNearby(x, y + vertDir, grid)) {
                 grid.swap(x, y, x, y + vertDir);
                 return true;
             }
@@ -344,7 +358,7 @@ class BirdElement extends Element {
         if (Math.abs(dx) > 0 && Math.random() > 0.1) {
             const horizDir = dx > 0 ? 1 : -1;
             const element = grid.getElement(x + horizDir, y);
-            if (element && element.name === 'empty') {
+            if (element && element.name === 'empty' && !this.isDangerousNearby(x + horizDir, y, grid)) {
                 grid.swap(x, y, x + horizDir, y);
                 return true;
             }
@@ -355,7 +369,7 @@ class BirdElement extends Element {
             const horizDir = dx > 0 ? 1 : -1;
             const vertDir = dy > 0 ? 1 : -1;
             const element = grid.getElement(x + horizDir, y + vertDir);
-            if (element && element.name === 'empty') {
+            if (element && element.name === 'empty' && !this.isDangerousNearby(x + horizDir, y + vertDir, grid)) {
                 grid.swap(x, y, x + horizDir, y + vertDir);
                 return true;
             }
