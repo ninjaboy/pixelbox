@@ -76,32 +76,45 @@ class TreeSeedElement extends Element {
             return false;
         }
 
-        // Initialize tree structure on valid surface
-        if (!cell.data.treeStructure) {
+        // Initialize growth timer if not set
+        if (cell.data.growthTimer === undefined) {
+            cell.data.growthTimer = 0;
+            cell.data.checkedConditions = false;
+        }
+
+        // Wait for germination period BEFORE checking conditions
+        cell.data.growthTimer++;
+        if (cell.data.growthTimer < TREE_CONFIG.initialDelay) {
+            return false;
+        }
+
+        // After germination delay, continuously check conditions before committing to grow
+        if (!cell.data.checkedConditions) {
             // Check for nearby trees to prevent overcrowding
-            const minTreeDistance = 8; // Minimum distance between trees
+            const minTreeDistance = 12; // Increased from 8 to 12 for better spacing
             const hasNearbyTree = this.hasNearbyTree(x, y, grid, minTreeDistance);
 
-            // Rare chance (5%) to allow multi-trunk trees even with nearby trees
-            const allowMultiTrunk = Math.random() < 0.05;
+            // Rare chance (3%) to allow multi-trunk trees even with nearby trees (reduced from 5%)
+            const allowMultiTrunk = Math.random() < 0.03;
 
             if (hasNearbyTree && !allowMultiTrunk) {
-                // Too close to another tree - seed stays dormant and eventually decays
-                if (Math.random() < 0.001) { // 0.1% chance per frame to decay
+                // Too close to another tree - seed stays dormant
+                // Check conditions again next frame
+                // Faster decay rate since we're stuck waiting
+                if (Math.random() < 0.002) { // 0.2% chance per frame to decay (increased from 0.1%)
                     grid.setElement(x, y, grid.registry.get('ash'));
                 }
                 return false;
             }
 
-            cell.data.treeStructure = this.generateFractalTree(x, y);
-            cell.data.growthTimer = 0;
-            cell.data.growthFrameCounter = 0;
-            return false;
+            // Conditions are good - mark as checked and proceed to generate tree
+            cell.data.checkedConditions = true;
         }
 
-        // Wait initial delay (seed germination)
-        cell.data.growthTimer++;
-        if (cell.data.growthTimer < TREE_CONFIG.initialDelay) {
+        // Generate tree structure only after conditions are validated
+        if (!cell.data.treeStructure) {
+            cell.data.treeStructure = this.generateFractalTree(x, y);
+            cell.data.growthFrameCounter = 0;
             return false;
         }
 
