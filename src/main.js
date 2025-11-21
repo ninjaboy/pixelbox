@@ -48,8 +48,8 @@ class GameScene extends Phaser.Scene {
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
         this.celestialGlow = celestialGlow;
 
-        // Add glow to house lights (warm yellow glow)
-        const lightGlow = this.lightGlowGraphics.postFX.addGlow(0xffaa44, 8, 4, false, 0.1, 12);
+        // Add glow to house lights (soft warm white glow)
+        const lightGlow = this.lightGlowGraphics.postFX.addGlow(0xffdd99, 3, 1, false, 0.1, 6);
         this.lightGlow = lightGlow;
 
         // Add glow to lava surface layer

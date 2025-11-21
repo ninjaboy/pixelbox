@@ -3,7 +3,7 @@ import { STATE } from '../ElementProperties.js';
 
 class LightElement extends Element {
     constructor() {
-        super(50, 'light', 0xffdd88, { // Warm yellow light
+        super(50, 'light', 0xfff4e0, { // Warm white light
             density: 0,
             state: STATE.SOLID,
             movable: false,
