@@ -47,13 +47,9 @@ class GameScene extends Phaser.Scene {
         const glowFX = this.glowGraphics.postFX.addGlow(0xffaa00, 4, 0, false, 0.1, 10);
         this.glowFX = glowFX;
 
-        // Add bloom to celestial graphics for sun/moon glow
-        const celestialBloom = this.celestialGraphics.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.2);
-        this.celestialBloom = celestialBloom;
-
-        // Add shine effect to celestial graphics for sparkling sun/moon
-        const celestialShine = this.celestialGraphics.postFX.addShine(1, 0.2, 5, false);
-        this.celestialShine = celestialShine;
+        // Add glow to celestial graphics for sun/moon - will be updated dynamically
+        const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
+        this.celestialGlow = celestialGlow;
 
         // Setup input
         this.input.on('pointerdown', this.startDrawing, this);
@@ -781,6 +777,17 @@ class GameScene extends Phaser.Scene {
 
     renderCelestialBodies(width, height, time) {
         this.celestialGraphics.clear();
+
+        // Update celestial glow strength based on time of day (stronger at noon)
+        // Noon is at time=0.5, glow peaks then
+        let glowStrength = 2; // Base glow strength
+        if (time > 0.3 && time < 0.7) {
+            // Day time - calculate distance from noon
+            const distanceFromNoon = Math.abs(time - 0.5); // 0 at noon, 0.2 at edges
+            const noonFactor = 1 - (distanceFromNoon / 0.2); // 1 at noon, 0 at dawn/dusk
+            glowStrength = 2 + (noonFactor * 8); // 2 to 10 (peaks at noon)
+        }
+        this.celestialGlow.outerStrength = glowStrength;
 
         // Sun position: rises at 0.25 (dawn), peaks at 0.5 (noon), sets at 0.75 (dusk)
         // Map time to angle: 0.25→0° (east/left), 0.5→90° (zenith/top), 0.75→180° (west/right)
