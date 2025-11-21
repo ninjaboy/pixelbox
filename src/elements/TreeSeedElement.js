@@ -78,6 +78,21 @@ class TreeSeedElement extends Element {
 
         // Initialize tree structure on valid surface
         if (!cell.data.treeStructure) {
+            // Check for nearby trees to prevent overcrowding
+            const minTreeDistance = 8; // Minimum distance between trees
+            const hasNearbyTree = this.hasNearbyTree(x, y, grid, minTreeDistance);
+
+            // Rare chance (5%) to allow multi-trunk trees even with nearby trees
+            const allowMultiTrunk = Math.random() < 0.05;
+
+            if (hasNearbyTree && !allowMultiTrunk) {
+                // Too close to another tree - seed stays dormant and eventually decays
+                if (Math.random() < 0.001) { // 0.1% chance per frame to decay
+                    grid.setElement(x, y, grid.registry.get('ash'));
+                }
+                return false;
+            }
+
             cell.data.treeStructure = this.generateFractalTree(x, y);
             cell.data.growthTimer = 0;
             cell.data.growthFrameCounter = 0;
@@ -99,6 +114,21 @@ class TreeSeedElement extends Element {
 
         // Grow tree gradually
         return this.growTreeGradually(x, y, grid, cell);
+    }
+
+    hasNearbyTree(x, y, grid, radius) {
+        // Check for existing tree trunks or branches within radius
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue; // Skip self
+
+                const element = grid.getElement(x + dx, y + dy);
+                if (element && (element.name === 'tree_trunk' || element.name === 'tree_branch')) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     generateFractalTree(rootX, rootY) {
