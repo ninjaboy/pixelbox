@@ -647,10 +647,14 @@ class GameScene extends Phaser.Scene {
                 // Apply atmospheric lighting to particle colors
                 const tintedColor = this.applyLighting(baseColor, lightingColor);
 
-                // Check if this is lava surface (lava with air/empty above)
+                // Check if this is lava surface (lava with air/empty directly above only)
                 const isLavaSurface = cell.element.name === 'lava' &&
                     coords.y > 0 &&
-                    this.pixelGrid.grid[coords.y - 1]?.[coords.x]?.element?.id === 0;
+                    this.pixelGrid.grid[coords.y - 1]?.[coords.x]?.element?.id === 0 &&
+                    // Only glow if it's truly the top surface (not side-exposed)
+                    (coords.x === 0 || coords.x === this.pixelGrid.width - 1 ||
+                     this.pixelGrid.grid[coords.y]?.[coords.x - 1]?.element?.name === 'lava' ||
+                     this.pixelGrid.grid[coords.y]?.[coords.x + 1]?.element?.name === 'lava');
 
                 if (isLavaSurface) {
                     lavaSurfaceParticles.push({ coords, color: tintedColor });
