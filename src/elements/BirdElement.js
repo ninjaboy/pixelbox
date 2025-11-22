@@ -28,6 +28,11 @@ class BirdElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
+        // Get time of day for day/night behavior
+        const time = grid.dayNightCycle ? grid.dayNightCycle.getTime() : 0.5;
+        const isNight = time >= 0.85 || time < 0.2; // Night time: 0.85-0.2
+        const isMorning = time >= 0.2 && time < 0.3; // Morning: 0.2-0.3
+
         // Initialize bird data on first update (spawn)
         if (!cell.data.flyDirection) {
             cell.data.flyDirection = Math.random() > 0.5 ? 1 : -1;
@@ -37,6 +42,7 @@ class BirdElement extends Element {
             cell.data.feedingCooldown = 0; // Frames until can eat again
             cell.data.perchTimer = 0; // Time spent perching
             cell.data.isPerching = false;
+            cell.data.isSleeping = false; // Sleeping at night
             cell.data.altitude = y; // Target altitude for flying
             cell.data.glidePhase = 0; // For smooth bobbing motion
 
@@ -75,7 +81,48 @@ class BirdElement extends Element {
         const isStressed = nearbyBirdCount > 4; // More than 4 nearby = stressed
         const isStarving = cell.data.hunger >= 70; // Very hungry = can't reproduce
 
-        // PRIORITY 0: PERCHING BEHAVIOR
+        // PRIORITY 0: NIGHT TIME - Birds sleep when it's dark!
+        if (isNight && !cell.data.isSleeping) {
+            // Find a perch to sleep on (tree, ground, roof, etc.)
+            if (this.canPerchAt(x, y, grid)) {
+                // Found a spot, go to sleep!
+                cell.data.isSleeping = true;
+                cell.data.isPerching = true;
+                return false;
+            } else {
+                // Look for nearby perch spot
+                const perchSpot = this.findNearbyPerchSpot(x, y, grid);
+                if (perchSpot) {
+                    const [perchX, perchY] = perchSpot;
+                    if (this.flyToward(x, y, perchX, perchY, grid)) {
+                        return true;
+                    }
+                } else {
+                    // Can't find perch, descend slowly
+                    const below = grid.getElement(x, y + 1);
+                    if (below && below.name === 'empty') {
+                        grid.swap(x, y, x, y + 1);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Wake up in the morning!
+        if (isMorning && cell.data.isSleeping) {
+            cell.data.isSleeping = false;
+            cell.data.isPerching = false;
+            cell.data.perchTimer = 0;
+            // Don't return - bird will start flying again
+        }
+
+        // PRIORITY 1: SLEEPING BEHAVIOR - Stay still when sleeping
+        if (cell.data.isSleeping) {
+            // Just stay still and sleep
+            return false;
+        }
+
+        // PRIORITY 2: PERCHING BEHAVIOR
         if (cell.data.isPerching) {
             cell.data.perchTimer++;
 
@@ -179,10 +226,13 @@ class BirdElement extends Element {
         cell.data.flyTimer++;
         cell.data.glidePhase += 0.05; // Increment phase for smooth sine wave
 
-        // Update target altitude occasionally - HIGHER AND LONGER
+        // Update target altitude occasionally - fly BELOW the clouds
         if (shouldUpdateAI && Math.random() > 0.98) {
-            // Prefer upper air (5-25 pixels from top) - fly much higher!
-            cell.data.altitude = 5 + Math.floor(Math.random() * 20);
+            // Clouds are at 0-40% of grid height
+            // Birds should fly at 40-70% of grid height (below clouds, above ground)
+            const cloudLayer = Math.floor(grid.height * 0.4);
+            const midGround = Math.floor(grid.height * 0.7);
+            cell.data.altitude = cloudLayer + Math.floor(Math.random() * (midGround - cloudLayer));
         }
 
         // Change direction occasionally
@@ -418,6 +468,31 @@ class BirdElement extends Element {
         }
 
         return false;
+    }
+
+    // Find nearby perch spot for sleeping at night
+    findNearbyPerchSpot(x, y, grid) {
+        const searchRadius = 10;
+
+        for (let dy = searchRadius; dy >= -searchRadius; dy--) { // Search from bottom up
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const checkY = y + dy;
+                const checkX = x + dx;
+                const element = grid.getElement(checkX, checkY);
+
+                // Look for empty space with solid below (perchable spot)
+                if (element && element.name === 'empty') {
+                    const below = grid.getElement(checkX, checkY + 1);
+                    if (below && below.name !== 'empty' &&
+                        below.name !== 'lava' && below.name !== 'fire' &&
+                        below.name !== 'water' && below.name !== 'acid') {
+                        return [checkX, checkY];
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }
 
