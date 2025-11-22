@@ -26,8 +26,8 @@ class GameScene extends Phaser.Scene {
 
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
-            time: 0.0, // TEMPORARY: Eternal night (midnight)
-            speed: 0, // TEMPORARY: No time passing - frozen at night
+            time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
+            speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
 
@@ -886,84 +886,76 @@ class GameScene extends Phaser.Scene {
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
-        // TEMPORARY: Draw 12 moons showing all phases (visible during night)
+        // Draw moon with realistic phases (visible during night)
         if (time < 0.3 || time > 0.7) {
+            const moonPhase = this.dayNightCycle.moonPhase;
             const radius = this.dayNightCycle.moonRadius;
-            const moonCount = 12;
-            const spacing = width / (moonCount + 1); // Evenly space across screen width
 
-            // Draw all 12 phases
-            for (let i = 0; i < moonCount; i++) {
-                const moonPhase = i / moonCount; // 0, 1/12, 2/12, ... 11/12
-                const displayX = spacing * (i + 1); // Horizontal position
-                const displayY = height * 0.3; // Fixed vertical position (30% from top)
+            // Calculate brightness for this phase
+            // Phase 0 = full moon, 0.5 = new moon
+            const phaseAngle = moonPhase * Math.PI * 2;
+            const illumination = Math.cos(phaseAngle); // +1 (full) to -1 (new)
+            const brightness = (illumination + 1) / 2; // 1 to 0
 
-                // Calculate brightness for this phase
-                // Phase 0 = full moon, 0.5 = new moon
-                const phaseAngle = moonPhase * Math.PI * 2;
-                const illumination = Math.cos(phaseAngle); // +1 (full) to -1 (new)
-                const brightness = (illumination + 1) / 2; // 1 to 0
+            // Subtle moon glow - only when illuminated enough
+            if (brightness > 0.3) {
+                const glowAlpha = brightness * 0.04;
+                this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
+            }
 
-                // Subtle moon glow - only when illuminated enough
-                if (brightness > 0.3) {
-                    const glowAlpha = brightness * 0.04;
-                    this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
-                    this.celestialGraphics.fillCircle(displayX, displayY, radius * 1.4);
-                }
+            // Draw moon phases using proper lunar geometry
+            if (brightness < 0.05) {
+                // New moon - bright and luminous
+                this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+            } else if (brightness >= 0.98) {
+                // Full moon - barely visible, very dim
+                this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
+                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+            } else {
+                // Draw moon phase using the classic method:
+                // Outer edge is always a semicircle, terminator is an ellipse
 
-                // Draw moon phases using proper lunar geometry
-                if (brightness < 0.05) {
-                    // New moon - bright and luminous
-                    this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
-                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
-                } else if (brightness >= 0.98) {
-                    // Full moon - barely visible, very dim
-                    this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
-                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
-                } else {
-                    // Draw moon phase using the classic method:
-                    // Outer edge is always a semicircle, terminator is an ellipse
+                // Phase cycle: 0→full, 0.25→last quarter, 0.5→new, 0.75→first quarter, 1→full
+                // moonPhase 0-0.5: waning (full→new, left side lit)
+                // moonPhase 0.5-1: waxing (new→full, right side lit)
+                const isWaxing = moonPhase > 0.5;
+                const k = illumination; // +1 (full) to -1 (new)
 
-                    // Phase cycle: 0→full, 0.25→last quarter, 0.5→new, 0.75→first quarter, 1→full
-                    // moonPhase 0-0.5: waning (full→new, left side lit)
-                    // moonPhase 0.5-1: waxing (new→full, right side lit)
-                    const isWaxing = moonPhase > 0.5;
-                    const k = illumination; // +1 (full) to -1 (new)
+                this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
+                this.celestialGraphics.beginPath();
 
-                    this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
-                    this.celestialGraphics.beginPath();
+                if (isWaxing) {
+                    // Waxing moon - lit portion on the RIGHT side
+                    // Start at top, draw right semicircle (lit edge)
+                    this.celestialGraphics.arc(moonX, moonY, radius, -Math.PI / 2, Math.PI / 2, false);
 
-                    if (isWaxing) {
-                        // Waxing moon - lit portion on the RIGHT side
-                        // Start at top, draw right semicircle (lit edge)
-                        this.celestialGraphics.arc(displayX, displayY, radius, -Math.PI / 2, Math.PI / 2, false);
-
-                        // Draw terminator curve from bottom to top (left side)
-                        const segments = 30;
-                        for (let i = 0; i <= segments; i++) {
-                            const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
-                            const y = displayY + radius * Math.sin(theta);
-                            const x = displayX + radius * k * Math.cos(theta); // Positive k for waxing
-                            this.celestialGraphics.lineTo(x, y);
-                        }
-                    } else {
-                        // Waning moon - lit portion on the LEFT side
-                        // Start at top, draw left semicircle (lit edge)
-                        this.celestialGraphics.arc(displayX, displayY, radius, -Math.PI / 2, Math.PI / 2, true);
-
-                        // Draw terminator curve from bottom to top (right side)
-                        const segments = 30;
-                        for (let i = 0; i <= segments; i++) {
-                            const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
-                            const y = displayY + radius * Math.sin(theta);
-                            const x = displayX - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
-                            this.celestialGraphics.lineTo(x, y);
-                        }
+                    // Draw terminator curve from bottom to top (left side)
+                    const segments = 30;
+                    for (let i = 0; i <= segments; i++) {
+                        const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
+                        const y = moonY + radius * Math.sin(theta);
+                        const x = moonX + radius * k * Math.cos(theta); // Positive k for waxing
+                        this.celestialGraphics.lineTo(x, y);
                     }
+                } else {
+                    // Waning moon - lit portion on the LEFT side
+                    // Start at top, draw left semicircle (lit edge)
+                    this.celestialGraphics.arc(moonX, moonY, radius, -Math.PI / 2, Math.PI / 2, true);
 
-                    this.celestialGraphics.closePath();
-                    this.celestialGraphics.fillPath();
+                    // Draw terminator curve from bottom to top (right side)
+                    const segments = 30;
+                    for (let i = 0; i <= segments; i++) {
+                        const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
+                        const y = moonY + radius * Math.sin(theta);
+                        const x = moonX - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
+                        this.celestialGraphics.lineTo(x, y);
+                    }
                 }
+
+                this.celestialGraphics.closePath();
+                this.celestialGraphics.fillPath();
             }
         }
     }
