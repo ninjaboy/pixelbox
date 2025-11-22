@@ -913,12 +913,12 @@ class GameScene extends Phaser.Scene {
 
                 // Draw moon phases using proper lunar geometry
                 if (brightness < 0.05) {
-                    // New moon - barely visible, very dim
-                    this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
+                    // New moon - bright and luminous
+                    this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
                     this.celestialGraphics.fillCircle(displayX, displayY, radius);
                 } else if (brightness >= 0.98) {
-                    // Full moon - bright and luminous
-                    this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
+                    // Full moon - barely visible, very dim
+                    this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
                     this.celestialGraphics.fillCircle(displayX, displayY, radius);
                 } else {
                     // Draw moon phase using the classic method:
