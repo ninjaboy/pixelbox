@@ -938,8 +938,8 @@ class GameScene extends Phaser.Scene {
 
                         // Draw terminator curve from bottom to top (left side)
                         const segments = 30;
-                        for (let i = segments; i >= 0; i--) {
-                            const theta = (i / segments) * Math.PI - Math.PI / 2; // -π/2 to π/2
+                        for (let i = 0; i <= segments; i++) {
+                            const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
                             const y = displayY + radius * Math.sin(theta);
                             // Terminator x-position varies with phase
                             const x = displayX - radius * k * Math.cos(theta);
