@@ -9,7 +9,7 @@ class AshElement extends Element {
             state: STATE.POWDER,
             dispersion: 1,
             tags: new Set([TAG.DISSOLVES]), // Ash is already burned - not combustible
-            lifetime: 600 // Dissolve after 10 seconds (600 frames at 60fps)
+            lifetime: 360 // Dissolve after 6 seconds (360 frames at 60fps) - faster cleanup
         });
 
         // Use standardized gravity behavior (lighter, more stable than sand)

@@ -65,9 +65,9 @@ class InteractionManager {
                     ? [x1, y1, element1]
                     : [x2, y2, element2];
 
-                // Base ignition chance is 15%, reduced by ignitionResistance
-                // ignitionResistance: 0 = easy to ignite (15%), 0.9 = very hard (1.5%)
-                const baseChance = 0.15;
+                // Base ignition chance is 10%, reduced by ignitionResistance
+                // ignitionResistance: 0 = easy to ignite (10%), 0.9 = very hard (1%)
+                const baseChance = 0.10;
                 const resistanceFactor = 1 - (combustible.ignitionResistance || 0);
                 const ignitionChance = baseChance * resistanceFactor;
 

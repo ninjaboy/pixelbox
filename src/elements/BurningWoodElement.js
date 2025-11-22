@@ -8,7 +8,7 @@ class BurningWoodElement extends Element {
             density: 5,
             state: STATE.SOLID,
             movable: false,
-            lifetime: 900, // Burns for 900 frames (15 seconds at 60fps) - much slower!
+            lifetime: 1500, // Burns for 1500 frames (25 seconds at 60fps) - slower, closer to coal
             ignitionResistance: 0.95, // Very hard to re-ignite (mostly stays as burning wood)
             burnsInto: 'fire', // If re-ignited, becomes fire (shouldn't happen often)
             tags: [TAG.HEAT_SOURCE, TAG.COMBUSTIBLE] // Can spread fire AND still burn
@@ -16,8 +16,8 @@ class BurningWoodElement extends Element {
 
         // Behavior 1: Fire spreading to adjacent combustibles
         this.addBehavior(new BurningBehavior({
-            lifetime: 900,
-            spreadChance: 0.15, // 15% chance per frame to spread
+            lifetime: 1500,
+            spreadChance: 0.12, // 12% chance per frame to spread (reduced for more controlled spread)
             spreadIntensity: 1.0,
             burnsInto: 'ash'
         }));
