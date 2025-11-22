@@ -175,8 +175,7 @@ class GameScene extends Phaser.Scene {
             { name: 'ice', key: 'W' },
             { name: 'glass', key: 'E' },
             { name: 'wall', key: 'R' },
-            { name: 'obsidian', key: 'T' },
-            { name: 'coal', key: 'Y' },
+            { name: 'coal', key: 'T' },
 
             // ORGANIC (life)
             { name: 'tree_seed', key: 'U' },
@@ -206,13 +205,11 @@ class GameScene extends Phaser.Scene {
             tree_seed: { icon: '🌰', color: '#654321' },
             ash: { icon: '∵', color: '#999' },
             ice: { icon: '❄️', color: '#87ceeb' },
-            salt: { icon: '🧂', color: '#ffffff' },
             glass: { icon: '◇', color: '#add8e6' },
             lava: { icon: '🌋', color: '#ff4500' },
             acid: { icon: '☢️', color: '#7fff00' },
             vine: { icon: '🌿', color: '#228b22' },
             snow: { icon: '❄', color: '#ffffff' },
-            obsidian: { icon: '⬛', color: '#0a0a14' },
             coal: { icon: '⚫', color: '#1a1a1a' },
             coral: { icon: '🪸', color: '#ff6b9d' },
             steam_vent: { icon: '🌡️', color: '#555555' },
