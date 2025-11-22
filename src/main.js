@@ -938,30 +938,31 @@ class GameScene extends Phaser.Scene {
                         // Draw right semicircle (always visible)
                         this.celestialGraphics.arc(displayX, displayY, radius, -Math.PI / 2, Math.PI / 2, false);
 
-                        // Draw terminator (left edge) - varies from concave to straight to convex
-                        // Use control points for a bezier curve approximation of an ellipse
-                        const ellipseWidth = radius * phaseCoeff; // -radius (crescent) to +radius (gibbous)
-                        const cp = 0.5522847498; // Bezier constant for circle approximation
+                        // Draw terminator (left edge) using line segments to approximate ellipse
+                        const ellipseWidth = radius * phaseCoeff;
+                        const segments = 20; // Number of line segments for smooth curve
 
-                        this.celestialGraphics.bezierCurveTo(
-                            displayX + ellipseWidth, displayY + radius + (radius * cp),
-                            displayX + ellipseWidth, displayY - radius - (radius * cp),
-                            displayX, displayY - radius
-                        );
+                        for (let i = 0; i <= segments; i++) {
+                            const angle = (i / segments) * Math.PI - Math.PI / 2; // From bottom to top
+                            const y = displayY + radius * Math.sin(angle);
+                            const x = displayX + ellipseWidth * Math.cos(angle);
+                            this.celestialGraphics.lineTo(x, y);
+                        }
                     } else {
                         // Waning moon - lit portion on the LEFT side
                         // Draw left semicircle (always visible)
                         this.celestialGraphics.arc(displayX, displayY, radius, -Math.PI / 2, Math.PI / 2, true);
 
-                        // Draw terminator (right edge)
-                        const ellipseWidth = radius * phaseCoeff; // Positive for gibbous, negative for crescent
-                        const cp = 0.5522847498;
+                        // Draw terminator (right edge) using line segments
+                        const ellipseWidth = radius * phaseCoeff;
+                        const segments = 20;
 
-                        this.celestialGraphics.bezierCurveTo(
-                            displayX - ellipseWidth, displayY + radius + (radius * cp),
-                            displayX - ellipseWidth, displayY - radius - (radius * cp),
-                            displayX, displayY - radius
-                        );
+                        for (let i = 0; i <= segments; i++) {
+                            const angle = (i / segments) * Math.PI - Math.PI / 2; // From bottom to top
+                            const y = displayY + radius * Math.sin(angle);
+                            const x = displayX - ellipseWidth * Math.cos(angle);
+                            this.celestialGraphics.lineTo(x, y);
+                        }
                     }
 
                     this.celestialGraphics.closePath();
