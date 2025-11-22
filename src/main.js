@@ -452,55 +452,79 @@ class GameScene extends Phaser.Scene {
     generateElementDescription(element) {
         const parts = [];
 
-        // State
-        if (element.state) {
-            parts.push(`State: ${element.state}`);
+        // State and movement
+        const stateDesc = [];
+        if (element.state === 'liquid') {
+            stateDesc.push('liquid, flows');
+        } else if (element.state === 'powder') {
+            stateDesc.push('powder, falls');
+        } else if (element.state === 'solid') {
+            stateDesc.push('solid');
+        } else if (element.state === 'gas') {
+            stateDesc.push('gas, rises');
+        }
+        if (stateDesc.length > 0) {
+            parts.push(stateDesc.join(', '));
         }
 
-        // Density
-        if (element.density !== undefined) {
-            parts.push(`Density: ${element.density}`);
-        }
-
-        // Key properties
-        const properties = [];
-        if (Array.isArray(element.tags)) {
-            if (element.tags.includes('combustible')) properties.push('🔥 combustible');
-            if (element.tags.includes('explosive')) properties.push('💥 explosive');
-            if (element.tags.includes('heat_source')) properties.push('🔥 heat source');
-            if (element.tags.includes('evaporates')) properties.push('💨 evaporates');
-            if (element.tags.includes('extinguishes_fire')) properties.push('💧 extinguishes fire');
-            if (element.tags.includes('solidifies_lava')) properties.push('🪨 solidifies lava');
-            if (element.tags.includes('oxidizer')) properties.push('⚡ oxidizer');
-        }
-        if (properties.length > 0) {
-            parts.push(properties.join(', '));
-        }
-
-        // Transformations
-        const transforms = [];
-        if (element.burnsInto) {
-            transforms.push(`Burns → ${element.burnsInto}`);
-        }
-        if (element.evaporatesInto) {
-            transforms.push(`Evaporates → ${element.evaporatesInto}`);
-        }
-        if (element.lifetime) {
-            transforms.push(`Lifetime: ${Math.floor(element.lifetime / 60)}s`);
-        }
-        if (transforms.length > 0) {
-            parts.push(transforms.join(', '));
-        }
-
-        // Special behaviors
+        // Behaviors and interactions
         const behaviors = [];
-        if (element.ignitionResistance !== undefined) {
-            const resistance = Math.round(element.ignitionResistance * 100);
-            behaviors.push(`Ignition resist: ${resistance}%`);
+
+        if (Array.isArray(element.tags)) {
+            // Combustion
+            if (element.tags.includes('combustible')) {
+                if (element.burnsInto) {
+                    behaviors.push(`burns → ${element.burnsInto.replace(/_/g, ' ')}`);
+                } else {
+                    behaviors.push('burns');
+                }
+            }
+
+            // Explosive
+            if (element.tags.includes('explosive')) {
+                behaviors.push('💥 explodes when ignited');
+            }
+
+            // Heat source
+            if (element.tags.includes('heat_source')) {
+                behaviors.push('🔥 ignites flammables');
+            }
+
+            // Water interactions
+            if (element.tags.includes('extinguishes_fire')) {
+                behaviors.push('💧 extinguishes fire');
+            }
+            if (element.tags.includes('solidifies_lava')) {
+                behaviors.push('turns lava to stone');
+            }
+
+            // Special element interactions
+            if (element.name === 'lava') {
+                behaviors.push('turns to stone when touching water');
+            }
+            if (element.name === 'sand') {
+                behaviors.push('becomes wet when submerged');
+            }
+            if (element.name === 'ice') {
+                behaviors.push('melts near heat');
+            }
+
+            // Evaporation
+            if (element.tags.includes('evaporates')) {
+                if (element.evaporatesInto) {
+                    behaviors.push(`evaporates → ${element.evaporatesInto}`);
+                } else {
+                    behaviors.push('evaporates near heat');
+                }
+            }
         }
-        if (element.dispersion) {
-            behaviors.push(`Disperses: ${element.dispersion}`);
+
+        // Lifetime
+        if (element.lifetime) {
+            const seconds = Math.floor(element.lifetime / 60);
+            behaviors.push(`lasts ${seconds}s`);
         }
+
         if (behaviors.length > 0) {
             parts.push(behaviors.join(', '));
         }
