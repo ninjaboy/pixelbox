@@ -3,4 +3,4 @@
 // Major versions (X.0.0): significant new features or gameplay changes - RESET minor and patch to 0
 // Minor versions (x.X.0): new elements, mechanics, or substantial improvements - RESET patch to 0
 // Patch versions (x.x.X): bug fixes and minor tweaks
-export const VERSION = '3.14.14';
+export const VERSION = '3.14.15';
