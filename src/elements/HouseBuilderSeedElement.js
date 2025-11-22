@@ -160,15 +160,32 @@ class HouseBuilderSeedElement extends Element {
     }
 
     isGoodBuildingSpot(x, y, grid) {
-        // WATER CHECKS: Don't build underwater (only check building footprint)
-        // Check 5-wide, 10-high area directly where house will be
-        for (let dy = -1; dy < 10; dy++) { // Check from 1 below to 10 above
-            for (let dx = -2; dx <= 2; dx++) { // Only 5-wide (house footprint)
+        // WATER CHECKS: Don't build if builder is covered/submerged, but allow nearby water
+        // Only reject if there's water directly above the builder or in the core building area
+        let waterCount = 0;
+
+        // Check if builder position is covered with water (critical check)
+        for (let dy = -1; dy <= 3; dy++) { // Check directly above builder (4 blocks up)
+            const element = grid.getElement(x, y + dy);
+            if (element && element.name === 'water') {
+                return false; // Builder would be covered - reject immediately
+            }
+        }
+
+        // Count water in the building footprint (5-wide, 10-high)
+        for (let dy = -1; dy < 10; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                if (dx === 0 && dy >= -1 && dy <= 3) continue; // Skip already checked area
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && element.name === 'water') {
-                    return false;
+                    waterCount++;
                 }
             }
+        }
+
+        // Allow up to 2 water cells nearby, but not more (prevents building in pond/river)
+        if (waterCount > 2) {
+            return false;
         }
 
         // TREE CHECKS: Don't build if trees are in the immediate building area
