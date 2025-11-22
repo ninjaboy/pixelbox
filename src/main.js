@@ -450,86 +450,80 @@ class GameScene extends Phaser.Scene {
     }
 
     generateElementDescription(element) {
+        // Element-specific detailed descriptions
+        const customDescriptions = {
+            bird: 'Living creature • Flies through the air with bobbing gliding motion • Gets hungry and seeks food on ground • Sleeps at night on perches (trees, roofs, ground) • Wakes up at dawn • Flocks with other birds • Escapes when trapped indoors • Dies if starving • Burns to ash when ignited • Multiple color variants (white, gray)',
+            fish: 'Living creature • Swims in water bodies • Gets hungry and seeks food at water surface • Dies after 5 seconds out of water • Falls through air when stranded • Swims in schools with other fish • Multiple color variants (orange, gold, red, black) • Burns to ash when exposed to fire',
+            tree_seed: 'Organic seed • Falls until landing on solid ground • Germinates after 2 seconds on ground • Grows into procedurally-generated tree with trunk and branches • Takes 80 frames per growth segment • Produces leaves at branch terminals • Spacing prevents overcrowding • Burns to ash',
+            house_seed: 'Wandering builder • Falls until landing • Wanders horizontally seeking good building spot • Climbs over 1-block obstacles • Burrows through sand and soft materials • Validates location (needs clearance, solid ground, avoids water/trees) • Builds complete house with foundation, walls, windows, door, and roof • Steps aside during construction • Waits 10s cooldown then builds another house • Burns to ash',
+            water: 'Liquid, flows downward and spreads • Extinguishes fire (70% chance) → becomes steam • Turns lava into stone on contact (20% chance) • Sand becomes wet when submerged in water • Evaporates near heat → steam • Essential for fish survival',
+            lava: 'Liquid, flows slowly • Very hot - ignites flammable materials on contact • Turns into stone when touching water (20% chance) • Melts ice on contact • Glowing heat source • High density (sinks below most liquids)',
+            sand: 'Powder, falls and piles • Becomes wet sand when submerged in water or when water directly above • Wet sand is darker and dries slowly over time • Can be burrowed through by builders • Buildable material for foundations',
+            fire: 'Gas, rises • Heat source - ignites combustible materials (10% base chance) • Spreads to nearby flammables • Extinguished by water • Creates light • Lasts 40s then burns out • Very light (rises above everything)',
+            steam: 'Gas, rises rapidly • Created when water evaporates or touches fire • Rises to atmosphere and forms clouds • Clouds accumulate steam and eventually rain • Dissipates after 20s',
+            cloud: 'Gas, floats in upper atmosphere • Forms from accumulated steam • Drifts horizontally with wind • 40% of clouds produce rain • Saturated clouds (dark gray) drop 1-3 water droplets • Highly saturated clouds generate lightning strikes • Absorbs nearby steam to grow • Can merge with adjacent clouds • Lasts 40s • Darkens sky when covering sun',
+            stone: 'Solid, immovable • Created when lava touches water • Building material • Very dense and stable • Resistant to most interactions • Burns slowly if exposed to sustained heat',
+            wood: 'Solid building material • Burns slowly → burning wood (takes 25s to fully burn) • Resistant to ignition (80% resistance) • Tree trunks and branches made of wood • Can be used for construction',
+            burning_wood: 'Solid, burning • Heat source - ignites nearby flammables • Spreads fire to combustibles (12% chance) • Burns for 25 seconds total → ash • Creates warmth and light',
+            coal: 'Solid fuel • Burns very slowly and hot → fire • Excellent long-lasting heat source • Found in fossil deposits • High ignition resistance • Dense material',
+            ash: 'Powder, falls lightly • Created when organic materials burn completely • Settles on ground • Disperses easily • Dissolves after 6 seconds • Very light and soft - can be burrowed through',
+            ice: 'Solid, frozen water • Melts near heat sources → water • Can be broken or pushed • Slippery surface • Colder than regular materials',
+            gunpowder: 'Explosive powder, falls • Extremely flammable (ignites instantly on contact with heat) • Explodes in 3-cell radius when ignited • Explosion creates fire at center, ignites nearby gunpowder (chain reaction), destroys combustibles, pushes particles away 2-4 cells • Becomes wet and inert when submerged → wet gunpowder • Burns to fire',
+            wet_gunpowder: 'Wet powder, falls • Inert - cannot ignite or explode while wet • Dries very slowly over time (0.05% per frame) → gunpowder • Created when gunpowder touches water',
+            oil: 'Liquid, flows • Highly flammable - ignites easily • Burns intensely when ignited → fire • Floats on water (lower density) • Spreads across surfaces • Evaporates slowly',
+            acid: 'Liquid, flows • Corrosive - dissolves organic materials on contact • Melts through certain substances • Dangerous to living creatures • Bright green color',
+            glass: 'Solid, transparent • Created by heating sand to extreme temperatures • Fragile - shatters under pressure • Transparent/translucent material • Non-flammable',
+            vine: 'Organic plant • Grows and spreads along surfaces • Climbs upward on walls • Burns when exposed to fire → ash • Creates natural coverage • Living plant material',
+            snow: 'Powder, falls lightly • Melts near heat → water • Accumulates on surfaces • Very light and disperses easily • Cold material • Settles in piles',
+            coral: 'Organic solid • Grows underwater in colonies • Requires water to survive • Dies if exposed to air • Colorful reef-building material • Burns when exposed to fire',
+            steam_vent: 'Solid structure • Continuously produces steam • Natural heat source • Creates rising steam plumes • Contributes to cloud formation • Permanent fixture',
+            fossil: 'Solid organic remains • Ancient preserved material • Can contain coal deposits • Combustible under extreme heat • Historical remnant',
+            electricity: 'Energy, travels rapidly • Created by lightning from storm clouds • Follows conductive paths • Ignites flammables instantly • Dissipates quickly • Dangerous to living creatures',
+            leaf: 'Organic plant matter • Grows at tree branch terminals • Falls slowly when detached • Burns easily → ash • Soft material - can be burrowed through • Part of tree canopy',
+            tree_trunk: 'Solid wood • Main structural trunk of trees • Burns → burning wood • Strong building material • Part of tree structure',
+            tree_branch: 'Solid wood • Tree branches extending from trunk • Burns → burning wood • Supports leaves • Part of tree structure',
+            wet_sand: 'Wet powder, falls slowly • Darker than dry sand • Created when sand submerged or water directly above • Dries slowly over time → sand • Clumps together more than dry sand • Coastal/beach material',
+            smoke: 'Gas, rises • Created by burning materials • Rises into atmosphere • Visual indicator of fire • Dissipates after 10s • No direct interactions',
+            player: 'You! • Controlled character in explore mode • Use arrow keys or A/D to move left/right • Press B to toggle between build and explore modes • Affected by gravity and physics • Can interact with elements',
+            empty: 'Nothing - empty space • Draw here to place elements • Eraser removes elements leaving empty space',
+            eraser: 'Tool - removes elements and creates empty space • Use to clear unwanted materials • Large brush size for quick cleanup'
+        };
+
+        // Return custom description if available
+        if (customDescriptions[element.name]) {
+            return customDescriptions[element.name];
+        }
+
+        // Fallback to generic description for unknown elements
         const parts = [];
 
         // State and movement
-        const stateDesc = [];
         if (element.state === 'liquid') {
-            stateDesc.push('liquid, flows');
+            parts.push('liquid, flows');
         } else if (element.state === 'powder') {
-            stateDesc.push('powder, falls');
+            parts.push('powder, falls');
         } else if (element.state === 'solid') {
-            stateDesc.push('solid');
+            parts.push('solid');
         } else if (element.state === 'gas') {
-            stateDesc.push('gas, rises');
-        }
-        if (stateDesc.length > 0) {
-            parts.push(stateDesc.join(', '));
+            parts.push('gas, rises');
         }
 
-        // Behaviors and interactions
+        // Basic interactions
         const behaviors = [];
-
         if (Array.isArray(element.tags)) {
-            // Combustion
             if (element.tags.includes('combustible')) {
-                if (element.burnsInto) {
-                    behaviors.push(`burns → ${element.burnsInto.replace(/_/g, ' ')}`);
-                } else {
-                    behaviors.push('burns');
-                }
+                behaviors.push('burns');
             }
-
-            // Explosive
-            if (element.tags.includes('explosive')) {
-                behaviors.push('💥 explodes when ignited');
-            }
-
-            // Heat source
             if (element.tags.includes('heat_source')) {
-                behaviors.push('🔥 ignites flammables');
+                behaviors.push('heat source');
             }
-
-            // Water interactions
-            if (element.tags.includes('extinguishes_fire')) {
-                behaviors.push('💧 extinguishes fire');
-            }
-            if (element.tags.includes('solidifies_lava')) {
-                behaviors.push('turns lava to stone');
-            }
-
-            // Special element interactions
-            if (element.name === 'lava') {
-                behaviors.push('turns to stone when touching water');
-            }
-            if (element.name === 'sand') {
-                behaviors.push('becomes wet when submerged');
-            }
-            if (element.name === 'ice') {
-                behaviors.push('melts near heat');
-            }
-
-            // Evaporation
-            if (element.tags.includes('evaporates')) {
-                if (element.evaporatesInto) {
-                    behaviors.push(`evaporates → ${element.evaporatesInto}`);
-                } else {
-                    behaviors.push('evaporates near heat');
-                }
-            }
-        }
-
-        // Lifetime
-        if (element.lifetime) {
-            const seconds = Math.floor(element.lifetime / 60);
-            behaviors.push(`lasts ${seconds}s`);
         }
 
         if (behaviors.length > 0) {
             parts.push(behaviors.join(', '));
         }
 
-        return parts.join(' • ');
+        return parts.join(' • ') || 'Unknown element';
     }
 
     startDrawing(pointer) {
