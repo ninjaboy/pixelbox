@@ -475,71 +475,25 @@
             position: relative;
         }
 
-        .grimoire-element-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.2s ease;
+        .grimoire-element {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .grimoire-element-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(0, 255, 255, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 255, 255, 0.2);
-        }
-
-        .grimoire-element-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .grimoire-element-icon {
-            font-size: 32px;
-            flex-shrink: 0;
-        }
-
-        .grimoire-element-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #00ffff;
-            flex: 1;
-        }
-
-        .grimoire-element-type {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .grimoire-interactions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .grimoire-interaction {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.8);
+        .grimoire-element:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
         }
 
         @media (max-width: 600px) {
             #grimoire-modal {
-                padding: 24px 16px;
+                padding: 20px 12px;
             }
 
-            #grimoire-content {
-                grid-template-columns: 1fr !important;
+            #grimoire-modal h2 {
+                font-size: 24px;
             }
         }
 
@@ -594,19 +548,13 @@
                 📖 Element Grimoire
             </h2>
 
-            <p style="text-align: center; color: rgba(255,255,255,0.7); margin-bottom: 24px; font-size: 14px;">
-                Discover the magical interactions between elements!
-            </p>
-
-            <div id="grimoire-content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; max-height: 60vh; overflow-y: auto; padding: 8px;">
+            <div id="grimoire-content" style="max-height: 70vh; overflow-y: auto; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 12px; line-height: 1.8;">
                 <!-- Will be populated by JavaScript -->
             </div>
 
-            <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid rgba(0, 255, 255, 0.2); text-align: center; color: rgba(255,255,255,0.6); font-size: 12px;">
-                <div style="margin-bottom: 8px;"><strong>Controls:</strong></div>
-                <div>Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px;">B</kbd> to toggle Build/Explore mode</div>
-                <div>Use number/letter keys or click icons to select elements</div>
-                <div>Click & drag to place elements</div>
+            <div style="margin-top: 20px; padding: 16px; background: rgba(0, 255, 255, 0.05); border-radius: 8px; text-align: center; color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6;">
+                <div style="margin-bottom: 6px;"><strong>Controls:</strong></div>
+                <div>Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; font-size: 11px;">B</kbd> Build/Explore mode • Click & drag to place • Number/letter keys to select</div>
             </div>
         </div>
     </div>
@@ -903,109 +851,57 @@
             const grimoireClose = document.getElementById('grimoire-close');
             const grimoireContent = document.getElementById('grimoire-content');
 
-            // Element grimoire data with emoji interactions
-            const elementGrimoire = [
-                {
-                    name: 'Fire', icon: '🔥', type: 'GAS',
-                    interactions: ['💧 Water → 💨 Steam', '🛢️ Oil → 🔥 Burns', '🪵 Wood → 🔥 Burns', '💣 Gunpowder → 💥 Explodes']
-                },
-                {
-                    name: 'Water', icon: '💧', type: 'LIQUID',
-                    interactions: ['🔥 Fire → 💨 Steam', '🌋 Lava → 🪨 Stone', '∙∙ Sand → 🏖️ Wet Sand', '🧂 Salt → ❌ Dissolves']
-                },
-                {
-                    name: 'Sand', icon: '∙∙', type: 'POWDER',
-                    interactions: ['💧 Water → 🏖️ Wet Sand', '⬇️ Falls through air', '📐 Piles naturally']
-                },
-                {
-                    name: 'Stone', icon: '🪨', type: 'SOLID',
-                    interactions: ['💪 Immovable', '🏗️ Building material', '🌋 Created by lava + water']
-                },
-                {
-                    name: 'Wood', icon: '🪵', type: 'SOLID',
-                    interactions: ['🔥 Fire → 🔥 Burns slowly', '🌋 Lava → 🔥 Ignites', '🏠 House building material']
-                },
-                {
-                    name: 'Ice', icon: '❄️', type: 'SOLID',
-                    interactions: ['🔥 Fire → 💧 Melts to water', '🌋 Lava → 💧 Melts', '❄️ Freezes water', '🏊 Floats on water', '⛰️ Piles sink in water']
-                },
-                {
-                    name: 'Lava', icon: '🌋', type: 'LIQUID',
-                    interactions: ['💧 Water → 🪨 Stone', '❄️ Ice/Snow → 💧 Melts', '🪵 Wood → 🔥 Ignites', '💣 Gunpowder → 💥 Explodes', '🔥 Very hot and dense']
-                },
-                {
-                    name: 'Oil', icon: '🛢️', type: 'LIQUID',
-                    interactions: ['🔥 Fire → 🔥 Burns', '🌋 Lava → 🔥 Ignites', '💧 Floats on water', '⬆️ Lighter than water']
-                },
-                {
-                    name: 'Gunpowder', icon: '💣', type: 'POWDER',
-                    interactions: ['🔥 Fire → 💥 EXPLOSION!', '🌋 Lava → 💥 EXPLOSION!', '⚠️ Highly explosive']
-                },
-                {
-                    name: 'Glass', icon: '◇', type: 'SOLID',
-                    interactions: ['💪 Immovable', '🪟 Transparent', '🏠 Window material']
-                },
-                {
-                    name: 'Wall', icon: '▉', type: 'SOLID',
-                    interactions: ['💪 Indestructible', '🛡️ Blocks everything', '🏗️ Border material']
-                },
-                {
-                    name: 'Coal', icon: '⚫', type: 'SOLID',
-                    interactions: ['🔥 Fire → 🔥 Burns long', '💧 Water → ⚫ Extinguishes', '🏭 Fuel source']
-                },
-                {
-                    name: 'Snow', icon: '❄', type: 'POWDER',
-                    interactions: ['🔥 Fire → 💧 Melts', '🌋 Lava → 💧 Melts', '❄️ Cold powder']
-                },
-                {
-                    name: 'Acid', icon: '☢️', type: 'LIQUID',
-                    interactions: ['☢️ Dissolves many things', '⚠️ Dangerous', '🧪 Chemical']
-                },
-                {
-                    name: 'Tree Seed', icon: '🌰', type: 'ORGANIC',
-                    interactions: ['🌱 Grows into tree', '🌳 Creates wood/leaves', '📍 Needs ground']
-                },
-                {
-                    name: 'Vine', icon: '🌿', type: 'ORGANIC',
-                    interactions: ['🌱 Grows slowly', '🪨 Climbs walls', '🟢 Living plant']
-                },
-                {
-                    name: 'Fish', icon: '🐟', type: 'CREATURE',
-                    interactions: ['💧 Swims in water', '🍽️ Eats small creatures', '🥚 Lays eggs']
-                },
-                {
-                    name: 'Bird', icon: '🐦', type: 'CREATURE',
-                    interactions: ['✈️ Flies through air', '🍽️ Eats seeds', '🥚 Lays eggs', '🌋 Avoids lava']
-                },
-                {
-                    name: 'Coral', icon: '🪸', type: 'ORGANIC',
-                    interactions: ['💧 Grows underwater', '🐟 Fish habitat', '🪨 Living stone']
-                },
-                {
-                    name: 'House Seed', icon: '🏠', type: 'BUILDER',
-                    interactions: ['👷 Wandering builder', '🏗️ Builds houses', '🏘️ Creates neighborhood', '💡 Lights at night']
-                },
-                {
-                    name: 'Steam Vent', icon: '🌡️', type: 'EMITTER',
-                    interactions: ['💨 Emits steam', '🌋 Hot source', '⬆️ Steam rises']
-                }
-            ];
+            // Simple grimoire text - one clean list
+            const grimoireText = `
+<div style="color: rgba(255,255,255,0.9); font-size: 14px;">
+<p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">Learn how elements interact in this sandbox world!</p>
 
-            // Populate grimoire
-            grimoireContent.innerHTML = elementGrimoire.map(el => `
-                <div class="grimoire-element-card">
-                    <div class="grimoire-element-header">
-                        <div class="grimoire-element-icon">${el.icon}</div>
-                        <div class="grimoire-element-name">${el.name}</div>
-                        <div class="grimoire-element-type">${el.type}</div>
-                    </div>
-                    <div class="grimoire-interactions">
-                        ${el.interactions.map(interaction =>
-                            `<div class="grimoire-interaction">${interaction}</div>`
-                        ).join('')}
-                    </div>
-                </div>
-            `).join('');
+🔥 <strong style="color: #00ffff;">Fire</strong> - Burns oil, wood, gunpowder • Turns water to steam • Destroyed by water<br><br>
+
+💧 <strong style="color: #00ffff;">Water</strong> - Cools lava to stone • Wets sand • Extinguishes fire • Creates steam<br><br>
+
+∙∙ <strong style="color: #00ffff;">Sand</strong> - Falls and piles • Gets wet from water • Basic building material<br><br>
+
+🪨 <strong style="color: #00ffff;">Stone</strong> - Immovable solid • Created by lava + water • Building foundation<br><br>
+
+🪵 <strong style="color: #00ffff;">Wood</strong> - Burns when hot • House building material • Flammable<br><br>
+
+❄️ <strong style="color: #00ffff;">Ice</strong> - Melts to water • Freezes water • Floats (but piles sink)<br><br>
+
+🌋 <strong style="color: #00ffff;">Lava</strong> - Very hot liquid • Creates stone with water • Ignites everything • Glows<br><br>
+
+🛢️ <strong style="color: #00ffff;">Oil</strong> - Flammable liquid • Floats on water • Burns intensely<br><br>
+
+💣 <strong style="color: #00ffff;">Gunpowder</strong> - Highly explosive • Ignites from fire or lava • Chain reactions<br><br>
+
+◇ <strong style="color: #00ffff;">Glass</strong> - Transparent solid • Window material • Immovable<br><br>
+
+▉ <strong style="color: #00ffff;">Wall</strong> - Indestructible barrier • Blocks everything • Border material<br><br>
+
+⚫ <strong style="color: #00ffff;">Coal</strong> - Burns slowly • Fuel source • Extinguished by water<br><br>
+
+❄ <strong style="color: #00ffff;">Snow</strong> - Cold powder • Melts from heat • Temporary<br><br>
+
+☢️ <strong style="color: #00ffff;">Acid</strong> - Dissolves many materials • Dangerous liquid • Chemical<br><br>
+
+🌰 <strong style="color: #00ffff;">Tree Seed</strong> - Grows into trees • Creates wood and leaves • Needs ground<br><br>
+
+🌿 <strong style="color: #00ffff;">Vine</strong> - Grows slowly • Climbs walls • Living plant<br><br>
+
+🐟 <strong style="color: #00ffff;">Fish</strong> - Swims in water • Reproduces • Needs water to survive<br><br>
+
+🐦 <strong style="color: #00ffff;">Bird</strong> - Flies during day • Sleeps at night • Perches on trees/ground<br><br>
+
+🪸 <strong style="color: #00ffff;">Coral</strong> - Grows underwater • Fish habitat • Living structure<br><br>
+
+🏠 <strong style="color: #00ffff;">House Seed</strong> - Wandering builder • Builds houses automatically • Creates neighborhoods • Lights turn on at night<br><br>
+
+🌡️ <strong style="color: #00ffff;">Steam Vent</strong> - Emits steam continuously • Hot source • Steam rises
+</div>
+            `;
+
+            // Populate grimoire with simple text
+            grimoireContent.innerHTML = grimoireText;
 
             // Show/hide grimoire
             grimoireBtn.addEventListener('click', () => {
