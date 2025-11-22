@@ -922,10 +922,10 @@ class GameScene extends Phaser.Scene {
                 } else {
                     // Draw moon phase using the classic method:
                     // Outer edge is always a semicircle, terminator is an ellipse
-                    const isWaxing = moonPhase < 0.5;
 
-                    // Calculate how much of the moon is lit (0 to 1)
-                    // We'll use a more dramatic curve for better visual effect
+                    // Note: cos(moonPhase * 2π) gives: 0→1 (full), 0.5→-1 (new)
+                    // So moonPhase 0-0.5 is actually waning, 0.5-1 is waxing
+                    const isWaxing = moonPhase > 0.5;
                     const k = illumination; // -1 (new) to +1 (full)
 
                     this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
@@ -941,8 +941,7 @@ class GameScene extends Phaser.Scene {
                         for (let i = 0; i <= segments; i++) {
                             const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
                             const y = displayY + radius * Math.sin(theta);
-                            // Terminator x-position varies with phase
-                            const x = displayX - radius * k * Math.cos(theta);
+                            const x = displayX + radius * k * Math.cos(theta);
                             this.celestialGraphics.lineTo(x, y);
                         }
                     } else {
@@ -955,7 +954,6 @@ class GameScene extends Phaser.Scene {
                         for (let i = 0; i <= segments; i++) {
                             const theta = (i / segments) * Math.PI - Math.PI / 2; // -π/2 to π/2
                             const y = displayY + radius * Math.sin(theta);
-                            // Terminator x-position varies with phase (using negative k for waning)
                             const x = displayX + radius * k * Math.cos(theta);
                             this.celestialGraphics.lineTo(x, y);
                         }
