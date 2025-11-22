@@ -666,21 +666,34 @@
                     playChord(chordProgression[currentChordIndex]);
                 }, 21000);
 
-                // Melodic sequences with long pauses (like wind chimes or distant bells)
-                // Uses A minor pentatonic in normal octave: A4-A5
-                const melodyNotes = [440.00, 523.25, 587.33, 659.25, 783.99, 880.00]; // A4, C5, D5, E5, G5, A5
+                // TWO MELODY THEMES: Mystical & Mario-like
 
-                // Define melodic sequences (phrases with pauses)
-                const melodySequences = [
+                // Theme 1: Mystical (A minor pentatonic)
+                const melodyNotes1 = [440.00, 523.25, 587.33, 659.25, 783.99, 880.00]; // A4, C5, D5, E5, G5, A5
+                const melodySequences1 = [
                     [0, 2, 4],        // A, D, G - ascending gentle
                     [5, 3, 1],        // A5, E, C - descending sparkle
                     [1, 3, 4, 3],     // C, E, G, E - ethereal pattern
                     [4, 2, 0],        // G, D, A - grounding descent
                 ];
 
+                // Theme 2: Mario-like (C major pentatonic, higher octave)
+                const melodyNotes2 = [523.25, 659.25, 783.99, 1046.50, 1174.66]; // C5, E5, G5, C6, D6
+                const melodySequences2 = [
+                    [0, 0, 2, 1],     // C, C, G, E - bouncy start
+                    [1, 2, 3],        // E, G, C6 - ascending jump
+                    [3, 2, 1, 0],     // C6, G, E, C - descending run
+                    [0, 2, 4, 3],     // C, G, D6, C6 - playful hop
+                ];
+
                 let sequenceIndex = 0;
+                let currentTheme = 0; // 0 = mystical, 1 = mario
 
                 function playMelodySequence() {
+                    // Select theme-specific notes and sequences
+                    const melodyNotes = currentTheme === 0 ? melodyNotes1 : melodyNotes2;
+                    const melodySequences = currentTheme === 0 ? melodySequences1 : melodySequences2;
+
                     const sequence = melodySequences[sequenceIndex];
                     let delay = 0;
 
@@ -745,6 +758,12 @@
 
                     // Move to next sequence
                     sequenceIndex = (sequenceIndex + 1) % melodySequences.length;
+
+                    // Switch theme when we complete all sequences in current theme
+                    if (sequenceIndex === 0) {
+                        currentTheme = (currentTheme + 1) % 2; // Toggle between 0 and 1
+                        console.log(`🎵 Switching to ${currentTheme === 0 ? 'Mystical' : 'Mario'} theme`);
+                    }
 
                     // LONG PAUSE between sequences: 8-13 seconds (Fibonacci numbers)
                     const pauseDurations = [8000, 13000, 21000];
