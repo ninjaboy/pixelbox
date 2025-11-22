@@ -899,7 +899,8 @@ class GameScene extends Phaser.Scene {
                 const displayY = height * 0.3; // Fixed vertical position (30% from top)
 
                 // Calculate brightness for this phase
-                const phaseAngle = moonPhase * Math.PI * 2;
+                // Shift by -0.5 so phase 0 = new moon, 0.5 = full moon
+                const phaseAngle = (moonPhase - 0.5) * Math.PI * 2;
                 const illumination = Math.cos(phaseAngle); // -1 (new) to +1 (full)
                 const brightness = (illumination + 1) / 2; // 0 to 1
 
@@ -923,9 +924,10 @@ class GameScene extends Phaser.Scene {
                     // Draw moon phase using the classic method:
                     // Outer edge is always a semicircle, terminator is an ellipse
 
-                    // Note: cos(moonPhase * 2π) gives: 0→1 (full), 0.5→-1 (new)
-                    // So moonPhase 0-0.5 is actually waning, 0.5-1 is waxing
-                    const isWaxing = moonPhase > 0.5;
+                    // Phase cycle: 0→new, 0.25→first quarter, 0.5→full, 0.75→last quarter, 1→new
+                    // moonPhase 0-0.5: waxing (new→full, right side lit)
+                    // moonPhase 0.5-1: waning (full→new, left side lit)
+                    const isWaxing = moonPhase < 0.5;
                     const k = illumination; // -1 (new) to +1 (full)
 
                     this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
