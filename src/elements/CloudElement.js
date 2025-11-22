@@ -33,6 +33,11 @@ class CloudElement extends Element {
             cell.data.waterCapacity = cell.data.saturation;
         }
 
+        // Decide if this cloud can produce rain (only 40% of clouds will rain)
+        if (cell.data.canRain === undefined) {
+            cell.data.canRain = Math.random() < 0.4; // 40% chance to be a rain cloud
+        }
+
         // Initialize rain cooldown timer
         if (cell.data.rainCooldown === undefined) {
             cell.data.rainCooldown = 0;
@@ -108,11 +113,11 @@ class CloudElement extends Element {
 
         if (cell.data.rainCooldown > 0) {
             cell.data.rainCooldown--;
-        } else if (canRain) {
+        } else if (canRain && cell.data.canRain) { // Must be old enough AND be a rain cloud
             // Check if cloud has water to release
             if (cell.data.waterCapacity > 0) {
-                // Check if cloud is saturated enough to rain
-                if (cell.data.saturation >= 15) {
+                // Check if cloud is saturated enough to rain (lower threshold for lighter rain)
+                if (cell.data.saturation >= 12) { // Reduced from 15 to 12 for more frequent but lighter rain
                     // RAIN EVENT! Drop multiple water droplets (limited by water capacity)
                     const dropsCreated = this.triggerRainEvent(x, y, grid, cell);
 
@@ -226,11 +231,11 @@ class CloudElement extends Element {
         return null;
     }
 
-    // Trigger dramatic rain event for saturated clouds
+    // Trigger light rain event for saturated clouds
     triggerRainEvent(x, y, grid, cell) {
         // Drop water droplets in burst (limited by water capacity)
-        // Target: 3-6 drops, but can't exceed what cloud actually absorbed
-        const desiredRain = 3 + Math.floor(Math.random() * 4);
+        // Target: 1-3 drops (reduced to prevent overflow), but can't exceed what cloud actually absorbed
+        const desiredRain = 1 + Math.floor(Math.random() * 3);
         const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
 
         const waterElement = grid.registry.get('water');

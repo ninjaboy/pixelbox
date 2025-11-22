@@ -36,6 +36,14 @@ class GameScene extends Phaser.Scene {
             moonCycleSpeed: 0.0001 / 4, // Moon changes 7x faster (full cycle = ~40 seconds at 60fps)
         };
 
+        // CLOUD/WEATHER SYSTEM
+        this.weatherSystem = {
+            cloudiness: Math.random(), // 0-1: how cloudy the day is
+            cloudSpawnTimer: 0,
+            cloudCoverage: 0, // Current cloud coverage (0-1)
+            nextCloudDay: Math.random(), // Regenerate cloudiness each day
+        };
+
         // Create graphics layers
         this.skyGraphics = this.add.graphics();
         this.celestialGraphics = this.add.graphics();
@@ -516,6 +524,17 @@ class GameScene extends Phaser.Scene {
         // Update moon phase cycle (much slower)
         this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
 
+        // Regenerate cloud density each new day (at dawn)
+        if (this.dayNightCycle.time > this.weatherSystem.nextCloudDay && this.dayNightCycle.time < this.weatherSystem.nextCloudDay + 0.01) {
+            this.weatherSystem.cloudiness = Math.random(); // New random cloudiness for today
+            this.weatherSystem.nextCloudDay = (this.weatherSystem.nextCloudDay + 1.0) % 1.0;
+        }
+
+        // Cloud spawning (during day only)
+        if (this.dayNightCycle.time >= 0.25 && this.dayNightCycle.time <= 0.75) {
+            this.updateCloudSystem();
+        }
+
         // Handle player movement (only in explore mode) - SMOOTH continuous movement
         if (!this.buildMode && this.playerX !== null && this.playerY !== null) {
             const playerElement = this.pixelGrid.getElement(this.playerX, this.playerY);
@@ -574,6 +593,60 @@ class GameScene extends Phaser.Scene {
         }
 
         profiler.end('frame:total');
+    }
+
+    updateCloudSystem() {
+        const grid = this.pixelGrid;
+        const cloudElement = this.elementRegistry.get('cloud');
+        if (!cloudElement) return;
+
+        // Count existing clouds
+        let cloudCount = 0;
+        const atmosphereHeight = Math.floor(grid.height * 0.4);
+
+        for (let y = 0; y < atmosphereHeight; y++) {
+            for (let x = 0; x < grid.width; x++) {
+                const element = grid.getElement(x, y);
+                if (element && element.name === 'cloud') {
+                    cloudCount++;
+                }
+            }
+        }
+
+        // Calculate cloud coverage (0-1)
+        const maxClouds = grid.width * atmosphereHeight * 0.02; // Max 2% of atmosphere can be clouds
+        this.weatherSystem.cloudCoverage = Math.min(cloudCount / maxClouds, 1.0);
+
+        // Spawn clouds based on cloudiness level
+        this.weatherSystem.cloudSpawnTimer++;
+
+        // Spawn interval varies by cloudiness:
+        // High cloudiness (0.8-1.0): spawn every 60-120 frames
+        // Medium cloudiness (0.4-0.8): spawn every 120-300 frames
+        // Low cloudiness (0-0.4): spawn every 300-600 frames
+        const cloudiness = this.weatherSystem.cloudiness;
+        let spawnInterval;
+        if (cloudiness > 0.7) {
+            spawnInterval = 60 + Math.random() * 60; // Cloudy day
+        } else if (cloudiness > 0.4) {
+            spawnInterval = 120 + Math.random() * 180; // Partly cloudy
+        } else {
+            spawnInterval = 300 + Math.random() * 300; // Clear day
+        }
+
+        // Spawn cloud if timer exceeded and not at max coverage
+        if (this.weatherSystem.cloudSpawnTimer > spawnInterval && this.weatherSystem.cloudCoverage < 0.8) {
+            this.weatherSystem.cloudSpawnTimer = 0;
+
+            // Spawn cloud at random position in upper atmosphere
+            const spawnX = Math.floor(Math.random() * grid.width);
+            const spawnY = Math.floor(Math.random() * atmosphereHeight);
+
+            const existingElement = grid.getElement(spawnX, spawnY);
+            if (existingElement && existingElement.id === 0) {
+                grid.setElement(spawnX, spawnY, cloudElement);
+            }
+        }
     }
 
     render() {
@@ -777,6 +850,16 @@ class GameScene extends Phaser.Scene {
             skyColors = { top: 0x000033, bottom: 0x000055 };
         }
 
+        // Darken sky based on cloud coverage (more clouds = darker/grayer sky)
+        const cloudCoverage = this.weatherSystem.cloudCoverage;
+        if (cloudCoverage > 0.1 && time >= 0.25 && time <= 0.75) {
+            // Only darken during daytime
+            const darkenAmount = cloudCoverage * 0.4; // Max 40% darker
+            const grayColor = 0x808080; // Gray for overcast
+            skyColors.top = this.lerpColor(skyColors.top, grayColor, darkenAmount);
+            skyColors.bottom = this.lerpColor(skyColors.bottom, grayColor, darkenAmount);
+        }
+
         // Draw gradient sky
         this.skyGraphics.fillGradientStyle(skyColors.top, skyColors.top, skyColors.bottom, skyColors.bottom, 1);
         this.skyGraphics.fillRect(0, 0, width, height);
@@ -830,16 +913,20 @@ class GameScene extends Phaser.Scene {
 
         // Draw sun (visible during day) with better visuals
         if (time > 0.2 && time < 0.8) {
+            // Dim sun based on cloud coverage
+            const cloudCoverage = this.weatherSystem.cloudCoverage;
+            const sunDimming = 1 - (cloudCoverage * 0.5); // Max 50% dimmer with full cloud cover
+
             // Sun core (bright yellow)
-            this.celestialGraphics.fillStyle(0xffff00, 1);
+            this.celestialGraphics.fillStyle(0xffff00, 1.0 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius);
 
-            // Sun corona (orange glow - multiple layers)
-            this.celestialGraphics.fillStyle(0xffa500, 0.4);
+            // Sun corona (orange glow - multiple layers) - also dimmed
+            this.celestialGraphics.fillStyle(0xffa500, 0.4 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.4);
-            this.celestialGraphics.fillStyle(0xff8c00, 0.2);
+            this.celestialGraphics.fillStyle(0xff8c00, 0.2 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.8);
-            this.celestialGraphics.fillStyle(0xff6b35, 0.1);
+            this.celestialGraphics.fillStyle(0xff6b35, 0.1 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
