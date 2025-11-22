@@ -284,16 +284,28 @@ class GameScene extends Phaser.Scene {
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedElement = elementName;
+                hideTooltip(); // Hide tooltip when selecting
             };
 
+            // Mobile touch handlers - show tooltip on touch, select on release
+            let touchStartTime = 0;
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                // No tooltip on mobile - just select directly
+                touchStartTime = Date.now();
+                showTooltip(e); // Show tooltip on touch
             });
             btn.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                selectElement();
+                const touchDuration = Date.now() - touchStartTime;
+                // If quick tap (< 300ms), select element
+                // If long press, just hide tooltip (they were reading)
+                if (touchDuration < 300) {
+                    selectElement();
+                } else {
+                    hideTooltip();
+                }
             });
+            btn.addEventListener('touchcancel', hideTooltip);
             btn.addEventListener('click', selectElement);
 
             selector.appendChild(btn);
@@ -438,18 +450,62 @@ class GameScene extends Phaser.Scene {
     }
 
     generateElementDescription(element) {
-        const tags = [];
+        const parts = [];
 
-        // State only
-        if (element.state) tags.push(element.state);
-
-        // Key properties only
-        if (Array.isArray(element.tags)) {
-            if (element.tags.includes('combustible')) tags.push('🔥');
-            if (element.tags.includes('explosive')) tags.push('💥');
+        // State
+        if (element.state) {
+            parts.push(`State: ${element.state}`);
         }
 
-        return tags.join(' ');
+        // Density
+        if (element.density !== undefined) {
+            parts.push(`Density: ${element.density}`);
+        }
+
+        // Key properties
+        const properties = [];
+        if (Array.isArray(element.tags)) {
+            if (element.tags.includes('combustible')) properties.push('🔥 combustible');
+            if (element.tags.includes('explosive')) properties.push('💥 explosive');
+            if (element.tags.includes('heat_source')) properties.push('🔥 heat source');
+            if (element.tags.includes('evaporates')) properties.push('💨 evaporates');
+            if (element.tags.includes('extinguishes_fire')) properties.push('💧 extinguishes fire');
+            if (element.tags.includes('solidifies_lava')) properties.push('🪨 solidifies lava');
+            if (element.tags.includes('oxidizer')) properties.push('⚡ oxidizer');
+        }
+        if (properties.length > 0) {
+            parts.push(properties.join(', '));
+        }
+
+        // Transformations
+        const transforms = [];
+        if (element.burnsInto) {
+            transforms.push(`Burns → ${element.burnsInto}`);
+        }
+        if (element.evaporatesInto) {
+            transforms.push(`Evaporates → ${element.evaporatesInto}`);
+        }
+        if (element.lifetime) {
+            transforms.push(`Lifetime: ${Math.floor(element.lifetime / 60)}s`);
+        }
+        if (transforms.length > 0) {
+            parts.push(transforms.join(', '));
+        }
+
+        // Special behaviors
+        const behaviors = [];
+        if (element.ignitionResistance !== undefined) {
+            const resistance = Math.round(element.ignitionResistance * 100);
+            behaviors.push(`Ignition resist: ${resistance}%`);
+        }
+        if (element.dispersion) {
+            behaviors.push(`Disperses: ${element.dispersion}`);
+        }
+        if (behaviors.length > 0) {
+            parts.push(behaviors.join(', '));
+        }
+
+        return parts.join(' • ');
     }
 
     startDrawing(pointer) {
