@@ -46,13 +46,10 @@ class GunpowderElement extends Element {
     // Custom interaction for explosive chain reactions
     // NOTE: This overrides InteractionManager's standard ignition to provide explosion behavior
     onInteract(otherElement, grid, x, y, otherX, otherY) {
-        // When gunpowder touches heat source - HIGH CHANCE IGNITION (90%)
-        // (Higher than InteractionManager's 15% base to make gunpowder more volatile)
+        // When gunpowder touches heat source - INSTANT EXPLOSION (100% for testing)
         if (otherElement.hasTag(TAG.HEAT_SOURCE)) {
-            if (Math.random() > 0.1) {
-                this.explode(x, y, grid);
-                return true;
-            }
+            this.explode(x, y, grid);
+            return true;
         }
 
         return null; // Use default interaction system
@@ -63,8 +60,8 @@ class GunpowderElement extends Element {
         const smokeElement = grid.registry.get('smoke');
         const emptyElement = grid.registry.get('empty');
 
-        // Explosion radius
-        const explosionRadius = 2;
+        // Explosion radius - increased for more dramatic effect
+        const explosionRadius = 3;
 
         // Get all particles in explosion radius
         const affectedCells = [];
@@ -88,14 +85,20 @@ class GunpowderElement extends Element {
 
             const strength = 1.0 - (cell.dist / explosionRadius);
 
-            // Center of explosion becomes fire
-            if (cell.dist < 0.5) {
+            // Center of explosion becomes fire (larger center)
+            if (cell.dist < 1.5) {
                 grid.setElement(cell.x, cell.y, fireElement);
                 continue;
             }
 
-            // Ignite nearby gunpowder (chain reaction)
-            if (element.name === 'gunpowder' && Math.random() < 0.8 * strength) {
+            // Ignite nearby gunpowder (chain reaction) - 100% for testing
+            if (element.name === 'gunpowder') {
+                grid.setElement(cell.x, cell.y, fireElement);
+                continue;
+            }
+
+            // Destroy combustible materials
+            if (element.hasTag(TAG.COMBUSTIBLE) && Math.random() < strength) {
                 grid.setElement(cell.x, cell.y, fireElement);
                 continue;
             }
