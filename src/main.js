@@ -910,33 +910,56 @@ class GameScene extends Phaser.Scene {
                     this.celestialGraphics.fillCircle(displayX, displayY, radius * 1.4);
                 }
 
-                // Draw moon phases - only draw the visible lit portion
+                // Draw moon phases using crescent path geometry
                 if (brightness < 0.05) {
                     // New moon - barely visible, very dim
-                    this.celestialGraphics.fillStyle(0x3a3a3a, 0.3);
+                    this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
                     this.celestialGraphics.fillCircle(displayX, displayY, radius);
-                } else if (brightness < 0.98) {
-                    // Moon has phases - draw the crescent/gibbous shape
+                } else if (brightness >= 0.98) {
+                    // Full moon - bright and luminous
+                    this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
+                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
+                } else {
+                    // Draw crescent/gibbous shape using path operations
                     const isWaxing = moonPhase < 0.5;
 
-                    // Draw the full moon body first
-                    this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
-                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
+                    this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
+                    this.celestialGraphics.beginPath();
 
-                    // Draw shadow - reduced offset to prevent overlap with adjacent moons
-                    // Use radius * 1.3 instead of radius * 2 to keep shadow contained
-                    const maxOffset = radius * 1.3;
-                    const shadowX = isWaxing ?
-                        displayX - maxOffset * (1 - brightness) :
-                        displayX + maxOffset * (1 - brightness);
+                    // Draw the main moon circle edge
+                    if (isWaxing) {
+                        // Waxing: lit on right, dark on left
+                        this.celestialGraphics.arc(displayX, displayY, radius, -Math.PI / 2, Math.PI / 2, false);
+                    } else {
+                        // Waning: lit on left, dark on right
+                        this.celestialGraphics.arc(displayX, displayY, radius, Math.PI / 2, -Math.PI / 2, false);
+                    }
 
-                    // Draw shadow as a dark gray/blue that's transparent
-                    this.celestialGraphics.fillStyle(0x1a1a2a, 0.85);
-                    this.celestialGraphics.fillCircle(shadowX, displayY, radius);
-                } else {
-                    // Full moon - just draw it normally
-                    this.celestialGraphics.fillStyle(0xc8c8c8, 1.0);
-                    this.celestialGraphics.fillCircle(displayX, displayY, radius);
+                    // Draw the terminator curve (the boundary between light and dark)
+                    // Use an elliptical curve that varies with phase
+                    const terminatorCurve = (brightness - 0.5) * 2; // -1 to 1 (crescent to gibbous)
+                    const curveRadius = radius * Math.abs(terminatorCurve);
+
+                    if (isWaxing) {
+                        if (terminatorCurve < 0) {
+                            // Waxing crescent: curve inward
+                            this.celestialGraphics.arc(displayX - radius * (1 - Math.abs(terminatorCurve)), displayY, curveRadius, Math.PI / 2, -Math.PI / 2, true);
+                        } else {
+                            // Waxing gibbous: curve outward
+                            this.celestialGraphics.arc(displayX - radius * (1 - Math.abs(terminatorCurve)), displayY, curveRadius, -Math.PI / 2, Math.PI / 2, false);
+                        }
+                    } else {
+                        if (terminatorCurve > 0) {
+                            // Waning gibbous: curve outward
+                            this.celestialGraphics.arc(displayX + radius * (1 - Math.abs(terminatorCurve)), displayY, curveRadius, Math.PI / 2, -Math.PI / 2, false);
+                        } else {
+                            // Waning crescent: curve inward
+                            this.celestialGraphics.arc(displayX + radius * (1 - Math.abs(terminatorCurve)), displayY, curveRadius, -Math.PI / 2, Math.PI / 2, true);
+                        }
+                    }
+
+                    this.celestialGraphics.closePath();
+                    this.celestialGraphics.fillPath();
                 }
             }
         }
