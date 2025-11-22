@@ -941,7 +941,7 @@ class GameScene extends Phaser.Scene {
                         for (let i = 0; i <= segments; i++) {
                             const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
                             const y = displayY + radius * Math.sin(theta);
-                            const x = displayX + radius * k * Math.cos(theta);
+                            const x = displayX + radius * k * Math.cos(theta); // Positive k for waxing
                             this.celestialGraphics.lineTo(x, y);
                         }
                     } else {
@@ -952,9 +952,9 @@ class GameScene extends Phaser.Scene {
                         // Draw terminator curve from bottom to top (right side)
                         const segments = 30;
                         for (let i = 0; i <= segments; i++) {
-                            const theta = (i / segments) * Math.PI - Math.PI / 2; // -π/2 to π/2
+                            const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
                             const y = displayY + radius * Math.sin(theta);
-                            const x = displayX + radius * k * Math.cos(theta);
+                            const x = displayX - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
                             this.celestialGraphics.lineTo(x, y);
                         }
                     }
