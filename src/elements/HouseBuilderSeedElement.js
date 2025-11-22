@@ -24,9 +24,31 @@ class HouseBuilderSeedElement extends Element {
 
         // Check if construction is already in progress
         if (cell.data._houseConstruction) {
-            // Builder has started construction, just stay still
-            // Construction manager will handle building
-            return false;
+            // Check if construction is complete (marker will be removed)
+            // If no longer marked, the house is done - reset and build another!
+            if (!cell.data._constructionActive) {
+                // Wait for cooldown period before building again
+                if (!cell.data.buildCooldown) {
+                    cell.data.buildCooldown = 600; // Wait 10 seconds (600 frames at 60fps)
+                }
+
+                if (cell.data.buildCooldown > 0) {
+                    cell.data.buildCooldown--;
+                    return false;
+                }
+
+                // Cooldown complete - reset builder state to wander again
+                delete cell.data._houseConstruction;
+                delete cell.data.buildCooldown;
+                cell.data.initiated = false; // Reset completely
+                cell.data.settled = false;
+                cell.data.wanderAttempts = 0;
+                // Fall through to normal update logic
+            } else {
+                // Builder has started construction, just stay still
+                // Construction manager will handle building
+                return false;
+            }
         }
 
         // Initialize state
@@ -226,7 +248,9 @@ class HouseBuilderSeedElement extends Element {
             baseY: foundationY,  // Build foundation at this level
             buildPhase: 'ground_fill',
             buildStep: 0,
-            buildTimer: 0
+            buildTimer: 0,
+            builderX: null, // Will be set after builder moves
+            builderY: null
         };
 
         // PERFORMANCE: Register construction for efficient updates
@@ -238,14 +262,26 @@ class HouseBuilderSeedElement extends Element {
         const sideX = x + direction * 3; // Step 3 blocks away from center
         const sideElement = grid.getElement(sideX, y);
 
+        let builderFinalX = x;
+        let builderFinalY = y;
+
         if (sideElement && sideElement.id === 0) {
             // Move builder out of the way
             grid.swap(x, y, sideX, y);
+            builderFinalX = sideX;
         }
         // If can't move aside, builder will stay and get built into foundation
 
-        // Mark builder as having started construction
-        cell.data._houseConstruction = true; // Just a marker so builder stays still
+        // Store builder position in construction data
+        foundationCell.data._houseConstruction.builderX = builderFinalX;
+        foundationCell.data._houseConstruction.builderY = builderFinalY;
+
+        // Mark builder as having started construction AND mark as active
+        const builderCell = grid.getCell(builderFinalX, builderFinalY);
+        if (builderCell) {
+            builderCell.data._houseConstruction = true;
+            builderCell.data._constructionActive = true; // Active marker
+        }
 
         return true;
     }

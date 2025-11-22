@@ -261,6 +261,15 @@ export class ConstructionManager {
                 hasBuilder: false // Track if builder has spawned
             });
 
+            // Notify builder that construction is complete
+            if (construction.builderX !== null && construction.builderY !== null) {
+                const builderCell = grid.getCell(construction.builderX, construction.builderY);
+                if (builderCell && builderCell.element.name === 'house_seed') {
+                    // Remove active marker so builder knows construction is done
+                    delete builderCell.data._constructionActive;
+                }
+            }
+
             construction.buildPhase = 'complete';
         }
     }
