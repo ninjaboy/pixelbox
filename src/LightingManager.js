@@ -60,7 +60,10 @@ export class LightingManager {
                 } else if (currentTimeState === 'evening') {
                     this.turnOnLights(house, grid, false);
                 } else if (currentTimeState === 'morning') {
-                    this.turnOffLights(house, grid);
+                    // Late nighters keep their lights on in the morning!
+                    if (!house.isLateNighter) {
+                        this.turnOffLights(house, grid);
+                    }
                 }
             }
             this.previousTimeState = currentTimeState;
@@ -70,9 +73,12 @@ export class LightingManager {
         if (currentTimeState === 'night') {
             for (const house of grid.houses) {
                 // Deep night - randomly turn off individual lights throughout the night
-                // Each light has independent random chance every frame
-                // ~1% chance per second per light = 0.6% per frame at 60fps
-                if (Math.random() < 0.006) {
+                // Late nighters turn off lights much more slowly
+                // Normal houses: 0.6% chance per frame
+                // Late nighters: 0.1% chance per frame (6x slower)
+                const turnOffChance = house.isLateNighter ? 0.001 : 0.006;
+
+                if (Math.random() < turnOffChance) {
                     this.turnOffRandomLight(house, grid);
                 }
             }
@@ -138,9 +144,11 @@ export class LightingManager {
         });
 
         if (litWindows.length > 0) {
-            // 20% chance to keep all lights, 30% to keep 1 light, 50% to turn off one
-            const keepAllChance = 0.2;
-            const keepOneChance = 0.3;
+            // Late nighters keep more lights on!
+            // Normal: 20% keep all, 30% keep 1
+            // Late nighter: 60% keep all, 80% keep 1
+            const keepAllChance = house.isLateNighter ? 0.6 : 0.2;
+            const keepOneChance = house.isLateNighter ? 0.8 : 0.3;
 
             if (Math.random() < keepAllChance) {
                 return; // Keep all lights on

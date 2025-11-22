@@ -253,12 +253,16 @@ export class ConstructionManager {
                 { x: centerX + 1, y: construction.currentY - 1 }  // Floor 2, right window interior
             ];
 
+            // 30% of houses are "late nighters" - stay up later with lights on
+            const isLateNighter = Math.random() < 0.3;
+
             grid.houses.push({
                 centerX: centerX,
                 baseY: construction.baseY,
                 windows: windowPositions,
                 lightsOn: false,
-                hasBuilder: false // Track if builder has spawned
+                hasBuilder: false, // Track if builder has spawned
+                isLateNighter: isLateNighter // Some people stay up late!
             });
 
             // Notify builder that construction is complete
