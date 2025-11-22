@@ -22,6 +22,13 @@ class HouseBuilderSeedElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
+        // Check if construction is already in progress
+        if (cell.data._houseConstruction) {
+            // Builder has started construction, just stay still
+            // Construction manager will handle building
+            return false;
+        }
+
         // Initialize state
         if (!cell.data.initiated) {
             cell.data.initiated = true;
@@ -225,8 +232,20 @@ class HouseBuilderSeedElement extends Element {
         // PERFORMANCE: Register construction for efficient updates
         grid.registerConstruction(x, foundationY);
 
-        // Builder disappears (job done! they started the construction)
-        grid.setElement(x, y, grid.registry.get('empty'));
+        // Builder steps aside to let construction happen
+        // Try to move to the side (left or right)
+        const direction = Math.random() > 0.5 ? 1 : -1;
+        const sideX = x + direction * 3; // Step 3 blocks away from center
+        const sideElement = grid.getElement(sideX, y);
+
+        if (sideElement && sideElement.id === 0) {
+            // Move builder out of the way
+            grid.swap(x, y, sideX, y);
+        }
+        // If can't move aside, builder will stay and get built into foundation
+
+        // Mark builder as having started construction
+        cell.data._houseConstruction = true; // Just a marker so builder stays still
 
         return true;
     }
