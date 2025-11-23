@@ -41,17 +41,17 @@
             display: flex;
             flex-wrap: wrap;
             gap: 2px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 3px;
-            border-radius: 4px;
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px;
+            border-radius: 3px;
+            backdrop-filter: blur(5px);
             z-index: 1000;
             max-width: 100vw;
             justify-content: center;
             align-self: center;
             margin: 3px;
             margin-bottom: max(3px, env(safe-area-inset-bottom)); /* Account for iOS home indicator */
-            padding-bottom: calc(3px + env(safe-area-inset-bottom)); /* Extra padding for safe area */
+            padding-bottom: calc(2px + env(safe-area-inset-bottom)); /* Extra padding for safe area */
         }
 
         /* Separator styling - default (horizontal layout) */
@@ -105,7 +105,7 @@
             width: 32px;
             height: 32px;
             min-width: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 3px;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -117,14 +117,14 @@
             position: relative;
             flex-shrink: 0;
             touch-action: manipulation;
-            color: rgba(255, 255, 255, 0.95);
+            color: rgba(255, 255, 255, 0.8);
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .element-btn:hover {
             transform: translateY(-2px);
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
         .element-btn:active {
             transform: translateY(0px) scale(0.95);
@@ -145,9 +145,9 @@
             bottom: 1px;
             right: 1px;
             font-size: 7px;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.4);
             font-weight: 700;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.5);
             padding: 1px 2px;
             border-radius: 2px;
             line-height: 1;
@@ -156,49 +156,51 @@
         }
         #global-tooltip {
             position: fixed;
-            background: rgba(0, 0, 0, 0.95);
-            color: #fff;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 11px;
+            background: rgba(0, 0, 0, 0.85);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
             pointer-events: none;
             z-index: 10000;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            min-width: 140px;
-            max-width: 250px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            min-width: 100px;
+            max-width: 200px;
         }
         #tooltip-name {
-            font-weight: 700;
-            margin-bottom: 6px;
-            font-size: 12px;
-            color: #00ffff;
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 10px;
+            color: rgba(0, 255, 255, 0.8);
             text-transform: uppercase;
         }
         #tooltip-props {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 10px;
-            margin-bottom: 6px;
-            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 9px;
+            margin-bottom: 3px;
+            line-height: 1.3;
             white-space: pre-line;
         }
         #tooltip-key {
-            color: rgba(255, 200, 100, 1);
-            font-size: 10px;
-            font-weight: 600;
-            padding-top: 6px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 200, 100, 0.8);
+            font-size: 8px;
+            font-weight: 500;
+            padding-top: 3px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         #stats {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
+            top: 8px;
+            right: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
             font-family: monospace;
+            backdrop-filter: blur(5px);
         }
         #profiler-panel {
             position: fixed;
@@ -515,24 +517,24 @@
 
     <div id="stats">
         <div>FPS: <span id="fps">60</span></div>
-        <div>Particles: <span id="particles">0</span></div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-weight: bold; font-size: 11px;">
-                Mode: <span id="mode-display" style="color: #00ffff;">🔨 Build</span>
+        <div>P: <span id="particles">0</span></div>
+        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15);">
+            <div style="font-size: 9px;">
+                <span id="mode-display" style="color: rgba(0,255,255,0.8);">🔨 Build</span>
             </div>
-            <div style="font-size: 9px; opacity: 0.7; margin-top: 2px;">
-                Press <kbd style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px;">B</kbd> to toggle
+            <div style="font-size: 8px; opacity: 0.5; margin-top: 1px;">
+                <kbd style="background: rgba(255,255,255,0.1); padding: 1px 3px; border-radius: 2px; font-size: 7px;">B</kbd>
             </div>
         </div>
-        <div style="display: flex; gap: 4px; margin-top: 6px;">
-            <button id="mute-btn" style="flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; font-size: 16px; cursor: pointer;" title="Toggle Sound">
+        <div style="display: flex; gap: 3px; margin-top: 4px;">
+            <button id="mute-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="Toggle Sound">
                 <span id="mute-icon">🔊</span>
             </button>
-            <button id="grimoire-btn" style="flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; font-size: 16px; cursor: pointer;" title="How to Play">
+            <button id="grimoire-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="How to Play">
                 ❓
             </button>
         </div>
-        <div style="font-size: 10px; opacity: 0.6; margin-top: 6px;">v<span id="version">-</span></div>
+        <div style="font-size: 8px; opacity: 0.4; margin-top: 4px;">v<span id="version">-</span></div>
     </div>
 
     <div id="profiler-panel" style="display: none;">
