@@ -163,6 +163,7 @@ class GameScene extends Phaser.Scene {
             { name: 'oil', key: '4' },
             { name: 'lava', key: '5' },
             { name: 'acid', key: '6' },
+            { name: 'slush', key: 'Y' },
 
             // POWDERS (fall, pile)
             { name: 'sand', key: '7' },
@@ -210,6 +211,7 @@ class GameScene extends Phaser.Scene {
             acid: { icon: '☢️', color: '#7fff00' },
             vine: { icon: '🌿', color: '#228b22' },
             snow: { icon: '❄', color: '#ffffff' },
+            slush: { icon: '🧊', color: '#b0e0e6' },
             coal: { icon: '⚫', color: '#1a1a1a' },
             coral: { icon: '🪸', color: '#ff6b9d' },
             steam_vent: { icon: '🌡️', color: '#555555' },
@@ -474,7 +476,8 @@ class GameScene extends Phaser.Scene {
             acid: 'Liquid, flows • Corrosive - dissolves organic materials on contact • Melts through certain substances • Dangerous to living creatures • Bright green color',
             glass: 'Solid, transparent • Created by heating sand to extreme temperatures • Fragile - shatters under pressure • Transparent/translucent material • Non-flammable',
             vine: 'Organic plant • Grows and spreads along surfaces • Climbs upward on walls • Burns when exposed to fire → ash • Creates natural coverage • Living plant material',
-            snow: 'Powder, falls lightly • Melts near heat → water • Accumulates on surfaces • Very light and disperses easily • Cold material • Settles in piles',
+            snow: 'Powder, falls lightly • Forms slush when touching water (40% chance) • Melts near heat → water • Accumulates on surfaces • Very light and disperses easily • Cold material • Settles in piles • Drifts down gently',
+            slush: 'Thick liquid mixture of snow and water • Flows slowly and viscously • Forms when snow contacts water • Melts near heat → water • Freezes back to ice when exposed to cold air (not touching water) • Heavier than ice but lighter than water • Very thick and sludgy • Coastal/winter material',
             coral: 'Organic solid • Grows underwater in colonies • Requires water to survive • Dies if exposed to air • Colorful reef-building material • Burns when exposed to fire',
             steam_vent: 'Solid structure • Continuously produces steam • Natural heat source • Creates rising steam plumes • Contributes to cloud formation • Permanent fixture',
             fossil: 'Solid organic remains • Ancient preserved material • Can contain coal deposits • Combustible under extreme heat • Historical remnant',
