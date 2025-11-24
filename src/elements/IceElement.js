@@ -16,10 +16,10 @@ class IceElement extends Element {
             emissionDensity: 0.8
         });
 
-        // Behavior 1: Melt when near heat sources
+        // Behavior 1: Melt when near heat sources (realistic fast melting)
         this.addBehavior(new HeatTransformationBehavior({
             transformInto: 'water',
-            transformChance: 0.05, // 5% chance per frame when near heat
+            transformChance: 0.12, // 12% chance per frame when near heat (faster than before)
             requiredTag: TAG.HEAT_SOURCE,
             checkDiagonals: false // only cardinal directions
         }));

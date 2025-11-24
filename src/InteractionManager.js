@@ -36,11 +36,11 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
-                // Probabilistic stonification: 20% chance per contact
-                if (Math.random() < 0.2) {
+                // Realistic solidification: 70% chance per contact (lava cools rapidly in water)
+                if (Math.random() < 0.7) {
                     // Turn lava into stone (sinks naturally due to density: 10 > 2)
                     grid.setElement(lavaX, lavaY, registry.get('stone'));
-                    // Water becomes steam
+                    // Water becomes steam (always - rapid heat transfer)
                     grid.setElement(waterX, waterY, registry.get('steam'));
                 } else {
                     // Just evaporate the water without forming stone
@@ -95,8 +95,8 @@ class InteractionManager {
                 const [fireX, fireY] = element1.name === 'fire' ? [x1, y1] : [x2, y2];
                 const [waterX, waterY] = element1.name === 'fire' ? [x2, y2] : [x1, y1];
 
-                // Extinguish fire (70% chance)
-                if (Math.random() < 0.7) {
+                // Extinguish fire (90% chance - water is very effective)
+                if (Math.random() < 0.9) {
                     // Fire is extinguished - becomes steam or empty (no smoke)
                     grid.setElement(fireX, fireY, Math.random() < 0.3 ? registry.get('steam') : registry.get('empty'));
 
@@ -203,17 +203,17 @@ class InteractionManager {
 
                 if (isWaterDirectlyAbove) {
                     // TIER 1: Water directly above - gravity assists (fastest)
-                    wettingChance = 0.15;        // 15% per frame (~7 frames average)
-                    waterAbsorptionChance = 0.30; // 30% water absorbed
+                    wettingChance = 0.18;        // 18% per frame (~6 frames average) - increased
+                    waterAbsorptionChance = 0.25; // 25% water absorbed - reduced to keep more water
                 } else if (isSubmerged) {
                     // TIER 2: Fully submerged - pressure saturation (medium speed)
-                    wettingChance = 0.08;        // 8% per frame (~13 frames average)
-                    waterAbsorptionChance = 0.05; // 5% water absorbed
+                    wettingChance = 0.12;        // 12% per frame (~8 frames average) - increased
+                    waterAbsorptionChance = 0.03; // 3% water absorbed - reduced
                 } else if (waterCount >= 1 && !isSurfaceSand) {
-                    // TIER 3: Side contact ONLY for buried sand - capillary action (slow)
+                    // TIER 3: Side contact ONLY for buried sand - capillary action (faster now)
                     // Surface sand (exposed to air) does NOT wet from sides - stays dry!
-                    wettingChance = 0.03;        // 3% per frame (~33 frames average)
-                    waterAbsorptionChance = 0.02; // 2% water absorbed
+                    wettingChance = 0.08;        // 8% per frame (~13 frames average) - INCREASED from 3%
+                    waterAbsorptionChance = 0.01; // 1% water absorbed - minimal loss
                 } else {
                     // No wetting: surface sand with only side contact, or no water contact
                     return false;
@@ -277,23 +277,36 @@ class InteractionManager {
             }
         });
 
-        // STEAM CONDENSATION: steam + cool surfaces → water
+        // STEAM CONDENSATION: steam + cool surfaces → water (material-specific rates)
         this.registerInteraction({
             name: 'steam_condensation',
             priority: 16,
             check: (element1, element2) => {
-                const coolSurfaces = ['stone', 'wood', 'sand', 'wet_sand'];
+                const coolSurfaces = ['stone', 'wood', 'sand', 'wet_sand', 'glass', 'obsidian'];
                 return (element1.name === 'steam' && coolSurfaces.includes(element2.name)) ||
                        (element2.name === 'steam' && coolSurfaces.includes(element1.name));
             },
             apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
-                // Determine which is steam
+                // Determine which is steam and which is the surface
                 const [steamX, steamY] = element1.name === 'steam'
                     ? [x1, y1]
                     : [x2, y2];
+                const surfaceName = element1.name === 'steam' ? element2.name : element1.name;
 
-                // 5% chance to condense back to water
-                if (Math.random() > 0.95) {
+                // Material-specific condensation rates (cold surfaces condense faster)
+                const condensationRates = {
+                    'stone': 0.10,     // 10% - cold, high thermal mass
+                    'obsidian': 0.12,  // 12% - very cold when cooled
+                    'glass': 0.08,     // 8% - smooth surface, moderate cooling
+                    'wet_sand': 0.06,  // 6% - already wet, some cooling
+                    'sand': 0.05,      // 5% - moderate thermal properties
+                    'wood': 0.03       // 3% - insulating, poor condenser
+                };
+
+                const condensationChance = condensationRates[surfaceName] || 0.05;
+
+                // Apply material-specific condensation rate
+                if (Math.random() < condensationChance) {
                     const waterElement = registry.get('water');
                     if (waterElement) {
                         grid.setElement(steamX, steamY, waterElement);

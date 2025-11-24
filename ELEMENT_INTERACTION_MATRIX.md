@@ -71,7 +71,7 @@ Legend:
 ### Fire Interactions
 | Elements | Result | Chance | Priority |
 |----------|--------|--------|----------|
-| fire + water | fire → smoke, water → steam (50%) | 70% | 7 |
+| fire + water | fire → smoke, water → steam (50%) | **90%** ⬆️ | 7 |
 | fire + oil | oil → fire | 15% | 5 |
 | fire + wood | wood → fire | 15% | 5 |
 | fire + gunpowder | gunpowder → fire | 15% | 5 |
@@ -79,9 +79,10 @@ Legend:
 ### Lava Interactions
 | Elements | Result | Chance | Priority |
 |----------|--------|--------|----------|
-| lava + water | lava → stone (20%), water → steam | always | 0 |
+| lava + water | lava → stone (**70%** ⬆️), water → steam | always | 0 |
+| lava + sand | lava pushes (**92%** ⬆️) OR glass (**8%** ⬇️) | varies | - |
 | lava + snow | snow → water/slush | melts | - |
-| lava + ice | ice → water | melts | - |
+| lava + ice | ice → water | **12%** ⬆️ melt | - |
 | lava + wood | wood → fire | 15% | 5 |
 | lava + oil | oil → fire | 15% | 5 |
 | lava + gunpowder | gunpowder → fire | 15% | 5 |
@@ -89,22 +90,24 @@ Legend:
 ### Water Interactions
 | Elements | Result | Chance | Priority |
 |----------|--------|--------|----------|
-| water + sand | sand → wet_sand (multi-tier) | 15%/8%/3%* | 10 |
-| water + lava | lava → stone, water → steam | 20% | 0 |
-| water + fire | fire → smoke, water → steam | 70% | 7 |
+| water + sand | sand → wet_sand (multi-tier) | **18%/12%/8%** ⬆️ | 10 |
+| water + lava | lava → stone, water → steam | **70%** ⬆️ | 0 |
+| water + fire | fire → smoke, water → steam | **90%** ⬆️ | 7 |
 | water + salt | salt dissolves (removed) | 15% | - |
 | water + ash | ash dissolves (removed) | varies | - |
 
-*Multi-tier wetting: 15% (water above), 8% (submerged), 3% (side contact, buried only)
+*Multi-tier wetting: **18%** (water above), **12%** (submerged), **8%** (side contact, buried only)
 
-### Steam Interactions
+### Steam Interactions (Material-Specific Rates ⭐ NEW)
 | Elements | Result | Chance | Priority |
 |----------|--------|--------|----------|
 | steam + ice | steam → water (rapid) | 30% | 8 |
-| steam + stone | steam → water (slow) | 5% | 16 |
-| steam + wood | steam → water (slow) | 5% | 16 |
+| steam + obsidian | steam → water (very fast) | **12%** 🆕 | 16 |
+| steam + stone | steam → water (fast) | **10%** ⬆️ | 16 |
+| steam + glass | steam → water (medium) | **8%** 🆕 | 16 |
+| steam + wet_sand | steam → water (medium) | **6%** ⬆️ | 16 |
 | steam + sand | steam → water (slow) | 5% | 16 |
-| steam + wet_sand | steam → water (slow) | 5% | 16 |
+| steam + wood | steam → water (very slow) | **3%** ⬇️ | 16 |
 
 ## Problematic Powder Interactions
 
@@ -215,19 +218,24 @@ Spread out powder densities to reduce same-density conflicts:
 | salt | 4 | 6 | Heavier crystals |
 | wet_sand | 9 | 10 | Very heavy when wet |
 
-## Balanced Wetting/Drying System: Water + Sand
+## Balanced Wetting/Drying System: Water + Sand (v2 - IMPROVED)
 
 ### Overview
-The water-sand interaction uses a **multi-tier realistic wetting system** balanced against exposure-based drying to create intuitive, physically accurate behavior.
+The water-sand interaction uses a **multi-tier realistic wetting system** balanced against exposure-based drying to create intuitive, physically accurate behavior. **Version 2 improvements:** Faster wetting, better horizontal spread, slower drying, improved water flow.
 
-### Multi-Tier Wetting Rates
+### Multi-Tier Wetting Rates (v2)
 
 | Scenario | Wetting Rate | Avg Time to Wet | Water Absorption | Requirements |
 |----------|--------------|-----------------|------------------|--------------|
-| **Water Directly Above** | 15% per frame | ~7 frames | 30% | Water at Y-1, same X |
-| **Fully Submerged** | 8% per frame | ~13 frames | 5% | 3+ water neighbors |
-| **Side Contact (Buried)** | 3% per frame | ~33 frames | 2% | 1-2 water neighbors, NOT surface |
+| **Water Directly Above** | **18%** ⬆️ per frame | **~6 frames** | **25%** ⬇️ | Water at Y-1, same X |
+| **Fully Submerged** | **12%** ⬆️ per frame | **~8 frames** | **3%** ⬇️ | 3+ water neighbors |
+| **Side Contact (Buried)** | **8%** ⬆️ per frame | **~13 frames** | **1%** ⬇️ | 1-2 water neighbors, NOT surface |
 | **Side Contact (Surface)** | 0% (no wetting) | Never | 0% | Exposed to air above |
+
+**Key Improvements:**
+- ⬆️ **Faster wetting** - More responsive saturation (18%/12%/8% vs old 15%/8%/3%)
+- ⬇️ **Less water loss** - Water flows better instead of being absorbed (25%/3%/1% vs old 30%/5%/2%)
+- 🌊 **Better horizontal spread** - Buried sand wets 2.7x faster from sides (8% vs 3%)
 
 ### Surface Sand Protection
 **Key Feature:** Sand with empty space/air directly above is considered "surface sand" and will NOT wet from side contact.
@@ -237,27 +245,35 @@ The water-sand interaction uses a **multi-tier realistic wetting system** balanc
 - ✅ Water must fall ON TOP to wet surface sand
 - ✅ Buried sand (no air above) can wet from any direction via capillary action
 
-### Exposure-Based Drying Rates
+### Exposure-Based Drying Rates (v2 - Slower)
 
 | Dry Neighbors | Drying Time | Rate | Typical Scenario |
 |---------------|-------------|------|------------------|
-| **4 dry sides** | Instant | 0 frames | Completely isolated grain |
-| **3 dry sides** | Very fast | 60 frames (~1 sec) | Edge of wet patch |
-| **2 dry sides** | Moderate | 300 frames (~5 sec) | Corner of wet area |
-| **1 dry side** | Slow | 900 frames (~15 sec) | Deep in wet sand |
+| **4 dry sides** | **2 seconds** ⬆️ | **120 frames** | Completely isolated grain |
+| **3 dry sides** | **3 seconds** ⬆️ | **180 frames** | Edge of wet patch |
+| **2 dry sides** | **8 seconds** ⬆️ | **480 frames** | Corner of wet area |
+| **1 dry side** | **20 seconds** ⬆️ | **1200 frames** | Deep in wet sand |
 | **0 dry sides** | Never | ∞ | Surrounded by wet sand |
 | **Touching water** | Never | ∞ (timer reset) | In contact with water source |
 
 **Dry neighbors** = Air/empty space OR dry sand (not wet_sand, not water)
 
-### Wetting vs Drying Balance
+**Key Improvement:** Slower drying prevents sand from drying out too quickly when water is nearby
+
+### Water Permeability (v2 - Improved)
+
+| Feature | Rate | Change |
+|---------|------|--------|
+| **Water seeping through wet sand** | **10%** ⬆️ | Doubled from 5% for better flow |
+
+### Wetting vs Drying Balance (v2)
 
 | Condition | Wetting Speed | Drying Speed | Net Effect |
 |-----------|---------------|--------------|------------|
-| Water above, 3 dry sides | ~7 frames | 60 frames | Wet spreads quickly, dries slowly |
-| Submerged | ~13 frames | Never | Stays wet while underwater |
-| Buried + side contact | ~33 frames | 300 frames | Gradual capillary spread underground |
-| Surface + side contact | Never | 60 frames | Surface stays dry! |
+| Water above, 3 dry sides | **~6 frames** | **180 frames** | Wet spreads fast, stays longer |
+| Submerged | **~8 frames** | Never | Stays wet while underwater |
+| Buried + side contact | **~13 frames** | **480 frames** | Much better capillary spread! |
+| Surface + side contact | Never | **180 frames** | Surface stays dry! |
 
 ### Physical Realism Achieved
 

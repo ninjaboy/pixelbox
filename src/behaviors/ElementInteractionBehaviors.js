@@ -15,9 +15,9 @@ import { STATE } from '../ElementProperties.js';
  */
 export class LavaSandInteractionBehavior {
     constructor(options = {}) {
-        this.pushDownChance = options.pushDownChance || 0.7;
-        this.glassifyBelowChance = options.glassifyBelowChance || 0.3;
-        this.glassifySideChance = options.glassifySideChance || 0.08;
+        this.pushDownChance = options.pushDownChance || 0.92; // Increased from 0.7 (now mostly pushes)
+        this.glassifyBelowChance = options.glassifyBelowChance || 0.08; // Reduced from 0.3 (glass is rare!)
+        this.glassifySideChance = options.glassifySideChance || 0.03; // Reduced from 0.08
         this.pushSideChance = options.pushSideChance || 0.15;
         this.dryWetSandChance = options.dryWetSandChance || 0.6; // Chance to dry wet sand
     }
