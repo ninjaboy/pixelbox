@@ -16,6 +16,14 @@ export class GravityBehavior {
     }
 
     apply(x, y, grid) {
+        const cell = grid.getCell(x, y);
+
+        // PRIORITY 0: Explosion velocity (universal for all elements!)
+        if (cell && (cell.data.velocityX !== undefined || cell.data.velocityY !== undefined)) {
+            const moved = this.applyVelocity(x, y, grid, cell);
+            if (moved) return true;
+        }
+
         // Priority 1: Fall straight down
         if (grid.canMoveTo(x, y, x, y + 1)) {
             grid.swap(x, y, x, y + 1);
@@ -44,6 +52,66 @@ export class GravityBehavior {
 
         return false;
     }
+
+    // Universal velocity handler for explosion-launched particles
+    applyVelocity(x, y, grid, cell) {
+        let vx = cell.data.velocityX || 0;
+        let vy = cell.data.velocityY || 0;
+
+        // Air resistance - reduce velocity each frame
+        const airResistance = 0.92;
+        vx *= airResistance;
+        vy *= airResistance;
+
+        // Gravity - pull downward
+        vy += 0.15;
+
+        // Stop if velocity too small
+        if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.3) {
+            delete cell.data.velocityX;
+            delete cell.data.velocityY;
+            return false;
+        }
+
+        // Calculate target position
+        const targetX = x + Math.round(vx);
+        const targetY = y + Math.round(vy);
+
+        const element = grid.getElement(x, y);
+
+        // Try to move to target
+        if (grid.isInBounds(targetX, targetY)) {
+            const targetElement = grid.getElement(targetX, targetY);
+
+            // Can move into empty space or displace lighter/movable elements
+            if (targetElement && (targetElement.id === 0 ||
+                (targetElement.movable && targetElement.density < element.density))) {
+
+                grid.swap(x, y, targetX, targetY);
+
+                // Update velocity in new position
+                const newCell = grid.getCell(targetX, targetY);
+                if (newCell) {
+                    newCell.data.velocityX = vx;
+                    newCell.data.velocityY = vy;
+                }
+
+                return true;
+            }
+        }
+
+        // Collision - bounce with damping
+        if (Math.abs(vx) > Math.abs(vy)) {
+            vx *= -0.3;
+        } else {
+            vy *= -0.4;
+        }
+
+        cell.data.velocityX = vx;
+        cell.data.velocityY = vy;
+
+        return false;
+    }
 }
 
 /**
@@ -60,7 +128,14 @@ export class LiquidFlowBehavior {
     }
 
     apply(x, y, grid) {
+        const cell = grid.getCell(x, y);
         const element = grid.getElement(x, y);
+
+        // PRIORITY 0: Explosion velocity (universal for all liquids!)
+        if (cell && (cell.data.velocityX !== undefined || cell.data.velocityY !== undefined)) {
+            const moved = this.applyVelocity(x, y, grid, cell);
+            if (moved) return true;
+        }
 
         // Priority 1: Multi-cell fall (faster falling)
         let fallDistance = 0;
@@ -215,6 +290,64 @@ export class LiquidFlowBehavior {
         cell.data.cachedDepthFrame = grid.frameCount;
 
         return depth;
+    }
+
+    // Universal velocity handler for explosion-launched liquids (same as GravityBehavior)
+    applyVelocity(x, y, grid, cell) {
+        let vx = cell.data.velocityX || 0;
+        let vy = cell.data.velocityY || 0;
+
+        // Air resistance
+        const airResistance = 0.92;
+        vx *= airResistance;
+        vy *= airResistance;
+
+        // Gravity
+        vy += 0.15;
+
+        // Stop if velocity too small
+        if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.3) {
+            delete cell.data.velocityX;
+            delete cell.data.velocityY;
+            return false;
+        }
+
+        // Calculate target position
+        const targetX = x + Math.round(vx);
+        const targetY = y + Math.round(vy);
+
+        const element = grid.getElement(x, y);
+
+        // Try to move to target
+        if (grid.isInBounds(targetX, targetY)) {
+            const targetElement = grid.getElement(targetX, targetY);
+
+            if (targetElement && (targetElement.id === 0 ||
+                (targetElement.movable && targetElement.density < element.density))) {
+
+                grid.swap(x, y, targetX, targetY);
+
+                const newCell = grid.getCell(targetX, targetY);
+                if (newCell) {
+                    newCell.data.velocityX = vx;
+                    newCell.data.velocityY = vy;
+                }
+
+                return true;
+            }
+        }
+
+        // Collision - bounce
+        if (Math.abs(vx) > Math.abs(vy)) {
+            vx *= -0.3;
+        } else {
+            vy *= -0.4;
+        }
+
+        cell.data.velocityX = vx;
+        cell.data.velocityY = vy;
+
+        return false;
     }
 }
 
