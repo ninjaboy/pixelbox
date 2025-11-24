@@ -615,6 +615,15 @@
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+                // Safari/iOS: Resume audio context (required for autoplay policy)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('✅ Audio context resumed for Safari/iOS');
+                    }).catch(err => {
+                        console.log('❌ Failed to resume audio context:', err);
+                    });
+                }
+
                 // Separate gain nodes for chord and melody
                 chordGain = audioContext.createGain();
                 melodyGain = audioContext.createGain();
@@ -837,6 +846,11 @@
                     muteIcon.textContent = '🔇';
                 } else {
                     // Unmute - restart chord progression
+                    // Safari/iOS: Resume audio context if suspended
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+
                     if (chordGain) chordGain.gain.value = 0.025;
                     if (melodyGain) melodyGain.gain.value = 0.015;
 
