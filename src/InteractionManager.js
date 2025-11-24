@@ -165,7 +165,7 @@ class InteractionManager {
             }
         });
 
-        // WET SAND: water + sand → wet sand (happens quickly for realistic saturation)
+        // WET SAND: water + sand → wet sand (multi-tier realistic wetting)
         this.registerInteraction({
             name: 'wet_sand_formation',
             check: (element1, element2) => {
@@ -178,37 +178,58 @@ class InteractionManager {
                     ? [x1, y1, x2, y2]
                     : [x2, y2, x1, y1];
 
+                // Get all neighbors
+                const above = grid.getElement(sandX, sandY - 1);
+                const below = grid.getElement(sandX, sandY + 1);
+                const left = grid.getElement(sandX - 1, sandY);
+                const right = grid.getElement(sandX + 1, sandY);
+
                 // Check if water is DIRECTLY above the sand (same X coordinate, Y-1)
                 const isWaterDirectlyAbove = (waterX === sandX && waterY === sandY - 1);
 
                 // Check if sand is surrounded by water (fully submerged)
                 // IMPORTANT: Only count actual WATER, not wet_sand, to prevent uncontrolled spreading
-                const neighbors = [
-                    grid.getElement(sandX, sandY - 1), // above
-                    grid.getElement(sandX, sandY + 1), // below
-                    grid.getElement(sandX - 1, sandY), // left
-                    grid.getElement(sandX + 1, sandY)  // right
-                ];
+                const neighbors = [above, below, left, right];
                 const waterCount = neighbors.filter(n => n && n.name === 'water').length;
                 const isSubmerged = waterCount >= 3; // 3+ sides covered by actual water
 
-                // RULE: Sand only gets wet if:
-                // 1. Water is DIRECTLY ABOVE it (same X, Y-1) - realistic seeping, OR
-                // 2. Sand is fully submerged (3+ sides covered by actual WATER)
-                // Sand touching water from the SIDE stays DRY
-                // Sand touching only wet_sand (no water) stays DRY
-                if (isWaterDirectlyAbove || isSubmerged) {
-                    // MUCH lower conversion rate to prevent cascade (15% was way too high)
-                    if (Math.random() > 0.95) { // Only 5% chance per frame
-                        const wetSandElement = registry.get('wet_sand');
-                        if (wetSandElement) {
-                            grid.setElement(sandX, sandY, wetSandElement);
-                            // Water rarely absorbs into sand (10% chance)
-                            if (isWaterDirectlyAbove && Math.random() > 0.9) {
-                                grid.setElement(waterX, waterY, registry.get('empty'));
-                            }
-                            return true;
+                // Check if this is SURFACE sand (exposed to air above)
+                // Surface sand should stay DRY unless water falls directly on it
+                const isSurfaceSand = !above || above.id === 0;
+
+                // MULTI-TIER WETTING SYSTEM (Option 3):
+                let wettingChance = 0;
+                let waterAbsorptionChance = 0;
+
+                if (isWaterDirectlyAbove) {
+                    // TIER 1: Water directly above - gravity assists (fastest)
+                    wettingChance = 0.15;        // 15% per frame (~7 frames average)
+                    waterAbsorptionChance = 0.30; // 30% water absorbed
+                } else if (isSubmerged) {
+                    // TIER 2: Fully submerged - pressure saturation (medium speed)
+                    wettingChance = 0.08;        // 8% per frame (~13 frames average)
+                    waterAbsorptionChance = 0.05; // 5% water absorbed
+                } else if (waterCount >= 1 && !isSurfaceSand) {
+                    // TIER 3: Side contact ONLY for buried sand - capillary action (slow)
+                    // Surface sand (exposed to air) does NOT wet from sides - stays dry!
+                    wettingChance = 0.03;        // 3% per frame (~33 frames average)
+                    waterAbsorptionChance = 0.02; // 2% water absorbed
+                } else {
+                    // No wetting: surface sand with only side contact, or no water contact
+                    return false;
+                }
+
+                // Apply wetting chance
+                if (Math.random() < wettingChance) {
+                    const wetSandElement = registry.get('wet_sand');
+                    if (wetSandElement) {
+                        grid.setElement(sandX, sandY, wetSandElement);
+
+                        // Absorb water based on scenario
+                        if (isWaterDirectlyAbove && Math.random() < waterAbsorptionChance) {
+                            grid.setElement(waterX, waterY, registry.get('empty'));
                         }
+                        return true;
                     }
                 }
                 return false;
