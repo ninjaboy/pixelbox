@@ -203,17 +203,17 @@ class InteractionManager {
 
                 if (isWaterDirectlyAbove) {
                     // TIER 1: Water directly above - gravity assists (fastest)
-                    wettingChance = 0.18;        // 18% per frame (~6 frames average) - increased
-                    waterAbsorptionChance = 0.25; // 25% water absorbed - reduced to keep more water
+                    wettingChance = 0.25;        // 25% per frame (~4 frames average) - MUCH FASTER
+                    waterAbsorptionChance = 0.15; // 15% water absorbed - reduced again
                 } else if (isSubmerged) {
                     // TIER 2: Fully submerged - pressure saturation (medium speed)
-                    wettingChance = 0.12;        // 12% per frame (~8 frames average) - increased
-                    waterAbsorptionChance = 0.03; // 3% water absorbed - reduced
+                    wettingChance = 0.20;        // 20% per frame (~5 frames average) - MUCH FASTER
+                    waterAbsorptionChance = 0.02; // 2% water absorbed - reduced again
                 } else if (waterCount >= 1 && !isSurfaceSand) {
                     // TIER 3: Side contact ONLY for buried sand - capillary action (faster now)
                     // Surface sand (exposed to air) does NOT wet from sides - stays dry!
-                    wettingChance = 0.08;        // 8% per frame (~13 frames average) - INCREASED from 3%
-                    waterAbsorptionChance = 0.01; // 1% water absorbed - minimal loss
+                    wettingChance = 0.15;        // 15% per frame (~7 frames average) - MUCH FASTER
+                    waterAbsorptionChance = 0.005; // 0.5% water absorbed - minimal loss
                 } else {
                     // No wetting: surface sand with only side contact, or no water contact
                     return false;
