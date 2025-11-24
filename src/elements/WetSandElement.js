@@ -63,38 +63,38 @@ class WetSandElement extends Element {
                 }
             }
 
-            // Drying speed based on exposure (slower to balance increased wetting):
-            // 4 dry sides: 120 frames (~2 seconds) - slowed from instant
-            // 3 dry sides: 180 frames (~3 seconds) - slowed from 60
-            // 2 dry sides: 480 frames (~8 seconds) - slowed from 300
-            // 1 dry side: 1200 frames (~20 seconds) - slowed from 900
+            // Drying speed based on exposure (MUCH SLOWER to prevent premature drying):
+            // 4 dry sides: 240 frames (~4 seconds) - 2x slower
+            // 3 dry sides: 360 frames (~6 seconds) - 2x slower
+            // 2 dry sides: 900 frames (~15 seconds) - ~2x slower
+            // 1 dry side: 2400 frames (~40 seconds) - 2x slower
             // 0 dry sides: don't dry (surrounded by wet_sand)
 
             if (drySides >= 4) {
                 // Completely exposed - dry fast but not instant
                 cell.data.exposureTime++;
-                if (cell.data.exposureTime > 120) {
+                if (cell.data.exposureTime > 240) {
                     grid.setElement(x, y, grid.registry.get('sand'));
                     return true;
                 }
             } else if (drySides >= 3) {
                 // Mostly exposed - dry moderately
                 cell.data.exposureTime++;
-                if (cell.data.exposureTime > 180) {
+                if (cell.data.exposureTime > 360) {
                     grid.setElement(x, y, grid.registry.get('sand'));
                     return true;
                 }
             } else if (drySides >= 2) {
                 // Half exposed - dry slowly
                 cell.data.exposureTime++;
-                if (cell.data.exposureTime > 480) {
+                if (cell.data.exposureTime > 900) {
                     grid.setElement(x, y, grid.registry.get('sand'));
                     return true;
                 }
             } else if (drySides >= 1) {
                 // Barely exposed - dry very slowly
                 cell.data.exposureTime++;
-                if (cell.data.exposureTime > 1200) {
+                if (cell.data.exposureTime > 2400) {
                     grid.setElement(x, y, grid.registry.get('sand'));
                     return true;
                 }
@@ -110,8 +110,8 @@ class WetSandElement extends Element {
         // PERMEABILITY - allow water to seep through (increased for better flow)
         // Check if there's water above wanting to seep down
         if (isUnderWater) {
-            // If empty below, water can seep through (10% chance per frame - doubled!)
-            if (below && below.id === 0 && Math.random() < 0.10) {
+            // If empty below, water can seep through (15% chance per frame - 50% faster!)
+            if (below && below.id === 0 && Math.random() < 0.15) {
                 // Swap water down through the wet sand
                 grid.swap(x, y - 1, x, y + 1);
                 return true;
