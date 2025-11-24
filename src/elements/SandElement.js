@@ -22,10 +22,23 @@ class SandElement extends Element {
     }
 
     updateImpl(x, y, grid) {
-        // Water-sand interaction is handled by InteractionManager
-        // No moisture propagation here - it caused sand on top of water to get wet
-        // Let InteractionManager handle wetting logic (water from above or submersion only)
+        // PERMEABILITY - allow water to percolate through dry sand (realistic porous behavior)
+        // Water flows through gaps between sand grains before/while wetting occurs
+        const above = grid.getElement(x, y - 1);
+        const below = grid.getElement(x, y + 1);
 
+        // If water is directly above and there's space below, let it percolate through
+        if (above && above.name === 'water' && below && below.id === 0) {
+            // 35% chance per frame - water flows through gaps between grains
+            if (Math.random() < 0.35) {
+                // Swap water down through the dry sand (percolation)
+                grid.swap(x, y - 1, x, y + 1);
+                return true;
+            }
+        }
+
+        // Water-sand wetting interaction is handled by InteractionManager
+        // This permeability runs FIRST, allowing water to flow through before heavy absorption
         return this.movement.apply(x, y, grid);
     }
 }
