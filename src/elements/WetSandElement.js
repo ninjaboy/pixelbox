@@ -107,11 +107,11 @@ class WetSandElement extends Element {
             hasMoisture = drySides < 3;
         }
 
-        // PERMEABILITY - allow water to seep through (increased for better flow)
+        // PERMEABILITY - allow water to seep through (wet sand is MORE permeable than dry)
         // Check if there's water above wanting to seep down
         if (isUnderWater) {
-            // If empty below, water can seep through (15% chance per frame - 50% faster!)
-            if (below && below.id === 0 && Math.random() < 0.15) {
+            // If empty below, water can seep through (60% chance - saturated sand flows easily!)
+            if (below && below.id === 0 && Math.random() < 0.60) {
                 // Swap water down through the wet sand
                 grid.swap(x, y - 1, x, y + 1);
                 return true;
