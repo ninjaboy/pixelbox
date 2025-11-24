@@ -89,11 +89,13 @@ Legend:
 ### Water Interactions
 | Elements | Result | Chance | Priority |
 |----------|--------|--------|----------|
-| water + sand | sand → wet_sand | 5% | 10 |
+| water + sand | sand → wet_sand (multi-tier) | 15%/8%/3%* | 10 |
 | water + lava | lava → stone, water → steam | 20% | 0 |
 | water + fire | fire → smoke, water → steam | 70% | 7 |
 | water + salt | salt dissolves (removed) | 15% | - |
 | water + ash | ash dissolves (removed) | varies | - |
+
+*Multi-tier wetting: 15% (water above), 8% (submerged), 3% (side contact, buried only)
 
 ### Steam Interactions
 | Elements | Result | Chance | Priority |
@@ -212,6 +214,63 @@ Spread out powder densities to reduce same-density conflicts:
 | gunpowder | 3 | 5 | Slightly heavier than sand |
 | salt | 4 | 6 | Heavier crystals |
 | wet_sand | 9 | 10 | Very heavy when wet |
+
+## Balanced Wetting/Drying System: Water + Sand
+
+### Overview
+The water-sand interaction uses a **multi-tier realistic wetting system** balanced against exposure-based drying to create intuitive, physically accurate behavior.
+
+### Multi-Tier Wetting Rates
+
+| Scenario | Wetting Rate | Avg Time to Wet | Water Absorption | Requirements |
+|----------|--------------|-----------------|------------------|--------------|
+| **Water Directly Above** | 15% per frame | ~7 frames | 30% | Water at Y-1, same X |
+| **Fully Submerged** | 8% per frame | ~13 frames | 5% | 3+ water neighbors |
+| **Side Contact (Buried)** | 3% per frame | ~33 frames | 2% | 1-2 water neighbors, NOT surface |
+| **Side Contact (Surface)** | 0% (no wetting) | Never | 0% | Exposed to air above |
+
+### Surface Sand Protection
+**Key Feature:** Sand with empty space/air directly above is considered "surface sand" and will NOT wet from side contact.
+
+- ✅ Beach surfaces stay dry when waves touch from the side
+- ✅ Top layer of sand piles remains dry
+- ✅ Water must fall ON TOP to wet surface sand
+- ✅ Buried sand (no air above) can wet from any direction via capillary action
+
+### Exposure-Based Drying Rates
+
+| Dry Neighbors | Drying Time | Rate | Typical Scenario |
+|---------------|-------------|------|------------------|
+| **4 dry sides** | Instant | 0 frames | Completely isolated grain |
+| **3 dry sides** | Very fast | 60 frames (~1 sec) | Edge of wet patch |
+| **2 dry sides** | Moderate | 300 frames (~5 sec) | Corner of wet area |
+| **1 dry side** | Slow | 900 frames (~15 sec) | Deep in wet sand |
+| **0 dry sides** | Never | ∞ | Surrounded by wet sand |
+| **Touching water** | Never | ∞ (timer reset) | In contact with water source |
+
+**Dry neighbors** = Air/empty space OR dry sand (not wet_sand, not water)
+
+### Wetting vs Drying Balance
+
+| Condition | Wetting Speed | Drying Speed | Net Effect |
+|-----------|---------------|--------------|------------|
+| Water above, 3 dry sides | ~7 frames | 60 frames | Wet spreads quickly, dries slowly |
+| Submerged | ~13 frames | Never | Stays wet while underwater |
+| Buried + side contact | ~33 frames | 300 frames | Gradual capillary spread underground |
+| Surface + side contact | Never | 60 frames | Surface stays dry! |
+
+### Physical Realism Achieved
+
+1. ✅ **Gravity-assisted wetting is fastest** - Water seeping down through sand
+2. ✅ **Pressure saturation works** - Underwater sand gets wet from all sides
+3. ✅ **Capillary action for buried sand** - Underground moisture spreads slowly
+4. ✅ **Surface tension prevents surface wetting** - Beaches stay dry on top
+5. ✅ **Evaporation is gradual** - Exposed wet sand dries over time
+6. ✅ **Water absorption is realistic** - More absorption when gravity helps (30% vs 2%)
+
+### Code Location
+- **Wetting logic:** `/home/user/pixelbox/src/InteractionManager.js:168-237`
+- **Drying logic:** `/home/user/pixelbox/src/elements/WetSandElement.js:34-105`
 
 ## Summary: Current Powder Trickling Issues
 
