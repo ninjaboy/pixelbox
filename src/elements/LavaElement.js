@@ -24,13 +24,13 @@ class LavaElement extends Element {
             checkDiagonals: false // only cardinal directions
         }));
 
-        // Behavior 2: Sand interaction (dries wet sand, pushes/glassifies dry sand)
+        // Behavior 2: Sand interaction (dries wet sand, mostly pushes, rarely glassifies)
         this.addBehavior(new LavaSandInteractionBehavior({
-            pushDownChance: 0.7,
-            glassifyBelowChance: 0.3,
-            glassifySideChance: 0.08,
-            pushSideChance: 0.15,
-            dryWetSandChance: 0.6 // NEW: Dry wet sand before burning through
+            pushDownChance: 0.92,        // 92% - lava mostly pushes sand aside
+            glassifyBelowChance: 0.08,   // 8% - glass is rare (needs extreme heat)
+            glassifySideChance: 0.03,    // 3% - even rarer on sides
+            pushSideChance: 0.15,        // 15% - push sand sideways
+            dryWetSandChance: 0.6        // 60% - dry wet sand before burning through
         }));
 
         // Behavior 3: Water interaction (create obsidian on sides, evaporate)
