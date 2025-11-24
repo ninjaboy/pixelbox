@@ -622,13 +622,13 @@
                 chordGain.gain.value = 0.025;  // Very subtle chord pad
                 melodyGain.gain.value = 0.015; // Even more subtle melody
 
-                // Mystical chord progression (normal frequencies, warm and deep)
+                // Mystical chord progression (bass raised one octave for subtlety)
                 // Am9 -> Fmaj9 -> Cmaj9 -> G9 (magical, ethereal progression)
                 chordProgression = [
-                    [110.00, 164.81, 196.00, 246.94, 293.66],  // Am9 (A2, E3, G3, B3, D4)
-                    [87.31, 130.81, 155.56, 196.00, 261.63],   // Fmaj9 (F2, C3, Eb3, G3, C4)
-                    [130.81, 164.81, 196.00, 246.94, 329.63],  // Cmaj9 (C3, E3, G3, B3, E4)
-                    [98.00, 146.83, 196.00, 246.94, 293.66]    // G9 (G2, D3, G3, B3, D4)
+                    [220.00, 164.81, 196.00, 246.94, 293.66],  // Am9 (A3, E3, G3, B3, D4) - bass up octave
+                    [174.62, 130.81, 155.56, 196.00, 261.63],   // Fmaj9 (F3, C3, Eb3, G3, C4) - bass up octave
+                    [261.63, 164.81, 196.00, 246.94, 329.63],  // Cmaj9 (C4, E3, G3, B3, E4) - bass up octave
+                    [196.00, 146.83, 196.00, 246.94, 293.66]    // G9 (G3, D3, G3, B3, D4) - bass up octave
                 ];
 
                 currentChordIndex = 0;
@@ -794,10 +794,12 @@
                 setupAmbientDrone();
                 audioStarted = true;
                 document.removeEventListener('click', startAudioOnInteraction);
+                document.removeEventListener('touchstart', startAudioOnInteraction);
                 document.removeEventListener('keydown', startAudioOnInteraction);
             }
         }
         document.addEventListener('click', startAudioOnInteraction);
+        document.addEventListener('touchstart', startAudioOnInteraction); // Mobile support
         document.addEventListener('keydown', startAudioOnInteraction);
 
         // Mute button functionality
