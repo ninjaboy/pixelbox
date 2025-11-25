@@ -27,13 +27,17 @@ class SandElement extends Element {
         const above = grid.getElement(x, y - 1);
         const below = grid.getElement(x, y + 1);
 
-        // If water is directly above and there's space below, let it percolate through
-        if (above && above.name === 'water' && below && below.id === 0) {
-            // 50% chance per frame - water flows through noticeably
-            if (Math.random() < 0.50) {
-                // Swap water down through the dry sand (percolation)
-                grid.swap(x, y - 1, x, y + 1);
-                return true;
+        // If water is directly above, let it percolate through by DISPLACING sand downward
+        if (above && above.name === 'water') {
+            // Water can displace sand if there's empty space OR another sand grain below
+            // This allows water to percolate through THICK sand piles
+            if (below && (below.id === 0 || below.name === 'sand')) {
+                // 50% chance per frame - water flows through noticeably
+                if (Math.random() < 0.50) {
+                    // Swap: water moves down, sand moves down (displacing what's below)
+                    grid.swap(x, y - 1, x, y);
+                    return true;
+                }
             }
         }
 
