@@ -203,8 +203,8 @@ class InteractionManager {
 
                 if (isWaterDirectlyAbove) {
                     // TIER 1: Water directly above - gravity assists (fastest)
-                    wettingChance = 0.25;        // 25% per frame (~4 frames average)
-                    waterAbsorptionChance = 0.02; // 2% absorbed - minimal (water flows through via permeability)
+                    wettingChance = 0.40;        // 40% per frame (~2-3 frames) - HIGH to beat permeability
+                    waterAbsorptionChance = 0.01; // 1% absorbed - minimal (water flows through via permeability)
                 } else if (isSubmerged) {
                     // TIER 2: Fully submerged - pressure saturation (medium speed)
                     wettingChance = 0.20;        // 20% per frame (~5 frames average)

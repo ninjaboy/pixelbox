@@ -29,8 +29,8 @@ class SandElement extends Element {
 
         // If water is directly above and there's space below, let it percolate through
         if (above && above.name === 'water' && below && below.id === 0) {
-            // 35% chance per frame - water flows through gaps between grains
-            if (Math.random() < 0.35) {
+            // 12% chance per frame - water flows slowly, giving time for wetting interaction
+            if (Math.random() < 0.12) {
                 // Swap water down through the dry sand (percolation)
                 grid.swap(x, y - 1, x, y + 1);
                 return true;
