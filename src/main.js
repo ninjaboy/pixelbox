@@ -34,9 +34,9 @@ class GameScene extends Phaser.Scene {
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
 
-            // MOON CYCLE - realistic 29.5 day cycle
+            // MOON CYCLE - changes once per day (8-day cycle)
             moonPhase: Math.random(), // Random phase (0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter)
-            moonCycleSpeed: 0.001 / 29.5, // Full moon cycle = 29.5 days (moon changes slightly each night)
+            moonCycleSpeed: 0.001 / 8, // Full moon cycle = 8 days (one phase change per night)
         };
 
         // CLOUD/WEATHER SYSTEM
