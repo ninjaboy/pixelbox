@@ -145,7 +145,7 @@ export const GAME_CONFIG = {
         spring: 1.5,    // More clouds (rainy season)
         summer: 0.5,    // Fewer clouds (clear skies)
         autumn: 1.2,    // Medium cloudiness
-        winter: 1.0,    // Normal cloudiness
+        winter: 4.0,    // Heavy cloud cover for snow (v4.2.2)
     },
 
     // Snow cloud chance in winter

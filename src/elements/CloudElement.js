@@ -151,6 +151,13 @@ class CloudElement extends Element {
                         this.updateCloudColor(cell);
                     }
                 }
+            } else if (cell.data.waterCapacity <= 0) {
+                // Cloud has depleted all water - start dissipating (v4.2.2)
+                // Clouds slowly fade away after releasing their precipitation
+                if (Math.random() < 0.01) { // 1% chance per frame to dissipate
+                    grid.setElement(x, y, grid.registry.get('empty'));
+                    return true;
+                }
             }
         }
 
