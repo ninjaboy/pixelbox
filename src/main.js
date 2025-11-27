@@ -86,7 +86,6 @@ class GameScene extends Phaser.Scene {
         this.versionText = document.getElementById('version');
         this.modeDisplay = document.getElementById('mode-display');
         this.seasonDisplay = document.getElementById('season-display');
-        this.timeDisplay = document.getElementById('time-display');
 
         // Set version once
         this.versionText.textContent = VERSION;
@@ -711,26 +710,6 @@ class GameScene extends Phaser.Scene {
         };
         const seasonName = season.charAt(0).toUpperCase() + season.slice(1);
         this.seasonDisplay.textContent = `${seasonEmojis[season]} ${seasonName}`;
-
-        // Update time of day display (v4.0.0)
-        const time = this.dayNightCycle.time;
-        let timeOfDay = '';
-        if (time < 0.2) {
-            timeOfDay = '🌙 Night';
-        } else if (time < 0.3) {
-            timeOfDay = '🌅 Dawn';
-        } else if (time < 0.4) {
-            timeOfDay = '🌄 Morning';
-        } else if (time < 0.6) {
-            timeOfDay = '☀️ Day';
-        } else if (time < 0.7) {
-            timeOfDay = '🌆 Afternoon';
-        } else if (time < 0.8) {
-            timeOfDay = '🌇 Dusk';
-        } else {
-            timeOfDay = '🌙 Night';
-        }
-        this.timeDisplay.textContent = timeOfDay;
 
         // Update profiler panel if enabled
         if (profiler.enabled) {

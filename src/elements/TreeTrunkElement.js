@@ -18,6 +18,26 @@ class TreeTrunkElement extends Element {
         const seasonData = grid.seasonData;
         const season = seasonData ? seasonData.season : 'summer';
 
+        // Get cell data for wetness tracking
+        const cell = grid.getCell(x, y);
+        if (!cell) return false;
+        if (!cell.data) cell.data = {};
+
+        // WATER ABSORPTION - check if water is above this tree
+        const above = grid.getElement(x, y - 1);
+        if (above && above.name === 'water') {
+            // Absorb the water and increase wetness
+            if (!cell.data.wetness) cell.data.wetness = 0;
+            cell.data.wetness = Math.min(100, cell.data.wetness + 10); // Cap at 100
+            grid.setElement(x, y - 1, grid.registry.get('empty')); // Water absorbed
+        }
+
+        // DRY OUT - wetness decreases slowly over time
+        if (cell.data.wetness > 0) {
+            cell.data.wetness -= 0.1; // Dries out slowly
+            if (cell.data.wetness < 0) cell.data.wetness = 0;
+        }
+
         // WINTER/AUTUMN DECAY (v4.0.0) - small chance for trees to die
         if (seasonData && (season === 'winter' || season === 'autumn')) {
             const decayChance = season === 'winter' ? 0.00002 : 0.00001; // 0.002% winter, 0.001% autumn
@@ -28,7 +48,12 @@ class TreeTrunkElement extends Element {
         }
 
         // SPRING REGROWTH (v4.0.0) - bare trees regrow leaves faster in spring
-        const regrowthRate = season === 'spring' ? 0.0001 : 0.00002; // 0.01% spring, 0.002% other seasons
+        let regrowthRate = season === 'spring' ? 0.0001 : 0.00002; // 0.01% spring, 0.002% other seasons
+
+        // WATERED GROWTH BOOST - wet trees have increased chance to sprout leaves
+        if (cell.data.wetness > 20) {
+            regrowthRate *= 3; // 3x growth rate when well-watered
+        }
 
         // Tree trunks maintain minimal foliage ONLY when bare
         if (Math.random() < regrowthRate) {
