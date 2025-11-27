@@ -22,12 +22,56 @@ class LeafElement extends Element {
         const cell = grid.getCell(x, y);
         if (!cell) return false;
 
+        // Get season data (v4.0.0)
+        const seasonData = grid.seasonData;
+        const season = seasonData ? seasonData.season : 'summer';
+
+        // Initialize seasonal color if not set
+        if (!cell.data.leafColor && seasonData) {
+            // Get seasonal color from season system
+            const seasonColors = {
+                spring: [0x90EE90, 0x98FB98, 0x9ACD32],
+                summer: [0x228B22, 0x2E8B57, 0x3CB371],
+                autumn: [0xFFD700, 0xFFA500, 0xFF8C00, 0xFF6347, 0xFF4500, 0xDC143C],
+                winter: [0x8B7355]
+            };
+            const colors = seasonColors[season] || seasonColors.summer;
+            cell.data.leafColor = colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Apply seasonal color to leaf
+        if (cell.data.leafColor) {
+            cell.element.color = cell.data.leafColor;
+        }
+
         // Check if leaf is still on the tree or has fallen
         const hasSupport = this.checkSupport(x, y, grid);
 
+        // SEASONAL LEAF FALLING (v4.0.0) - leaves fall in autumn/winter
+        if (hasSupport && seasonData) {
+            // Autumn: leaves fall gradually
+            if (season === 'autumn') {
+                const fallRate = 0.002; // 0.2% chance per frame
+                if (Math.random() < fallRate) {
+                    // Detach from tree - mark as fallen
+                    cell.data.detached = true;
+                }
+            }
+            // Winter: remaining leaves fall faster
+            else if (season === 'winter') {
+                const fallRate = 0.005; // 0.5% chance per frame
+                if (Math.random() < fallRate) {
+                    cell.data.detached = true;
+                }
+            }
+        }
+
+        // If detached, leaf should fall even if still supported
+        const isFalling = !hasSupport || cell.data.detached;
+
         // CRITICAL: Only age leaves that have FALLEN from the tree
-        // Leaves on the tree stay green forever
-        if (!hasSupport) {
+        // Leaves on the tree stay green forever (unless detached by season)
+        if (isFalling) {
             // Fallen leaf - start aging
             cell.data.age++;
 
@@ -82,9 +126,10 @@ class LeafElement extends Element {
                 }
             }
         } else {
-            // Leaf is still on tree - keep it green and reset age
+            // Leaf is still on tree - reset age and use seasonal color
             cell.data.age = 0;
-            cell.element.color = 0x228b22; // Reset to fresh green
+            cell.data.detached = false; // Reset detached flag
+            // Color is already set by seasonal logic above
         }
 
         // Gentle sway (very occasional small movement) - only for tree leaves

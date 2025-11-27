@@ -81,6 +81,47 @@ class BirdElement extends Element {
         const isStressed = nearbyBirdCount > 4; // More than 4 nearby = stressed
         const isStarving = cell.data.hunger >= 70; // Very hungry = can't reproduce
 
+        // Get season data (v4.0.0)
+        const seasonData = grid.seasonData;
+        const season = seasonData ? seasonData.season : 'summer';
+        const seasonProgress = seasonData ? seasonData.seasonProgress : 0;
+
+        // PRIORITY -1: MIGRATION (v4.0.0) - Birds migrate in autumn, return in spring
+        if (seasonData) {
+            // Autumn migration - fly upward and off screen
+            if (season === 'autumn' && seasonProgress > 0.5) {
+                cell.data.migrating = true;
+            }
+
+            // Migrating birds fly upward strongly
+            if (cell.data.migrating) {
+                // Fly upward
+                const above = grid.getElement(x, y - 1);
+                if (above && above.name === 'empty') {
+                    grid.swap(x, y, x, y - 1);
+                    return true;
+                }
+
+                // If at top of map, despawn (migrated away)
+                if (y < 10) {
+                    grid.setElement(x, y, grid.registry.get('empty'));
+                    return true;
+                }
+
+                // Try diagonal upward if blocked
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                if (grid.isEmpty(x + dir, y - 1)) {
+                    grid.swap(x, y, x + dir, y - 1);
+                    return true;
+                }
+
+                return false; // Keep trying to fly up
+            }
+
+            // Winter - no birds (they've all migrated)
+            // Spring - birds return (handled in main.js by spawning)
+        }
+
         // PRIORITY 0: NIGHT TIME - Birds sleep when it's dark!
         if (isNight && !cell.data.isSleeping) {
             // Find a perch to sleep on (tree, ground, roof, etc.)

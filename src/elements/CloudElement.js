@@ -155,16 +155,27 @@ class CloudElement extends Element {
         if (isInAtmosphere) {
             // In atmosphere: spread horizontally and drift at moderate pace
 
-            // Moderate horizontal drift (40% chance - balanced between visible movement and stability)
-            if (Math.random() > 0.6) {
-                const dir = Math.random() > 0.5 ? 1 : -1;
+            // Horizontal drift affected by wind (v4.0.0)
+            const seasonData = grid.seasonData;
+            let baseDriftChance = 0.4; // 40% base chance
+            let windDirection = Math.random() > 0.5 ? 1 : -1; // Random if no wind data
 
-                if (grid.isEmpty(x + dir, y)) {
-                    grid.swap(x, y, x + dir, y);
+            if (seasonData && seasonData.windVector) {
+                // Increase drift chance based on wind strength
+                baseDriftChance += seasonData.windStrength * 0.1;
+                // Use actual wind direction
+                windDirection = seasonData.windDirection > 0 ? 1 : -1;
+            }
+
+            if (Math.random() < baseDriftChance) {
+                // Try wind direction first
+                if (grid.isEmpty(x + windDirection, y)) {
+                    grid.swap(x, y, x + windDirection, y);
                     return true;
                 }
-                if (grid.isEmpty(x - dir, y)) {
-                    grid.swap(x, y, x - dir, y);
+                // Try opposite direction as fallback
+                if (grid.isEmpty(x - windDirection, y)) {
+                    grid.swap(x, y, x - windDirection, y);
                     return true;
                 }
             }
@@ -233,21 +244,23 @@ class CloudElement extends Element {
 
     // Trigger light rain event for saturated clouds
     triggerRainEvent(x, y, grid, cell) {
-        // Drop water droplets in burst (limited by water capacity)
+        // Drop water droplets or snow (v4.0.0) in burst (limited by water capacity)
         // Target: 1-3 drops (reduced to prevent overflow), but can't exceed what cloud actually absorbed
         const desiredRain = 1 + Math.floor(Math.random() * 3);
         const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
 
-        const waterElement = grid.registry.get('water');
-        if (!waterElement) return 0;
+        // Check if this is a snow cloud (winter)
+        const isSnowCloud = cell.data.isSnowCloud === true;
+        const precipElement = grid.registry.get(isSnowCloud ? 'snow' : 'water');
+        if (!precipElement) return 0;
 
         let dropsCreated = 0;
-        // Try to create rain drops below and around the cloud
+        // Try to create rain/snow drops below and around the cloud
         for (let dy = 1; dy <= 3 && dropsCreated < maxRain; dy++) {
             for (let dx = -1; dx <= 1 && dropsCreated < maxRain; dx++) {
                 const targetCell = grid.getCell(x + dx, y + dy);
                 if (targetCell && targetCell.element.id === 0) {
-                    grid.setElement(x + dx, y + dy, waterElement);
+                    grid.setElement(x + dx, y + dy, precipElement);
                     dropsCreated++;
                 }
             }
@@ -256,17 +269,20 @@ class CloudElement extends Element {
         return dropsCreated; // Return how many drops were actually created
     }
 
-    // Drop single rain droplet
+    // Drop single rain or snow droplet (v4.0.0)
     dropSingleRain(x, y, grid) {
-        const waterElement = grid.registry.get('water');
-        if (!waterElement) return false;
+        const cell = grid.getCell(x, y);
+        const isSnowCloud = cell && cell.data && cell.data.isSnowCloud === true;
+
+        const precipElement = grid.registry.get(isSnowCloud ? 'snow' : 'water');
+        if (!precipElement) return false;
 
         const below = grid.getCell(x, y + 1);
         if (below && below.element.id === 0) {
-            grid.setElement(x, y + 1, waterElement);
-            return true; // Successfully dropped water
+            grid.setElement(x, y + 1, precipElement);
+            return true; // Successfully dropped precipitation
         }
-        return false; // Could not drop water
+        return false; // Could not drop precipitation
     }
 
     // Update cloud color based on saturation (darker = more saturated)

@@ -118,9 +118,22 @@ class TreeSeedElement extends Element {
             return false;
         }
 
-        // Slow growth - only grow every N frames
+        // Slow growth - only grow every N frames (modified by season, v4.0.0)
+        const seasonData = grid.seasonData;
+        const season = seasonData ? seasonData.season : 'summer';
+
+        // Apply seasonal growth multiplier
+        const seasonalMultipliers = {
+            spring: 0.5,    // 2x faster
+            summer: 1.0,    // normal
+            autumn: 2.0,    // 2x slower
+            winter: 999     // effectively stopped
+        };
+        const growthMultiplier = seasonalMultipliers[season] || 1.0;
+        const adjustedDelay = TREE_CONFIG.growthDelay * growthMultiplier;
+
         cell.data.growthFrameCounter++;
-        if (cell.data.growthFrameCounter < TREE_CONFIG.growthDelay) {
+        if (cell.data.growthFrameCounter < adjustedDelay) {
             return false;
         }
         cell.data.growthFrameCounter = 0;

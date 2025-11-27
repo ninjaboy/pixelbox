@@ -2,6 +2,9 @@ import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
 import profiler from './Profiler.js';
+import SeasonManager from './managers/SeasonManager.js';
+import WindManager from './managers/WindManager.js';
+import { GAME_CONFIG } from './config/GameConfig.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -43,6 +46,10 @@ class GameScene extends Phaser.Scene {
             cloudCoverage: 0, // Current cloud coverage (0-1)
             nextCloudDay: Math.random(), // Regenerate cloudiness each day
         };
+
+        // SEASONS SYSTEM (v4.0.0)
+        this.seasonManager = new SeasonManager(GAME_CONFIG);
+        this.windManager = new WindManager(GAME_CONFIG, this.seasonManager);
 
         // Create graphics layers
         this.skyGraphics = this.add.graphics();
@@ -454,22 +461,22 @@ class GameScene extends Phaser.Scene {
     generateElementDescription(element) {
         // Element-specific detailed descriptions
         const customDescriptions = {
-            bird: 'Living creature • Flies through the air with bobbing gliding motion • Gets hungry and seeks food on ground • Sleeps at night on perches (trees, roofs, ground) • Wakes up at dawn • Flocks with other birds • Escapes when trapped indoors • Dies if starving • Burns to ash when ignited • Multiple color variants (white, gray)',
+            bird: 'Living creature • Flies through the air with bobbing gliding motion • Gets hungry and seeks food on ground • Sleeps at night on perches (trees, roofs, ground) • Wakes up at dawn • Flocks with other birds • Escapes when trapped indoors • Dies if starving • Burns to ash when ignited • Multiple color variants (white, gray) • SEASONAL: Migrates south in mid-autumn (flies upward and disappears) • Returns in early spring (spawns at top of map)',
             fish: 'Living creature • Swims in water bodies • Gets hungry and seeks food at water surface • Dies after 5 seconds out of water • Falls through air when stranded • Swims in schools with other fish • Multiple color variants (orange, gold, red, black) • Burns to ash when exposed to fire',
-            tree_seed: 'Organic seed • Falls until landing on solid ground • Germinates after 2 seconds on ground • Grows into procedurally-generated tree with trunk and branches • Takes 80 frames per growth segment • Produces leaves at branch terminals • Spacing prevents overcrowding • Burns to ash',
+            tree_seed: 'Organic seed • Falls until landing on solid ground • Germinates after 2 seconds on ground • Grows into procedurally-generated tree with trunk and branches • Takes 80 frames per growth segment • Produces leaves at branch terminals • Spacing prevents overcrowding • Burns to ash • SEASONAL: Grows 2x faster in spring, normal in summer, 2x slower in autumn, stops completely in winter',
             house_seed: 'Wandering builder • Falls until landing • Wanders horizontally seeking good building spot • Climbs over 1-block obstacles • Burrows through sand and soft materials • Validates location (needs clearance, solid ground, avoids water/trees) • Builds complete house with foundation, walls, windows, door, and roof • Steps aside during construction • Waits 10s cooldown then builds another house • Burns to ash',
-            water: 'Liquid, flows downward and spreads • Extinguishes fire (70% chance) → becomes steam • Turns lava into stone on contact (20% chance) • Sand becomes wet when submerged in water • Evaporates near heat → steam • Essential for fish survival',
+            water: 'Liquid, flows downward and spreads • Extinguishes fire (70% chance) → becomes steam • Turns lava into stone on contact (20% chance) • Sand becomes wet when submerged in water • Evaporates near heat → steam • Essential for fish survival • SEASONAL: Surface freezes to ice in winter when temperature < 0°C (deep water stays liquid)',
             lava: 'Liquid, flows slowly • Very hot - ignites flammable materials on contact • Turns into stone when touching water (20% chance) • Melts ice on contact • Glowing heat source • High density (sinks below most liquids)',
             sand: 'Powder, falls and piles • Becomes wet sand when submerged in water or when water directly above • Wet sand is darker and dries slowly over time • Can be burrowed through by builders • Buildable material for foundations',
             fire: 'Gas, rises • Heat source - ignites combustible materials (10% base chance) • Spreads to nearby flammables • Extinguished by water • Creates light • Lasts 40s then burns out • Very light (rises above everything)',
             steam: 'Gas, rises rapidly • Created when water evaporates or touches fire • Rises to atmosphere and forms clouds • Clouds accumulate steam and eventually rain • Dissipates after 20s',
-            cloud: 'Gas, floats in upper atmosphere • Forms from accumulated steam • Drifts horizontally with wind • 40% of clouds produce rain • Saturated clouds (dark gray) drop 1-3 water droplets • Highly saturated clouds generate lightning strikes • Absorbs nearby steam to grow • Can merge with adjacent clouds • Lasts 40s • Darkens sky when covering sun',
+            cloud: 'Gas, floats in upper atmosphere • Forms from accumulated steam • Drifts horizontally with wind • 40% of clouds produce rain • Saturated clouds (dark gray) drop 1-3 water droplets • Highly saturated clouds generate lightning strikes • Absorbs nearby steam to grow • Can merge with adjacent clouds • Lasts 40s • Darkens sky when covering sun • SEASONAL: Drops snow instead of rain in winter • Drift speed/direction affected by seasonal wind patterns',
             stone: 'Solid, immovable • Created when lava touches water • Building material • Very dense and stable • Resistant to most interactions • Burns slowly if exposed to sustained heat',
             wood: 'Solid building material • Burns slowly → burning wood (takes 25s to fully burn) • Resistant to ignition (80% resistance) • Tree trunks and branches made of wood • Can be used for construction',
             burning_wood: 'Solid, burning • Heat source - ignites nearby flammables • Spreads fire to combustibles (12% chance) • Burns for 25 seconds total → ash • Creates warmth and light',
             coal: 'Solid fuel • Burns very slowly and hot → fire • Excellent long-lasting heat source • Found in fossil deposits • High ignition resistance • Dense material',
             ash: 'Powder, falls lightly • Created when organic materials burn completely • Settles on ground • Disperses easily • Dissolves after 6 seconds • Very light and soft - can be burrowed through',
-            ice: 'Solid, frozen water • Melts near heat sources → water • Can be broken or pushed • Slippery surface • Colder than regular materials',
+            ice: 'Solid, frozen water • Melts near heat sources → water • Can be broken or pushed • Slippery surface • Colder than regular materials • SEASONAL: Melts 2x faster in summer, 10x slower in winter',
             gunpowder: 'Explosive powder, falls • Extremely flammable (ignites instantly on contact with heat) • Explodes in 3-cell radius when ignited • Explosion creates fire at center, ignites nearby gunpowder (chain reaction), destroys combustibles, pushes particles away 2-4 cells • Becomes wet and inert when submerged → wet gunpowder • Burns to fire',
             wet_gunpowder: 'Wet powder, falls • Inert - cannot ignite or explode while wet • Dries very slowly over time (0.05% per frame) → gunpowder • Created when gunpowder touches water',
             oil: 'Liquid, flows • Highly flammable - ignites easily • Burns intensely when ignited → fire • Floats on water (lower density) • Spreads across surfaces • Evaporates slowly',
@@ -482,9 +489,9 @@ class GameScene extends Phaser.Scene {
             steam_vent: 'Solid structure • Continuously produces steam • Natural heat source • Creates rising steam plumes • Contributes to cloud formation • Permanent fixture',
             fossil: 'Solid organic remains • Ancient preserved material • Can contain coal deposits • Combustible under extreme heat • Historical remnant',
             electricity: 'Energy, travels rapidly • Created by lightning from storm clouds • Follows conductive paths • Ignites flammables instantly • Dissipates quickly • Dangerous to living creatures',
-            leaf: 'Organic plant matter • Grows at tree branch terminals • Falls slowly when detached • Burns easily → ash • Soft material - can be burrowed through • Part of tree canopy',
-            tree_trunk: 'Solid wood • Main structural trunk of trees • Burns → burning wood • Strong building material • Part of tree structure',
-            tree_branch: 'Solid wood • Tree branches extending from trunk • Burns → burning wood • Supports leaves • Part of tree structure',
+            leaf: 'Organic plant matter • Grows at tree branch terminals • Falls slowly when detached • Burns easily → ash • Soft material - can be burrowed through • Part of tree canopy • SEASONAL: Bright green in spring, deep green in summer, yellow/orange/red in autumn (0.2% fall rate), brown in winter (0.5% fall rate → bare trees)',
+            tree_trunk: 'Solid wood • Main structural trunk of trees • Burns → burning wood • Strong building material • Part of tree structure • SEASONAL: Regrows leaves faster in spring (0.01% regrowth rate), occasional decay in autumn/winter (0.001-0.002% → ash)',
+            tree_branch: 'Solid wood • Tree branches extending from trunk • Burns → burning wood • Supports leaves • Part of tree structure • SEASONAL: Regrows leaves in spring, may decay and fall off in autumn/winter (0.001-0.002% → movable wood)',
             wet_sand: 'Wet powder, falls slowly • Darker than dry sand • Created when sand submerged or water directly above • Dries slowly over time → sand • Clumps together more than dry sand • Coastal/beach material',
             smoke: 'Gas, rises • Created by burning materials • Rises into atmosphere • Visual indicator of fire • Dissipates after 10s • No direct interactions',
             player: 'You! • Controlled character in explore mode • Use arrow keys or A/D to move left/right • Press B to toggle between build and explore modes • Affected by gravity and physics • Can interact with elements',
@@ -598,6 +605,30 @@ class GameScene extends Phaser.Scene {
         // Update moon phase cycle (much slower)
         this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
 
+        // Update seasons and wind (v4.0.0)
+        this.seasonManager.update(1);
+        this.windManager.update(1);
+
+        // Pass season data to grid for element access
+        this.pixelGrid.setSeasonData({
+            season: this.seasonManager.getCurrentSeason(),
+            seasonProgress: this.seasonManager.getSeasonProgress(),
+            temperature: this.seasonManager.getTemperature(),
+            windVector: this.windManager.getWindVector(),
+            windDirection: this.windManager.getWindDirection(),
+            windStrength: this.windManager.getWindStrength(),
+        });
+
+        // Spring bird return (v4.0.0) - spawn birds at start of spring
+        if (this.seasonManager.isEarlySpring() && !this.birdsReturned) {
+            this.spawnSpringBirds();
+            this.birdsReturned = true;
+        }
+        // Reset flag when not spring
+        if (this.seasonManager.getCurrentSeason() !== 'spring') {
+            this.birdsReturned = false;
+        }
+
         // Regenerate cloud density each new day (at dawn)
         if (this.dayNightCycle.time > this.weatherSystem.nextCloudDay && this.dayNightCycle.time < this.weatherSystem.nextCloudDay + 0.01) {
             this.weatherSystem.cloudiness = Math.random(); // New random cloudiness for today
@@ -694,18 +725,20 @@ class GameScene extends Phaser.Scene {
         // Spawn clouds based on cloudiness level
         this.weatherSystem.cloudSpawnTimer++;
 
-        // Spawn interval varies by cloudiness:
+        // Spawn interval varies by cloudiness AND season:
         // High cloudiness (0.8-1.0): spawn every 60-120 frames
         // Medium cloudiness (0.4-0.8): spawn every 120-300 frames
         // Low cloudiness (0-0.4): spawn every 300-600 frames
         const cloudiness = this.weatherSystem.cloudiness;
+        const seasonalMultiplier = this.seasonManager.getCloudSpawnMultiplier();
+
         let spawnInterval;
         if (cloudiness > 0.7) {
-            spawnInterval = 60 + Math.random() * 60; // Cloudy day
+            spawnInterval = (60 + Math.random() * 60) / seasonalMultiplier; // Cloudy day
         } else if (cloudiness > 0.4) {
-            spawnInterval = 120 + Math.random() * 180; // Partly cloudy
+            spawnInterval = (120 + Math.random() * 180) / seasonalMultiplier; // Partly cloudy
         } else {
-            spawnInterval = 300 + Math.random() * 300; // Clear day
+            spawnInterval = (300 + Math.random() * 300) / seasonalMultiplier; // Clear day
         }
 
         // Spawn cloud if timer exceeded and not at max coverage
@@ -719,8 +752,35 @@ class GameScene extends Phaser.Scene {
             const existingElement = grid.getElement(spawnX, spawnY);
             if (existingElement && existingElement.id === 0) {
                 grid.setElement(spawnX, spawnY, cloudElement);
+
+                // Mark cloud as snow cloud in winter (v4.0.0)
+                if (this.seasonManager.shouldSpawnSnowClouds()) {
+                    const cloudCell = grid.getCell(spawnX, spawnY);
+                    if (cloudCell && cloudCell.data) {
+                        cloudCell.data.isSnowCloud = true;
+                    }
+                }
             }
         }
+    }
+
+    spawnSpringBirds() {
+        const grid = this.pixelGrid;
+        const birdElement = this.elementRegistry.get('bird');
+        if (!birdElement) return;
+
+        const birdCount = 5 + Math.floor(Math.random() * 6); // 5-10 birds
+
+        for (let i = 0; i < birdCount; i++) {
+            const spawnX = Math.floor(Math.random() * grid.width);
+            const spawnY = 10 + Math.floor(Math.random() * 10); // Y: 10-20
+
+            if (grid.isEmpty(spawnX, spawnY)) {
+                grid.setElement(spawnX, spawnY, birdElement);
+            }
+        }
+
+        console.log(`🐦 ${birdCount} birds returned for spring!`);
     }
 
     render() {
@@ -934,6 +994,14 @@ class GameScene extends Phaser.Scene {
             skyColors.bottom = this.lerpColor(skyColors.bottom, grayColor, darkenAmount);
         }
 
+        // Apply seasonal tint (v4.0.0)
+        const season = this.seasonManager.getCurrentSeason();
+        const seasonalTint = GAME_CONFIG.SKY_TINT[season];
+        if (seasonalTint) {
+            skyColors.top = this.tintColor(skyColors.top, seasonalTint);
+            skyColors.bottom = this.tintColor(skyColors.bottom, seasonalTint);
+        }
+
         // Draw gradient sky
         this.skyGraphics.fillGradientStyle(skyColors.top, skyColors.top, skyColors.bottom, skyColors.bottom, 1);
         this.skyGraphics.fillRect(0, 0, width, height);
@@ -991,16 +1059,25 @@ class GameScene extends Phaser.Scene {
             const cloudCoverage = this.weatherSystem.cloudCoverage;
             const sunDimming = 1 - (cloudCoverage * 0.5); // Max 50% dimmer with full cloud cover
 
+            // Apply seasonal tint to sun (v4.0.0)
+            const season = this.seasonManager.getCurrentSeason();
+            const sunTint = GAME_CONFIG.SUN_TINT[season] || { r: 1, g: 1, b: 1 };
+
+            const sunCore = this.tintColor(0xffff00, sunTint);
+            const sunCorona1 = this.tintColor(0xffa500, sunTint);
+            const sunCorona2 = this.tintColor(0xff8c00, sunTint);
+            const sunCorona3 = this.tintColor(0xff6b35, sunTint);
+
             // Sun core (bright yellow)
-            this.celestialGraphics.fillStyle(0xffff00, 1.0 * sunDimming);
+            this.celestialGraphics.fillStyle(sunCore, 1.0 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius);
 
             // Sun corona (orange glow - multiple layers) - also dimmed
-            this.celestialGraphics.fillStyle(0xffa500, 0.4 * sunDimming);
+            this.celestialGraphics.fillStyle(sunCorona1, 0.4 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.4);
-            this.celestialGraphics.fillStyle(0xff8c00, 0.2 * sunDimming);
+            this.celestialGraphics.fillStyle(sunCorona2, 0.2 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.8);
-            this.celestialGraphics.fillStyle(0xff6b35, 0.1 * sunDimming);
+            this.celestialGraphics.fillStyle(sunCorona3, 0.1 * sunDimming);
             this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
         }
 
@@ -1010,10 +1087,10 @@ class GameScene extends Phaser.Scene {
             const radius = this.dayNightCycle.moonRadius;
 
             // Calculate brightness for this phase
-            // Phase 0 = full moon, 0.5 = new moon
+            // Phase 0 = new moon, 0.5 = full moon, 1.0 = new moon
             const phaseAngle = moonPhase * Math.PI * 2;
-            const illumination = Math.cos(phaseAngle); // +1 (full) to -1 (new)
-            const brightness = (illumination + 1) / 2; // 1 to 0
+            const illumination = -Math.cos(phaseAngle); // -1 (new) to +1 (full)
+            const brightness = (illumination + 1) / 2; // 0 to 1
 
             // Subtle moon glow - only when illuminated enough
             if (brightness > 0.3) {
@@ -1024,21 +1101,21 @@ class GameScene extends Phaser.Scene {
 
             // Draw moon phases using proper lunar geometry
             if (brightness < 0.05) {
-                // New moon - bright and luminous
-                this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
+                // New moon - barely visible, very dim
+                this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
                 this.celestialGraphics.fillCircle(moonX, moonY, radius);
             } else if (brightness >= 0.98) {
-                // Full moon - barely visible, very dim
-                this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
+                // Full moon - bright and luminous
+                this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
                 this.celestialGraphics.fillCircle(moonX, moonY, radius);
             } else {
                 // Draw moon phase using the classic method:
                 // Outer edge is always a semicircle, terminator is an ellipse
 
-                // Phase cycle: 0→full, 0.25→last quarter, 0.5→new, 0.75→first quarter, 1→full
-                // moonPhase 0-0.5: waning (full→new, left side lit)
-                // moonPhase 0.5-1: waxing (new→full, right side lit)
-                const isWaxing = moonPhase > 0.5;
+                // Phase cycle: 0→new, 0.25→first quarter, 0.5→full, 0.75→third quarter, 1→new
+                // moonPhase 0-0.5: waxing (new→full, right side lit)
+                // moonPhase 0.5-1: waning (full→new, left side lit)
+                const isWaxing = moonPhase < 0.5;
                 const k = illumination; // +1 (full) to -1 (new)
 
                 this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
@@ -1325,6 +1402,19 @@ class GameScene extends Phaser.Scene {
         const b = Math.floor(b1 + (b2 - b1) * t);
 
         return (r << 16) | (g << 8) | b;
+    }
+
+    // Apply RGB tint to a color (v4.0.0 - seasonal sky tinting)
+    tintColor(color, tint) {
+        const r = (color >> 16) & 0xFF;
+        const g = (color >> 8) & 0xFF;
+        const b = color & 0xFF;
+
+        const tintedR = Math.min(255, Math.floor(r * tint.r));
+        const tintedG = Math.min(255, Math.floor(g * tint.g));
+        const tintedB = Math.min(255, Math.floor(b * tint.b));
+
+        return (tintedR << 16) | (tintedG << 8) | tintedB;
     }
 }
 

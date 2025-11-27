@@ -1,9 +1,7 @@
 import Element from '../Element.js';
 import { STATE, TAG } from '../ElementProperties.js';
-import {
-    HeatTransformationBehavior,
-    FreezingPropagationBehavior
-} from '../behaviors/TransformationBehaviors.js';
+import { FreezingPropagationBehavior } from '../behaviors/TransformationBehaviors.js';
+import { SeasonalMeltingBehavior } from '../behaviors/SeasonalBehaviors.js';
 
 class IceElement extends Element {
     constructor() {
@@ -16,12 +14,9 @@ class IceElement extends Element {
             emissionDensity: 0.8
         });
 
-        // Behavior 1: Melt when near heat sources (realistic fast melting)
-        this.addBehavior(new HeatTransformationBehavior({
-            transformInto: 'water',
-            transformChance: 0.12, // 12% chance per frame when near heat (faster than before)
-            requiredTag: TAG.HEAT_SOURCE,
-            checkDiagonals: false // only cardinal directions
+        // Behavior 1: Melt when near heat sources (season-dependent, v4.0.0)
+        this.addBehavior(new SeasonalMeltingBehavior({
+            baseMeltChance: 0.05, // 5% base chance, modified by season
         }));
 
         // Behavior 2: Freeze adjacent water (MUCH slower, more realistic)

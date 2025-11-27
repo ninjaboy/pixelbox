@@ -2,6 +2,7 @@ import Element from '../Element.js';
 import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { LiquidFlowBehavior } from '../behaviors/MovementBehaviors.js';
 import { WaterLavaInteractionBehavior } from '../behaviors/ElementInteractionBehaviors.js';
+import { SurfaceFreezingBehavior } from '../behaviors/SeasonalBehaviors.js';
 
 class WaterElement extends Element {
     constructor() {
@@ -15,7 +16,10 @@ class WaterElement extends Element {
             emissionDensity: 1.0 // Continuous pour
         });
 
-        // Behavior 1: Obsidian cooling interaction (lava interaction handled by InteractionManager)
+        // Behavior 1: Surface freezing in winter (v4.0.0)
+        this.addBehavior(new SurfaceFreezingBehavior());
+
+        // Behavior 2: Obsidian cooling interaction (lava interaction handled by InteractionManager)
         this.addBehavior(new WaterLavaInteractionBehavior({
             obsidianCoolRate: 5,
             obsidianCoolThreshold: 20,

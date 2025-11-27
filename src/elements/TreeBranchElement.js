@@ -14,9 +14,34 @@ class TreeBranchElement extends Element {
     }
 
     updateImpl(x, y, grid) {
+        // Get season data (v4.0.0)
+        const seasonData = grid.seasonData;
+        const season = seasonData ? seasonData.season : 'summer';
+
+        // SEASONAL BRANCH DECAY (v4.0.0) - branches can fall off in autumn/winter
+        if (seasonData && (season === 'autumn' || season === 'winter')) {
+            const decayChance = season === 'winter' ? 0.00002 : 0.00001; // 0.002% winter, 0.001% autumn
+            if (Math.random() < decayChance) {
+                // Branch falls and becomes movable wood
+                const woodElement = grid.registry.get('wood');
+                if (woodElement) {
+                    grid.setElement(x, y, woodElement);
+                    // Make it movable so it falls
+                    const cell = grid.getCell(x, y);
+                    if (cell) {
+                        cell.element.movable = true;
+                    }
+                }
+                return true;
+            }
+        }
+
+        // SPRING REGROWTH (v4.0.0) - branches regrow leaves faster in spring
+        const regrowthRate = season === 'spring' ? 0.0001 : 0.00005; // 0.01% spring, 0.005% other seasons
+
         // Tree branches maintain foliage ONLY if there are no leaves nearby
         // This prevents infinite growth
-        if (Math.random() > 0.99995) { // 0.005% chance per frame (extremely rare)
+        if (Math.random() < regrowthRate) {
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 

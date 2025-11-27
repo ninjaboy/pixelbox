@@ -42,19 +42,112 @@ Each element has:
 }
 ```
 
+### 4. Manager Pattern (v4.0.0)
+
+For complex game systems that affect many elements, we use **Manager classes** to centralize state and logic:
+
+- **SeasonManager** - Tracks season progression, temperature, and seasonal queries
+- **WindManager** - Manages wind direction, strength, and seasonal patterns
+
+**Benefits**:
+- Single source of truth for seasonal/wind state
+- Avoids duplicating state in every element
+- Clean dependency injection pattern
+
+**Usage Pattern**:
+```javascript
+// In main.js:
+this.seasonManager = new SeasonManager(GAME_CONFIG);
+this.windManager = new WindManager(GAME_CONFIG, this.seasonManager);
+
+// Update managers each frame
+this.seasonManager.update(1);
+this.windManager.update(1);
+
+// Pass state to grid → all elements can access
+this.pixelGrid.setSeasonData({
+    season: this.seasonManager.getCurrentSeason(),
+    temperature: this.seasonManager.getTemperature(),
+    windVector: this.windManager.getWindVector()
+});
+
+// In element update():
+const seasonData = grid.seasonData;
+if (seasonData.season === 'winter') {
+    // Winter-specific behavior
+}
+```
+
+### 5. Behavior Composition (v4.0.0)
+
+Elements can compose **reusable behaviors** for complex transformations:
+
+```javascript
+import { SurfaceFreezingBehavior } from '../behaviors/SeasonalBehaviors.js';
+
+class WaterElement extends Element {
+    constructor() {
+        super(2, 'water', 0x4a90e2, { /* ... */ });
+
+        // Add freezing behavior
+        this.addBehavior(new SurfaceFreezingBehavior());
+    }
+}
+```
+
+**Behavior Pattern**:
+```javascript
+class SurfaceFreezingBehavior {
+    apply(x, y, grid, element) {
+        const seasonData = grid.seasonData;
+        if (!seasonData || seasonData.temperature >= 0) return false;
+
+        // Check if at surface (within 2 pixels of air)
+        let isAtSurface = false;
+        for (let dy = -2; dy <= 0; dy++) {
+            const above = grid.getElement(x, y + dy);
+            if (above && above.name === 'empty') {
+                isAtSurface = true;
+                break;
+            }
+        }
+
+        // Freeze surface water
+        if (isAtSurface && Math.random() < 0.02) {
+            grid.setElement(x, y, grid.registry.get('ice'));
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+**Benefits**:
+- Reusable across multiple elements
+- Clean separation of concerns
+- Easy to test in isolation
+- Can be enabled/disabled per element
+
 ## File Structure
 
 ```
 src/
-├── ElementProperties.js    # Property/tag definitions
-├── Element.js              # Base element class
-├── InteractionManager.js   # Handles all interactions
-├── ElementRegistry.js      # Manages elements + interactions
-├── PixelGrid.js           # Simulation grid
-├── main.js                # Main game file
-├── init.js                # Initialize registry
+├── ElementProperties.js        # Property/tag definitions
+├── Element.js                  # Base element class
+├── InteractionManager.js       # Handles all interactions
+├── ElementRegistry.js          # Manages elements + interactions
+├── PixelGrid.js               # Simulation grid
+├── main.js                    # Main game file
+├── init.js                    # Initialize registry
+├── config/
+│   └── GameConfig.js          # Centralized configuration (seasons, time, visuals)
+├── managers/
+│   ├── SeasonManager.js       # Season progression & temperature (v4.0.0)
+│   └── WindManager.js         # Wind dynamics & patterns (v4.0.0)
+├── behaviors/
+│   └── SeasonalBehaviors.js   # Reusable seasonal transformations (v4.0.0)
 └── elements/
-    ├── index.js           # Export all elements
+    ├── index.js               # Export all elements
     ├── EmptyElement.js
     ├── SandElement.js
     ├── WaterElement.js
@@ -218,6 +311,150 @@ Then just add `TAG.CORROSIVE` to acid and `TAG.METAL` to iron/steel elements!
 ✅ **Reusable** - One interaction rule works for all matching elements
 ✅ **Maintainable** - Clear separation of concerns
 ✅ **Scalable** - Easy to add 100+ elements with complex interactions
+✅ **Modular** - Managers and behaviors encapsulate complex systems (v4.0.0)
+
+## Seasons System (v4.0.0)
+
+PixelBox features a comprehensive four-season cycle that affects weather, temperature, vegetation, and wildlife.
+
+### Architecture Overview
+
+The seasons system uses the **Manager Pattern** to centralize seasonal state:
+
+```
+SeasonManager
+  ├─ Current season ('spring', 'summer', 'autumn', 'winter')
+  ├─ Season progress (0.0 to 1.0)
+  ├─ Temperature (-1 to 1, varies by season + time of day)
+  └─ Helper methods (shouldFreeze(), shouldMelt(), getLeafColor())
+
+WindManager (depends on SeasonManager)
+  ├─ Wind direction (-1 left, +1 right)
+  ├─ Wind strength (0-3)
+  ├─ Seasonal patterns (calm summers, gusty autumns)
+  └─ Wind vector for physics ({ x, y })
+
+→ Both managers updated each frame in main.js
+→ State passed to PixelGrid.seasonData
+→ All elements access via grid.seasonData
+```
+
+### Seasonal Effects
+
+**Spring**:
+- Trees grow 2x faster
+- Leaves are bright green
+- Rainy (50% more clouds)
+- Birds return from migration
+- Moderate temperature (0.3 to 0.6)
+
+**Summer**:
+- Normal tree growth
+- Deep green leaves
+- Clear skies (50% fewer clouds)
+- Hot temperature (0.7 to 1.0)
+- Ice melts rapidly
+- Calm winds
+
+**Autumn**:
+- Trees grow 2x slower
+- Leaves turn yellow/orange/red and fall
+- Occasional branch decay
+- Birds migrate away (mid-season)
+- Cool temperature (0.3 to 0.5)
+- Strong, gusty winds
+
+**Winter**:
+- Tree growth stops
+- Remaining leaves fall (bare trees)
+- Tree/branch decay
+- No birds present
+- Water surfaces freeze
+- Snow clouds instead of rain
+- Cold temperature (-0.5 to 0.2)
+- Strong, consistent winds
+- Ice melts very slowly
+
+### Key Patterns
+
+#### Probabilistic Seasonal Updates
+
+Elements use low-probability checks to avoid per-frame processing:
+
+```javascript
+// Leaf falling in autumn (0.2% chance per frame)
+if (season === 'autumn' && Math.random() < 0.002) {
+    cell.data.detached = true;
+}
+
+// Tree decay in winter (0.002% chance per frame)
+if (season === 'winter' && Math.random() < 0.00002) {
+    grid.setElement(x, y, grid.registry.get('ash'));
+}
+```
+
+#### Seasonal Multipliers
+
+Growth/spawn rates are modulated by season:
+
+```javascript
+// Tree growth speed
+const seasonalMultiplier = {
+    spring: 0.5,   // 2x faster
+    summer: 1.0,   // normal
+    autumn: 2.0,   // 2x slower
+    winter: 999    // effectively stopped
+}[season];
+
+const adjustedDelay = baseDelay * seasonalMultiplier;
+```
+
+#### Temperature-Based Transformations
+
+Behaviors query temperature for state changes:
+
+```javascript
+// Water → Ice (winter surface freezing)
+if (seasonData.temperature < 0 && isAtSurface) {
+    grid.setElement(x, y, grid.registry.get('ice'));
+}
+
+// Ice → Water (summer rapid melting)
+const meltMultiplier = season === 'summer' ? 2.0 : 1.0;
+const meltChance = baseMeltChance * meltMultiplier;
+```
+
+#### Bird Migration
+
+Birds exhibit seasonal migration behavior:
+
+```javascript
+// Autumn: migrate upward and despawn
+if (season === 'autumn' && seasonProgress > 0.5) {
+    cell.data.migrating = true;
+    // Fly upward, ignore food
+    // Despawn at y < 10
+}
+
+// Spring: spawn birds at top of map
+if (isEarlySpring()) {
+    spawnBirds(5-10, y: 10-20);
+}
+```
+
+### Configuration
+
+All seasonal parameters are centralized in `/src/config/GameConfig.js`:
+
+- **Time**: Day/month/season durations (configurable)
+- **Temperature**: Seasonal ranges (-1 to 1 normalized scale)
+- **Leaf Colors**: Palettes per season
+- **Growth Multipliers**: Tree growth speeds
+- **Cloud Spawn**: Seasonal cloudiness levels
+- **Wind Patterns**: Strength and variability per season
+- **Visual Tints**: Sky and sun color modulation
+
+See `SEASONS_SYSTEM.md` for complete documentation.
 
 ## Future Enhancements
 

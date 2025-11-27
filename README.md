@@ -11,12 +11,19 @@ A pixel-based physics simulation game built with Phaser 3, where each pixel acts
 - **Property-Based Interaction System**: Elements interact based on tags and properties, not hardcoded logic
 - **Modular Architecture**: Each element in its own file, easy to extend
 - **Custom Pixel Physics Engine**: Cellular automata-based simulation where each pixel has individual physics properties
+- **Four-Season Cycle** (v4.0.0):
+  - **Dynamic Weather**: Seasonal clouds, rain in spring, snow in winter
+  - **Temperature System**: Water freezes in winter, ice melts in summer
+  - **Living Trees**: Seasonal leaf colors (green→yellow/orange/red→bare), growth rates, natural decay
+  - **Bird Migration**: Birds fly south in autumn, return in spring
+  - **Wind System**: Affects clouds, varies by season (calm summers, gusty autumns)
+  - **Atmospheric Changes**: Sky and sun colors shift with seasons
 - **30+ Interactive Elements**:
   - **Powders**: Sand, gunpowder, ash, salt
   - **Liquids**: Water, oil, acid, lava
   - **Gases**: Fire, steam, smoke, clouds
   - **Solids**: Stone, wood, glass, ice, walls
-  - **Living**: Fish, plants, trees
+  - **Living**: Fish, plants, trees, birds
   - **Special**: Fossils (generate oil over time), burning wood
 - **Touch & Mouse Controls**: Draw particles with your finger or mouse
 - **Performance Optimized**: Handles thousands of particles smoothly on mobile
@@ -75,6 +82,7 @@ Note: Free tier has 100 deployments/day limit
 
 ## Element Interactions
 
+### Basic Interactions
 - **Water + Fire** → Steam (fire extinguished)
 - **Water + Lava** → Stone (lava solidifies after evaporating 5+ water pixels)
 - **Fire + Wood/Oil/Gunpowder** → Ignition and burning
@@ -85,7 +93,18 @@ Note: Free tier has 100 deployments/day limit
 - **Fossil** → Slowly generates oil
 - **Gunpowder + Fire** → Explosive burning
 - **Fish** → Swims in water, AI-driven behavior
-- **Trees** → Grow from wood placed near sand/water
+- **Trees** → Grow from seeds placed on valid surfaces
+
+### Seasonal Interactions (v4.0.0)
+- **Water (Winter)** → Surface freezes into ice when temperature < 0°C
+- **Ice (Summer)** → Melts 2x faster in hot weather
+- **Clouds (Winter)** → Drop snow instead of rain
+- **Tree Leaves (Spring)** → Bright green, trees grow 2x faster
+- **Tree Leaves (Summer)** → Deep green, normal growth
+- **Tree Leaves (Autumn)** → Turn yellow/orange/red, fall gradually, branches may decay
+- **Tree Leaves (Winter)** → Bare trees, no growth, some trees die
+- **Birds (Autumn)** → Migrate upward and disappear
+- **Birds (Spring)** → Return from migration, spawn at top of map
 
 ## Technical Details
 
@@ -190,6 +209,18 @@ MIT License - Feel free to modify and use as you wish!
 
 ## Recent Updates
 
+### v4.0.0 - Four Seasons System
+- ✅ **Seasonal Cycle**: Four seasons with automatic progression (spring → summer → autumn → winter)
+- ✅ **Temperature System**: Dynamic temperature affecting water freezing, ice melting
+- ✅ **Wind System**: Directional wind affecting clouds, varies by season
+- ✅ **Tree Behaviors**: Seasonal leaf colors, growth rates, natural decay, bare winter trees
+- ✅ **Bird Migration**: Birds migrate in autumn, return in spring
+- ✅ **Weather System**: Rain in spring/summer, snow in winter
+- ✅ **Visual Atmosphere**: Seasonal sky and sun tinting (warm autumn, cool winter)
+- ✅ **Modular Managers**: SeasonManager, WindManager for centralized state
+- ✅ **Behavior Composition**: Reusable seasonal behaviors (SurfaceFreezingBehavior, etc.)
+
+### Previous Updates
 - ✅ 30+ interactive elements with complex behaviors
 - ✅ Reusable movement behaviors (gravity, liquid flow, gas)
 - ✅ Unified state management with CellState

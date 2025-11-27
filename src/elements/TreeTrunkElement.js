@@ -14,8 +14,24 @@ class TreeTrunkElement extends Element {
     }
 
     updateImpl(x, y, grid) {
+        // Get season data (v4.0.0)
+        const seasonData = grid.seasonData;
+        const season = seasonData ? seasonData.season : 'summer';
+
+        // WINTER/AUTUMN DECAY (v4.0.0) - small chance for trees to die
+        if (seasonData && (season === 'winter' || season === 'autumn')) {
+            const decayChance = season === 'winter' ? 0.00002 : 0.00001; // 0.002% winter, 0.001% autumn
+            if (Math.random() < decayChance) {
+                grid.setElement(x, y, grid.registry.get('ash'));
+                return true;
+            }
+        }
+
+        // SPRING REGROWTH (v4.0.0) - bare trees regrow leaves faster in spring
+        const regrowthRate = season === 'spring' ? 0.0001 : 0.00002; // 0.01% spring, 0.002% other seasons
+
         // Tree trunks maintain minimal foliage ONLY when bare
-        if (Math.random() > 0.99998) { // 0.002% chance per frame (almost never)
+        if (Math.random() < regrowthRate) {
             const leafElement = grid.registry.get('leaf');
             if (!leafElement) return false;
 

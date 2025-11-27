@@ -281,6 +281,16 @@ class PixelGrid {
     // Set time of day (called from main game scene)
     setTimeOfDay(time) {
         this.timeOfDay = time;
+        // Also provide dayNightCycle interface for elements that use it
+        if (!this.dayNightCycle) {
+            this.dayNightCycle = {
+                getTime: () => this.timeOfDay
+            };
+        }
+    }
+
+    setSeasonData(seasonData) {
+        this.seasonData = seasonData;
     }
 
     checkInteractions(x, y) {
