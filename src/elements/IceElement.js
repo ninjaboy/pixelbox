@@ -35,6 +35,28 @@ class IceElement extends Element {
             return true;
         }
 
+        // SEASONAL MELTING (v4.1.5) - ice melts in spring/summer
+        const seasonData = grid.seasonData;
+        if (seasonData) {
+            const season = seasonData.season;
+            const seasonProgress = seasonData.seasonProgress || 0;
+
+            // Ice melts progressively through spring, VERY rapidly in summer
+            let meltChance = 0;
+            if (season === 'spring') {
+                // Melt increases through spring: 0.02% at start → 0.08% at end
+                meltChance = 0.0002 + (seasonProgress * 0.0006);
+            } else if (season === 'summer') {
+                // RAPID melting in summer - ice should disappear quickly
+                meltChance = 0.01; // 1% per frame - ice melts very fast
+            }
+
+            if (meltChance > 0 && Math.random() < meltChance) {
+                grid.setElement(x, y, grid.registry.get('water'));
+                return true;
+            }
+        }
+
         // PRIORITY 2: Ice physics - floats on water, falls in air
         const below = grid.getElement(x, y + 1);
         const above = grid.getElement(x, y - 1);

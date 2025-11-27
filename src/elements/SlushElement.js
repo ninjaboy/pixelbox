@@ -37,6 +37,28 @@ class SlushElement extends Element {
             return true;
         }
 
+        // SEASONAL MELTING (v4.1.5) - slush melts in spring/summer
+        const seasonData = grid.seasonData;
+        if (seasonData) {
+            const season = seasonData.season;
+            const seasonProgress = seasonData.seasonProgress || 0;
+
+            // Slush melts faster than ice (it's already partially melted)
+            let meltChance = 0;
+            if (season === 'spring') {
+                // Melt increases through spring: 0.05% at start → 0.15% at end
+                meltChance = 0.0005 + (seasonProgress * 0.001);
+            } else if (season === 'summer') {
+                // Rapid melting in summer
+                meltChance = 0.015; // 1.5% per frame - slush melts very quickly
+            }
+
+            if (meltChance > 0 && Math.random() < meltChance) {
+                grid.setElement(x, y, grid.registry.get('water'));
+                return true;
+            }
+        }
+
         // PRIORITY 2: Slow freezing to ice when exposed to cold air (not touching water)
         const neighbors = [
             [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
