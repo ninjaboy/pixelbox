@@ -34,9 +34,9 @@ class GameScene extends Phaser.Scene {
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
 
-            // MOON CYCLE - randomized start but cycles faster
+            // MOON CYCLE - realistic 29.5 day cycle
             moonPhase: Math.random(), // Random phase (0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter)
-            moonCycleSpeed: 0.001 / 4, // 10x faster for testing (full cycle = ~4 seconds at 60fps)
+            moonCycleSpeed: 0.001 / 29.5, // Full moon cycle = 29.5 days (moon changes slightly each night)
         };
 
         // CLOUD/WEATHER SYSTEM
@@ -84,6 +84,8 @@ class GameScene extends Phaser.Scene {
         this.particlesText = document.getElementById('particles');
         this.versionText = document.getElementById('version');
         this.modeDisplay = document.getElementById('mode-display');
+        this.seasonDisplay = document.getElementById('season-display');
+        this.timeDisplay = document.getElementById('time-display');
 
         // Set version once
         this.versionText.textContent = VERSION;
@@ -691,6 +693,37 @@ class GameScene extends Phaser.Scene {
         // Update stats
         this.fpsText.textContent = Math.round(this.game.loop.actualFps);
         this.particlesText.textContent = this.pixelGrid.particleCount;
+
+        // Update season display (v4.0.0)
+        const season = this.seasonManager.getCurrentSeason();
+        const seasonEmojis = {
+            spring: '🌸',
+            summer: '☀️',
+            autumn: '🍂',
+            winter: '❄️'
+        };
+        const seasonName = season.charAt(0).toUpperCase() + season.slice(1);
+        this.seasonDisplay.textContent = `${seasonEmojis[season]} ${seasonName}`;
+
+        // Update time of day display (v4.0.0)
+        const time = this.dayNightCycle.time;
+        let timeOfDay = '';
+        if (time < 0.2) {
+            timeOfDay = '🌙 Night';
+        } else if (time < 0.3) {
+            timeOfDay = '🌅 Dawn';
+        } else if (time < 0.4) {
+            timeOfDay = '🌄 Morning';
+        } else if (time < 0.6) {
+            timeOfDay = '☀️ Day';
+        } else if (time < 0.7) {
+            timeOfDay = '🌆 Afternoon';
+        } else if (time < 0.8) {
+            timeOfDay = '🌇 Dusk';
+        } else {
+            timeOfDay = '🌙 Night';
+        }
+        this.timeDisplay.textContent = timeOfDay;
 
         // Update profiler panel if enabled
         if (profiler.enabled) {
