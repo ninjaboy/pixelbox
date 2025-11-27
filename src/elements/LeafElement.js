@@ -68,8 +68,45 @@ class LeafElement extends Element {
         // CRITICAL: Only age leaves that have FALLEN from the tree
         // Leaves on the tree stay green forever (unless detached by season)
         if (isFalling) {
+            // v4.1.8: WATER CONTACT - fallen leaves touching water dissolve immediately
+            const waterNeighbors = [
+                [x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]
+            ];
+            for (const [nx, ny] of waterNeighbors) {
+                const neighbor = grid.getElement(nx, ny);
+                if (neighbor && neighbor.name === 'water') {
+                    // Leaf touching water - dissolve into water (no residue)
+                    grid.setElement(x, y, grid.registry.get('water'));
+                    return true;
+                }
+            }
+
             // Fallen leaf - start aging
             cell.data.age++;
+
+            // v4.1.8: SPRING CLEANUP - after mid-spring, leaves decay rapidly
+            // This ensures all fallen leaves are gone by end of spring
+            let decayMultiplier = 1.0;
+            let springCleanup = false;
+            if (seasonData) {
+                // Seasonal decay rates
+                const decayRates = {
+                    spring: 5.0,
+                    summer: 1.0,
+                    autumn: 0.5,
+                    winter: 0.2
+                };
+                decayMultiplier = decayRates[season] || 1.0;
+
+                // After 40% of spring, aggressive cleanup mode
+                if (season === 'spring' && seasonData.seasonProgress > 0.4) {
+                    springCleanup = true;
+                    // Even more aggressive after 60% of spring
+                    if (seasonData.seasonProgress > 0.6) {
+                        decayMultiplier *= 3.0; // 15x total
+                    }
+                }
+            }
 
             // Leaf lifecycle stages (for fallen leaves only):
             // 0-300 frames (5s): Fresh green fallen leaf
@@ -97,16 +134,35 @@ class LeafElement extends Element {
                 cell.data.leafColor = (r << 16) | (g << 8) | b;
             }
 
-            // After 15 seconds on ground, dead leaves decay into ash
-            if (cell.data.age > 900) {
-                // 5% chance per frame to decay
-                if (Math.random() > 0.95) {
-                    const ashElement = grid.registry.get('ash');
-                    if (ashElement) {
-                        grid.setElement(x, y, ashElement);
-                    } else {
-                        // Fallback: turn to empty if no ash
+            // v4.1.8: SPRING CLEANUP - old leaves just disappear during spring cleanup
+            // (no ash residue - simulates decomposition into soil)
+            if (springCleanup && cell.data.age > 300) {
+                // High chance to just disappear during spring cleanup
+                const cleanupChance = 0.02 * decayMultiplier; // 2% base * multiplier
+                if (Math.random() < cleanupChance) {
+                    // Just disappear - decomposed into soil
+                    grid.setElement(x, y, grid.registry.get('empty'));
+                    return true;
+                }
+            }
+
+            // After 15 seconds on ground (or much sooner with decay multiplier), dead leaves decay
+            const adjustedDecayThreshold = Math.floor(900 / decayMultiplier);
+            if (cell.data.age > adjustedDecayThreshold) {
+                // 5% base chance per frame to decay (modified by season)
+                const decayChance = 0.05 * decayMultiplier;
+                if (Math.random() < decayChance) {
+                    // In spring cleanup mode, just disappear
+                    if (springCleanup) {
                         grid.setElement(x, y, grid.registry.get('empty'));
+                    } else {
+                        // Normal decay: turn to ash
+                        const ashElement = grid.registry.get('ash');
+                        if (ashElement) {
+                            grid.setElement(x, y, ashElement);
+                        } else {
+                            grid.setElement(x, y, grid.registry.get('empty'));
+                        }
                     }
                     return true;
                 }
