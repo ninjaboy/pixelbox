@@ -26,7 +26,8 @@ class LeafElement extends Element {
         const seasonData = grid.seasonData;
         const season = seasonData ? seasonData.season : 'summer';
 
-        // Initialize seasonal color if not set
+        // Initialize seasonal color if not set (v4.0.0)
+        // Color stored in cell.data.leafColor and rendered by PixelGrid
         if (!cell.data.leafColor && seasonData) {
             // Get seasonal color from season system
             const seasonColors = {
@@ -37,11 +38,6 @@ class LeafElement extends Element {
             };
             const colors = seasonColors[season] || seasonColors.summer;
             cell.data.leafColor = colors[Math.floor(Math.random() * colors.length)];
-        }
-
-        // Apply seasonal color to leaf
-        if (cell.data.leafColor) {
-            cell.element.color = cell.data.leafColor;
         }
 
         // Check if leaf is still on the tree or has fallen
@@ -85,15 +81,20 @@ class LeafElement extends Element {
                 // Aging phase: transition from green to brown
                 const ageProgress = Math.min((cell.data.age - 300) / 600, 1.0); // 0 to 1
 
-                // Color transition: 0x228b22 (green) -> 0x8b4513 (saddle brown)
-                const startR = 0x22, startG = 0x8b, startB = 0x22;
+                // Color transition: seasonal color -> 0x8b4513 (saddle brown)
+                const startColor = cell.data.leafColor || 0x228b22; // Use seasonal color or default green
+                const startR = (startColor >> 16) & 0xFF;
+                const startG = (startColor >> 8) & 0xFF;
+                const startB = startColor & 0xFF;
+
                 const endR = 0x8b, endG = 0x45, endB = 0x13;
 
                 const r = Math.floor(startR + (endR - startR) * ageProgress);
                 const g = Math.floor(startG + (endG - startG) * ageProgress);
                 const b = Math.floor(startB + (endB - startB) * ageProgress);
 
-                cell.element.color = (r << 16) | (g << 8) | b;
+                // Store in cell.data, not cell.element (to avoid affecting all leaves)
+                cell.data.leafColor = (r << 16) | (g << 8) | b;
             }
 
             // After 15 seconds on ground, dead leaves decay into ash

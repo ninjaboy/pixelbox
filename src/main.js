@@ -813,8 +813,8 @@ class GameScene extends Phaser.Scene {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
 
             if (cell && cell.element.id !== 0) {
-                // Use per-cell color if available (for fish, birds, lights), otherwise use element color
-                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.element.color;
+                // Use per-cell color if available (for fish, birds, lights, leaves), otherwise use element color
+                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.data.leafColor || cell.element.color;
 
                 // Check if this is a light element (glowing house light)
                 const isLight = cell.element.name === 'light';
