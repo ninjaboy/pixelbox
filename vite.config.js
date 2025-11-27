@@ -7,7 +7,8 @@ export default defineConfig({
       targets: ['defaults', 'not IE 11'],
     }),
   ],
-  base: './', // Use relative paths for assets
+  // Use relative paths for assets (works for both GitHub Pages and local)
+  base: process.env.GITHUB_ACTIONS ? '/pixelbox/' : './',
   build: {
     target: 'es2015',
     outDir: 'dist',
