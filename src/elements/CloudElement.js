@@ -245,12 +245,13 @@ class CloudElement extends Element {
     // Trigger light rain event for saturated clouds
     triggerRainEvent(x, y, grid, cell) {
         // Drop water droplets or snow (v4.0.0) in burst (limited by water capacity)
-        // Target: 1-3 drops (reduced to prevent overflow), but can't exceed what cloud actually absorbed
-        const desiredRain = 1 + Math.floor(Math.random() * 3);
-        const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
-
         // Check if this is a snow cloud (winter)
         const isSnowCloud = cell.data.isSnowCloud === true;
+
+        // More snow in winter! (v4.0.8)
+        const desiredRain = isSnowCloud ? 3 + Math.floor(Math.random() * 5) : 1 + Math.floor(Math.random() * 3);
+        const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
+
         const precipElement = grid.registry.get(isSnowCloud ? 'snow' : 'water');
         if (!precipElement) return 0;
 

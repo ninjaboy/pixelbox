@@ -70,11 +70,15 @@ class BirdElement extends Element {
         // HUNGER SYSTEM
         cell.data.hunger = Math.min(100, cell.data.hunger + 0.015); // Same rate as fish
 
-        // PERFORMANCE: Cache nearby bird count
+        // PERFORMANCE: Cache nearby bird count and flock data
         let nearbyBirdCount = cell.data.cachedNearbyBirdCount;
+        let flockData = cell.data.cachedFlockData;
         if (shouldUpdateAI) {
-            nearbyBirdCount = this.countNearbyBirds(x, y, grid, 3); // Reduced from 5 to 3 for performance
+            const flockInfo = this.analyzeNearbyFlock(x, y, grid, 7); // Check 7x7 area for flocking
+            nearbyBirdCount = flockInfo.count;
+            flockData = flockInfo;
             cell.data.cachedNearbyBirdCount = nearbyBirdCount;
+            cell.data.cachedFlockData = flockData;
         }
 
         // OVERPOPULATION CONTROL
@@ -86,36 +90,62 @@ class BirdElement extends Element {
         const season = seasonData ? seasonData.season : 'summer';
         const seasonProgress = seasonData ? seasonData.seasonProgress : 0;
 
-        // PRIORITY -1: MIGRATION (v4.0.0) - Birds migrate in autumn, return in spring
+        // PRIORITY -1: MIGRATION (v4.0.0) - Birds migrate south in flocks for winter
         if (seasonData) {
-            // Autumn migration - fly upward and off screen
+            // Autumn migration - start migrating in late autumn
             if (season === 'autumn' && seasonProgress > 0.5) {
                 cell.data.migrating = true;
             }
 
-            // Migrating birds fly upward strongly
+            // Migrating birds fly SOUTH (down and right) in coordinated flocks
             if (cell.data.migrating) {
-                // Fly upward
-                const above = grid.getElement(x, y - 1);
-                if (above && above.name === 'empty') {
-                    grid.swap(x, y, x, y - 1);
+                // Use flock data to stay in formation during migration
+                let moveX = 1; // Default: fly right (east/south)
+                let moveY = 1; // Default: fly down (south)
+
+                // If in a flock, align with flock's average direction
+                if (flockData && flockData.count > 1) {
+                    // Add slight cohesion - move toward flock center
+                    if (flockData.centerX > x) moveX = 1;
+                    else if (flockData.centerX < x) moveX = -1;
+                    else moveX = Math.random() > 0.5 ? 1 : -1;
+
+                    // Keep moving south (downward)
+                    moveY = 1;
+
+                    // Maintain spacing - if too close to flock center, spread out
+                    const distToCenter = Math.abs(flockData.centerX - x) + Math.abs(flockData.centerY - y);
+                    if (distToCenter < 2) {
+                        // Too close, move away slightly
+                        moveX = flockData.centerX > x ? -1 : 1;
+                    }
+                }
+
+                // Try diagonal south-east movement (V-formation migration)
+                if (grid.isEmpty(x + moveX, y + moveY) && !this.isDangerousNearby(x + moveX, y + moveY, grid)) {
+                    grid.swap(x, y, x + moveX, y + moveY);
                     return true;
                 }
 
-                // If at top of map, despawn (migrated away)
-                if (y < 10) {
+                // If blocked diagonally, try just moving south (down)
+                if (grid.isEmpty(x, y + moveY)) {
+                    grid.swap(x, y, x, y + moveY);
+                    return true;
+                }
+
+                // Try just moving east (right)
+                if (grid.isEmpty(x + moveX, y)) {
+                    grid.swap(x, y, x + moveX, y);
+                    return true;
+                }
+
+                // If at bottom or right edge of map, despawn (migrated south)
+                if (y > grid.height - 10 || x > grid.width - 10) {
                     grid.setElement(x, y, grid.registry.get('empty'));
                     return true;
                 }
 
-                // Try diagonal upward if blocked
-                const dir = Math.random() > 0.5 ? 1 : -1;
-                if (grid.isEmpty(x + dir, y - 1)) {
-                    grid.swap(x, y, x + dir, y - 1);
-                    return true;
-                }
-
-                return false; // Keep trying to fly up
+                return false; // Keep trying to migrate
             }
 
             // Winter - no birds (they've all migrated)
@@ -263,7 +293,7 @@ class BirdElement extends Element {
             }
         }
 
-        // PRIORITY 4: FLYING BEHAVIOR (smooth gliding with strong upward bias)
+        // PRIORITY 4: FLYING BEHAVIOR (smooth gliding with flocking)
         cell.data.flyTimer++;
         cell.data.glidePhase += 0.05; // Increment phase for smooth sine wave
 
@@ -276,22 +306,47 @@ class BirdElement extends Element {
             cell.data.altitude = cloudLayer + Math.floor(Math.random() * (midGround - cloudLayer));
         }
 
-        // Change direction occasionally
-        if (cell.data.flyTimer > 60 && Math.random() > 0.97) {
-            cell.data.flyDirection *= -1;
-            cell.data.flyTimer = 0;
+        // FLOCKING BEHAVIOR - Apply boids algorithm when near other birds
+        let flockInfluence = { x: 0, y: 0 };
+        const isFlocking = flockData && flockData.count > 1;
+
+        if (isFlocking) {
+            // COHESION: Move toward flock center (weak influence)
+            const cohesionX = (flockData.centerX - x) * 0.15;
+            const cohesionY = (flockData.centerY - y) * 0.15;
+
+            // SEPARATION: Avoid getting too close (strong influence)
+            const separationX = flockData.separationX * 0.4;
+            const separationY = flockData.separationY * 0.4;
+
+            // ALIGNMENT: Match flock's average direction (medium influence)
+            const alignmentX = flockData.avgDirectionX * 0.25;
+            const alignmentY = 0; // Keep altitude control separate
+
+            // Combine influences
+            flockInfluence.x = cohesionX + separationX + alignmentX;
+            flockInfluence.y = cohesionY + separationY;
+
+            // Align direction with flock
+            if (Math.abs(flockData.avgDirectionX) > 0.5) {
+                cell.data.flyDirection = flockData.avgDirectionX > 0 ? 1 : -1;
+            }
+        } else {
+            // Change direction occasionally when not flocking
+            if (cell.data.flyTimer > 60 && Math.random() > 0.97) {
+                cell.data.flyDirection *= -1;
+                cell.data.flyTimer = 0;
+            }
         }
 
         // FLYING MOVEMENT (70% chance to move, smoother than fish)
         if (Math.random() > 0.3) {
-            // Vertical movement - smooth bobbing with STRONG upward bias
+            // Vertical movement - smooth bobbing with STRONG upward bias + flock influence
             const bobbing = Math.sin(cell.data.glidePhase) * 0.5; // Sine wave bobbing
             const altitudeDiff = cell.data.altitude - y;
             let verticalBias = 0.25; // Default bias toward going UP (25% down, 75% up)
 
             // Strong bias toward target altitude
-            // altitudeDiff < 0 means bird is BELOW target (y is larger, needs to go UP)
-            // altitudeDiff > 0 means bird is ABOVE target (y is smaller, needs to go DOWN)
             if (altitudeDiff < -5) {
                 verticalBias = 0.1; // Very strong upward - bird is too low!
             } else if (altitudeDiff > 5) {
@@ -301,6 +356,11 @@ class BirdElement extends Element {
             // Add bobbing influence
             if (bobbing > 0.2) verticalBias -= 0.1; // Upward bob
             if (bobbing < -0.2) verticalBias += 0.1; // Downward bob
+
+            // Add flock influence to vertical movement
+            if (isFlocking && Math.abs(flockInfluence.y) > 0.3) {
+                verticalBias += flockInfluence.y > 0 ? 0.15 : -0.15;
+            }
 
             // 50% chance for vertical movement
             if (Math.random() > 0.5) {
@@ -315,9 +375,15 @@ class BirdElement extends Element {
                 }
             }
 
-            // Horizontal gliding (primary movement) - 80% chance
+            // Horizontal gliding (primary movement) - 80% chance + flock influence
             if (Math.random() > 0.2) {
-                const dir = cell.data.flyDirection;
+                let dir = cell.data.flyDirection;
+
+                // Apply flock influence to horizontal direction
+                if (isFlocking && Math.abs(flockInfluence.x) > 0.5) {
+                    dir = flockInfluence.x > 0 ? 1 : -1;
+                }
+
                 const newX = x + dir;
                 const element = grid.getElement(newX, y);
 
@@ -339,19 +405,58 @@ class BirdElement extends Element {
         return false;
     }
 
-    // Count nearby birds for population control
-    countNearbyBirds(x, y, grid, radius) {
+    // Analyze nearby birds for flocking behavior (boids algorithm)
+    analyzeNearbyFlock(x, y, grid, radius) {
         let count = 0;
+        let sumX = 0, sumY = 0;
+        let sumDirectionX = 0;
+        let separationX = 0, separationY = 0;
+
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 if (dx === 0 && dy === 0) continue;
+
                 const element = grid.getElement(x + dx, y + dy);
                 if (element && element.name === 'bird') {
-                    count++;
+                    const birdCell = grid.getCell(x + dx, y + dy);
+                    if (birdCell && birdCell.data) {
+                        count++;
+
+                        // Cohesion: accumulate positions for center calculation
+                        sumX += x + dx;
+                        sumY += y + dy;
+
+                        // Alignment: accumulate directions
+                        sumDirectionX += birdCell.data.flyDirection || 0;
+
+                        // Separation: push away from very close birds
+                        const dist = Math.abs(dx) + Math.abs(dy);
+                        if (dist < 3) { // Within 3 pixels = too close
+                            separationX -= dx; // Push away (negative of displacement)
+                            separationY -= dy;
+                        }
+                    }
                 }
             }
         }
-        return count;
+
+        if (count === 0) {
+            return { count: 0 };
+        }
+
+        // Calculate averages
+        const centerX = sumX / count;
+        const centerY = sumY / count;
+        const avgDirectionX = sumDirectionX / count;
+
+        return {
+            count,
+            centerX,
+            centerY,
+            avgDirectionX,
+            separationX,
+            separationY
+        };
     }
 
     // Find nearby tree to perch on
