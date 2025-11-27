@@ -28,7 +28,6 @@ export default class WorldSerializer {
         // Encode to base64
         const base64 = btoa(dataString);
 
-        console.log(`🌍 World serialized: ${width}x${height} (${base64.length} chars)`);
         return base64;
     }
 
@@ -98,8 +97,6 @@ export default class WorldSerializer {
                 }
             });
 
-            console.log(`🌍 World loaded from code: ${width}x${height}`);
-            console.log('📊 Element breakdown:', elementCounts);
             return true;
 
         } catch (error) {
@@ -117,7 +114,6 @@ export default class WorldSerializer {
 
         try {
             await navigator.clipboard.writeText(worldCode);
-            console.log('📋 World code copied to clipboard');
             return worldCode;
         } catch (error) {
             console.error('❌ Failed to copy to clipboard:', error);
@@ -167,8 +163,6 @@ export default class WorldSerializer {
             const formData = new FormData();
             formData.append('file', new Blob([json], { type: 'application/json' }), filename);
 
-            console.log(`☁️ Uploading world to 0x0.st... (${json.length} bytes)`);
-
             // Upload to 0x0.st
             const response = await fetch('https://0x0.st/', {
                 method: 'POST',
@@ -180,7 +174,6 @@ export default class WorldSerializer {
             }
 
             const url = (await response.text()).trim();
-            console.log(`✅ World uploaded: ${url}`);
 
             return url;
 
@@ -195,8 +188,6 @@ export default class WorldSerializer {
      */
     async downloadWorld(url) {
         try {
-            console.log(`☁️ Downloading world from ${url}...`);
-
             const response = await fetch(url, { cache: 'no-store' });
 
             if (!response.ok) {
@@ -209,8 +200,6 @@ export default class WorldSerializer {
             if (!state.world) {
                 throw new Error('Invalid save file: missing world data');
             }
-
-            console.log(`✅ World downloaded (v${state.version || 'unknown'})`);
 
             // Load the world
             return this.deserializeWorld(state.world);

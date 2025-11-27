@@ -24,8 +24,6 @@ class WindManager {
         // Target state (for smooth transitions)
         this.targetDirection = this.direction;
         this.targetStrength = this.strength;
-
-        console.log(`💨 Wind System initialized - Direction: ${this.direction > 0 ? 'East' : 'West'}, Strength: ${this.strength.toFixed(1)}`);
     }
 
     /**
@@ -238,8 +236,6 @@ class WindManager {
             this.targetStrength = data.strength;
         }
         if (data.changeTimer !== undefined) this.changeTimer = data.changeTimer;
-
-        console.log(`💨 Wind state loaded: ${this.getWindDescription()}`);
     }
 }
 

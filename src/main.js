@@ -94,14 +94,6 @@ class GameScene extends Phaser.Scene {
         // Initialize mode display
         this.updateModeDisplay();
 
-        // Debug: Log renderer info
-        console.log('PixelBox initialized:', {
-            renderer: this.sys.game.renderer.type === 0 ? 'HEADLESS' : this.sys.game.renderer.type === 1 ? 'CANVAS' : 'WEBGL',
-            resolution: window.devicePixelRatio,
-            size: `${width}x${height}`,
-            pixelSize: this.pixelSize
-        });
-
         // Add some initial borders (stone walls)
         this.createBorders();
     }
@@ -131,8 +123,6 @@ class GameScene extends Phaser.Scene {
     }
 
     resetWorld() {
-        console.log('🔄 Resetting world...');
-
         // Clear the entire grid
         const empty = this.elementRegistry.get('empty');
         for (let y = 0; y < this.pixelGrid.height; y++) {
@@ -151,8 +141,6 @@ class GameScene extends Phaser.Scene {
         // Despawn player
         this.playerX = null;
         this.playerY = null;
-
-        console.log('✅ World reset complete');
     }
 
     setupElementSelector() {
@@ -330,7 +318,6 @@ class GameScene extends Phaser.Scene {
             // Toggle build mode with B key
             if (key === 'B') {
                 this.buildMode = !this.buildMode;
-                console.log(this.buildMode ? '🔨 Build mode ON' : '🚶 Explore mode ON');
 
                 // Spawn player when exiting build mode for the first time
                 if (!this.buildMode && this.playerX === null) {
@@ -354,7 +341,6 @@ class GameScene extends Phaser.Scene {
                 const enabled = profiler.toggle();
                 const panel = document.getElementById('profiler-panel');
                 panel.style.display = enabled ? 'block' : 'none';
-                console.log(enabled ? '📊 Profiler enabled' : '📊 Profiler disabled');
                 e.preventDefault();
                 return;
             }
@@ -439,7 +425,6 @@ class GameScene extends Phaser.Scene {
         this.pixelGrid.setElement(centerX, centerY, playerElement);
         this.playerX = centerX;
         this.playerY = centerY;
-        console.log(`🎮 Player spawned at (${centerX}, ${centerY})`);
     }
 
     findPlayer() {
@@ -834,8 +819,6 @@ class GameScene extends Phaser.Scene {
                 grid.setElement(spawnX, spawnY, birdElement);
             }
         }
-
-        console.log(`🐦 ${birdCount} birds returned for spring!`);
     }
 
     render() {
@@ -1378,7 +1361,6 @@ const config = {
 
 // Initialize the game with duplicate instance protection
 if (window.__pixelboxGame) {
-    console.log('Destroying existing game instance');
     window.__pixelboxGame.destroy(true);
 }
 window.__pixelboxGame = new Phaser.Game(config);

@@ -201,7 +201,6 @@ export default class WorldTemplates {
             }
         }
 
-        console.log('🏝️ Island Paradise generated');
     }
 
     generateDesertCanyon(scene) {
@@ -289,7 +288,6 @@ export default class WorldTemplates {
             }
         }
 
-        console.log('🏜️ Desert Canyon generated');
     }
 
     generateVolcanicHell(scene) {
@@ -363,7 +361,6 @@ export default class WorldTemplates {
             }
         });
 
-        console.log('🌋 Volcanic Hell generated');
     }
 
     generateFrozenTundra(scene) {
@@ -440,7 +437,6 @@ export default class WorldTemplates {
             }
         });
 
-        console.log('❄️ Frozen Tundra generated');
     }
 
     generateForestValley(scene) {
@@ -542,6 +538,5 @@ export default class WorldTemplates {
             grid.setElement(fishX, fishY, fish);
         }
 
-        console.log('🌲 Forest Valley generated');
     }
 }

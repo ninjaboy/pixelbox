@@ -53,8 +53,6 @@ export default class CelestialManager {
             // Advance to next phase
             this.currentMoonPhaseIndex = (this.currentMoonPhaseIndex + 1) % 8;
             this.lastPhaseChangeDay = currentDay;
-
-            console.log(`🌙 Moon phase changed to: ${this.moonPhases[this.currentMoonPhaseIndex]}`);
         }
     }
 

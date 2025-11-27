@@ -125,10 +125,8 @@ export default class MenuManager {
 
     async loadPremadeWorld(worldName) {
         try {
-            console.log(`🌍 Loading pre-made world: ${worldName}`);
             await loadWorldByName(worldName, this.gameScene.worldSerializer);
             this.hideMenu();
-            console.log(`✅ Pre-made world "${worldName}" loaded successfully`);
         } catch (error) {
             console.error(`❌ Failed to load pre-made world:`, error);
             alert(`Failed to load world: ${error.message}`);
@@ -136,7 +134,6 @@ export default class MenuManager {
     }
 
     startNewGame() {
-        console.log('🎮 Starting new game...');
         this.gameScene.resetWorld();
         this.hideMenu();
     }
@@ -147,8 +144,6 @@ export default class MenuManager {
             console.error(`Template ${templateId} not found`);
             return;
         }
-
-        console.log(`🌍 Loading template: ${template.name}`);
         this.gameScene.resetWorld();
 
         // Call the template's generate function with proper binding

@@ -33,9 +33,6 @@ class SeasonManager {
         // Transition state
         this.isTransitioning = false;
         this.transitionProgress = 0;
-
-        console.log(`🌍 Season System initialized - Starting season: ${startSeason}`);
-        console.log(`📅 Season length: ${this.seasonLength} frames (~${Math.floor(this.seasonLength / 60 / 60)} minutes)`);
     }
 
     /**
@@ -78,8 +75,6 @@ class SeasonManager {
 
         // Update target temperature for new season
         this.targetTemp = this.getSeasonalTemp(this.currentSeason, 0.5);
-
-        console.log(`🍂 Season changed: ${previousSeason} → ${this.currentSeason}`);
     }
 
     /**
@@ -293,7 +288,6 @@ class SeasonManager {
             this.currentTemp = data.currentTemp;
             this.targetTemp = data.currentTemp;
         }
-        console.log(`🌍 Season state loaded: ${this.currentSeason} (${(this.seasonProgress * 100).toFixed(1)}%)`);
     }
 }
 
