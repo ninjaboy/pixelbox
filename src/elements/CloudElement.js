@@ -116,9 +116,10 @@ class CloudElement extends Element {
         } else if (canRain && cell.data.canRain) { // Must be old enough AND be a rain cloud
             // Check if cloud has water to release
             if (cell.data.waterCapacity > 0) {
-                // Check if cloud is saturated enough to rain (lower threshold for lighter rain)
-                if (cell.data.saturation >= 12) { // Reduced from 15 to 12 for more frequent but lighter rain
-                    // RAIN EVENT! Drop multiple water droplets (limited by water capacity)
+                // Check if cloud is saturated enough to rain (lower threshold for snow - v4.1.2)
+                const heavyPrecipThreshold = cell.data.isSnowCloud ? 10 : 12; // Snow at 10, rain at 12
+                if (cell.data.saturation >= heavyPrecipThreshold) {
+                    // RAIN/SNOW EVENT! Drop multiple water droplets or snow (limited by water capacity)
                     const dropsCreated = this.triggerRainEvent(x, y, grid, cell);
 
                     // Reduce saturation and water capacity by amount actually rained
@@ -136,9 +137,11 @@ class CloudElement extends Element {
                         grid.setElement(x, y, grid.registry.get('empty'));
                         return true;
                     }
-                } else if (cell.data.saturation >= 10) {
-                    // Medium saturation: occasional light rain
-                    if (Math.random() < 0.005) {
+                } else if (cell.data.saturation >= 8) {
+                    // Medium saturation: occasional light rain/snow
+                    // v4.1.2: More frequent snow at medium saturation, lower threshold
+                    const lightPrecipChance = cell.data.isSnowCloud ? 0.02 : 0.005; // 2% snow, 0.5% rain
+                    if (Math.random() < lightPrecipChance) {
                         const dropped = this.dropSingleRain(x, y, grid);
                         if (dropped) {
                             cell.data.saturation -= 1;
@@ -248,8 +251,8 @@ class CloudElement extends Element {
         // Check if this is a snow cloud (winter)
         const isSnowCloud = cell.data.isSnowCloud === true;
 
-        // More snow in winter! (v4.0.8)
-        const desiredRain = isSnowCloud ? 3 + Math.floor(Math.random() * 5) : 1 + Math.floor(Math.random() * 3);
+        // More snow in winter! (v4.0.8, v4.1.2: increased further)
+        const desiredRain = isSnowCloud ? 8 + Math.floor(Math.random() * 8) : 1 + Math.floor(Math.random() * 3);
         const maxRain = Math.min(desiredRain, cell.data.waterCapacity);
 
         const precipElement = grid.registry.get(isSnowCloud ? 'snow' : 'water');
