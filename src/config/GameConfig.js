@@ -115,6 +115,29 @@ export const GAME_CONFIG = {
         winter: 0.0,    // no melting (unless very strong heat)
     },
 
+    // Water evaporation rates (multiplier on base evaporation chance)
+    // Base evaporation is 0.01% per frame - these multiply that
+    // Designed to balance water input from winter snow
+    WATER_EVAPORATION_MULTIPLIER: {
+        spring: 2.0,    // 2x evaporation (helps reduce snowmelt)
+        summer: 50.0,   // 50x evaporation (aggressive - balances winter snow)
+        autumn: 1.0,    // normal evaporation
+        winter: 0.1,    // 0.1x evaporation (very slow, water mostly freezes)
+    },
+
+    // Fallen leaf decay rates (multiplier on base decay chance)
+    // Higher values = faster decay
+    LEAF_DECAY_MULTIPLIER: {
+        spring: 5.0,    // 5x faster decay (clean up winter leaves)
+        summer: 1.0,    // normal decay
+        autumn: 0.5,    // 0.5x slower (fresh fallen leaves)
+        winter: 0.2,    // 0.2x very slow (preserved by cold)
+    },
+
+    // Mid-spring cleanup threshold (season progress 0-1)
+    // After this point, fallen leaves decay rapidly
+    SPRING_CLEANUP_THRESHOLD: 0.4,  // After 40% of spring, aggressive cleanup
+
     // ===== WEATHER & CLOUDS =====
 
     // Cloud spawning modifiers by season

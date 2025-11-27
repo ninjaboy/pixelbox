@@ -42,12 +42,37 @@ class WaterElement extends Element {
         if (interactionResult) return true;
 
         // PRIORITY 2: Surface evaporation (element-specific behavior)
+        // v4.1.8: Seasonal evaporation - much higher in summer to balance winter snow
         const above = grid.getElement(x, y - 1);
         if (above && above.id === 0) {
             const isAtSurface = this.isAtSurface(x, y, grid);
-            if (isAtSurface && Math.random() < 0.0001) {
-                grid.setElement(x, y, grid.registry.get('steam'));
-                return true;
+            if (isAtSurface) {
+                // Get seasonal evaporation multiplier
+                const seasonData = grid.seasonData;
+                let evapMultiplier = 1.0;
+                if (seasonData) {
+                    const season = seasonData.season;
+                    // Seasonal evaporation rates: summer is 50x to balance winter snow
+                    const evapRates = {
+                        spring: 2.0,
+                        summer: 50.0,  // Aggressive evaporation to balance winter snow
+                        autumn: 1.0,
+                        winter: 0.1
+                    };
+                    evapMultiplier = evapRates[season] || 1.0;
+
+                    // Additional boost in hot temperatures
+                    if (seasonData.temperature > 0.7) {
+                        evapMultiplier *= 1.5;
+                    }
+                }
+
+                // Base evaporation 0.01% (0.0001) * seasonal multiplier
+                const evapChance = 0.0001 * evapMultiplier;
+                if (Math.random() < evapChance) {
+                    grid.setElement(x, y, grid.registry.get('steam'));
+                    return true;
+                }
             }
         }
 
