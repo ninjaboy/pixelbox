@@ -30,13 +30,13 @@ class GameScene extends Phaser.Scene {
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
             time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
-            speed: 0.0001, // How fast time passes (full cycle = 10,000 frames = ~2.7 minutes at 60fps)
+            speed: 0.001, // 10x faster for testing (full cycle = 1,000 frames = ~16 seconds at 60fps)
             sunRadius: 25,  // Larger sun
             moonRadius: 18,  // Larger moon
 
             // MOON CYCLE - randomized start but cycles faster
             moonPhase: Math.random(), // Random phase (0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter)
-            moonCycleSpeed: 0.0001 / 4, // Moon changes 7x faster (full cycle = ~40 seconds at 60fps)
+            moonCycleSpeed: 0.001 / 4, // 10x faster for testing (full cycle = ~4 seconds at 60fps)
         };
 
         // CLOUD/WEATHER SYSTEM
