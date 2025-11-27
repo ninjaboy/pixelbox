@@ -13,7 +13,7 @@
 export const GAME_CONFIG = {
     // ===== TIME SYSTEM =====
     // Frame-based time tracking (60 fps target)
-    DAY_LENGTH: 10000,              // frames per day (~2.7 minutes at 60fps)
+    DAY_LENGTH: 1000,               // frames per day (10x faster: ~16 seconds at 60fps)
     MONTH_LENGTH: 1,                // days per month
     SEASON_LENGTH: 3,               // days per season (3 months)
 
