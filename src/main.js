@@ -4,6 +4,7 @@ import { VERSION } from '../version.js';
 import profiler from './Profiler.js';
 import SeasonManager from './managers/SeasonManager.js';
 import WindManager from './managers/WindManager.js';
+import CelestialManager from './managers/CelestialManager.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
 
 // Main Game Scene
@@ -31,13 +32,13 @@ class GameScene extends Phaser.Scene {
         this.dayNightCycle = {
             time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
             speed: 0.001, // 10x faster for testing (full cycle = 1,000 frames = ~16 seconds at 60fps)
-            sunRadius: 25,  // Larger sun
-            moonRadius: 18,  // Larger moon
-
-            // MOON CYCLE - changes once per day (8-day cycle)
-            moonPhase: Math.random(), // Random phase (0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter)
-            moonCycleSpeed: 0.001 / 8, // Full moon cycle = 8 days (one phase change per night)
         };
+
+        // Track current day number for moon phase changes
+        this.currentDay = 0;
+
+        // CELESTIAL BODIES MANAGER (v4.0.5)
+        this.celestialManager = new CelestialManager();
 
         // CLOUD/WEATHER SYSTEM
         this.weatherSystem = {
@@ -602,10 +603,16 @@ class GameScene extends Phaser.Scene {
         profiler.start('frame:total');
 
         // Update day/night cycle
+        const previousTime = this.dayNightCycle.time;
         this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.speed) % 1.0;
 
-        // Update moon phase cycle (much slower)
-        this.dayNightCycle.moonPhase = (this.dayNightCycle.moonPhase + this.dayNightCycle.moonCycleSpeed) % 1.0;
+        // Track day changes (when time wraps around)
+        if (previousTime > this.dayNightCycle.time) {
+            this.currentDay++;
+        }
+
+        // Update celestial manager (sun/moon positions and moon phases) (v4.0.5)
+        this.celestialManager.update(this.dayNightCycle.time, this.currentDay);
 
         // Update seasons and wind (v4.0.0)
         this.seasonManager.update(1);
@@ -1044,50 +1051,20 @@ class GameScene extends Phaser.Scene {
         this.celestialGraphics.clear();
 
         // Update celestial glow strength based on time of day (stronger at noon)
-        // Noon is at time=0.5, glow peaks then
-        let glowStrength = 2; // Base glow strength
+        let glowStrength = 2;
         if (time > 0.3 && time < 0.7) {
-            // Day time - calculate distance from noon
-            const distanceFromNoon = Math.abs(time - 0.5); // 0 at noon, 0.2 at edges
-            const noonFactor = 1 - (distanceFromNoon / 0.2); // 1 at noon, 0 at dawn/dusk
-            glowStrength = 2 + (noonFactor * 8); // 2 to 10 (peaks at noon)
+            const distanceFromNoon = Math.abs(time - 0.5);
+            const noonFactor = 1 - (distanceFromNoon / 0.2);
+            glowStrength = 2 + (noonFactor * 8);
         }
         this.celestialGlow.outerStrength = glowStrength;
 
-        // Sun position: rises at 0.25 (dawn), peaks at 0.5 (noon), sets at 0.75 (dusk)
-        // Map time to angle: 0.25→0° (east/left), 0.5→90° (zenith/top), 0.75→180° (west/right)
-        const sunPhase = (time - 0.25) / 0.5; // 0 to 1 for sunrise to sunset
-        const sunAngle = sunPhase * Math.PI; // 0 to π (half circle from left to right)
+        // Get sun and moon positions from celestial manager (v4.0.5)
+        const sunPos = this.celestialManager.getSunPosition(width, height, time);
+        const moonPos = this.celestialManager.getMoonPosition(width, height, time);
 
-        // Use smooth sine curve for both X and Y (no easing = smooth motion throughout)
-        const baseX = Math.cos(Math.PI - sunAngle);
-        const baseY = Math.sin(sunAngle);
-
-        // Wider arc with smooth movement
-        const horizontalScale = 0.5; // Increased from 0.35 to make arc wider
-
-        // Vertical range: from 20% of height (entry point) to 95% of height (peak)
-        // This makes sun/moon enter screen at 20% not at bottom
-        const minHeight = 0.20; // Enter at 20% of height from bottom
-        const maxHeight = 0.95; // Peak at 95% of height
-        const verticalRange = maxHeight - minHeight;
-
-        const sunX = width / 2 + baseX * width * horizontalScale;
-        const sunY = height - (minHeight + baseY * verticalRange) * height;
-
-        // Moon position (opposite of sun - 12 hours offset = +0.5 time)
-        const moonTime = (time + 0.5) % 1.0;
-        const moonPhase = (moonTime - 0.25) / 0.5;
-        const moonAngle = moonPhase * Math.PI;
-
-        const moonBaseX = Math.cos(Math.PI - moonAngle);
-        const moonBaseY = Math.sin(moonAngle);
-
-        const moonX = width / 2 + moonBaseX * width * horizontalScale;
-        const moonY = height - (minHeight + moonBaseY * verticalRange) * height;
-
-        // Draw sun (visible during day) with better visuals
-        if (time > 0.2 && time < 0.8) {
+        // Draw sun (visible during day)
+        if (this.celestialManager.isSunVisible(time)) {
             // Dim sun based on cloud coverage
             const cloudCoverage = this.weatherSystem.cloudCoverage;
             const sunDimming = 1 - (cloudCoverage * 0.5); // Max 50% dimmer with full cloud cover
@@ -1103,21 +1080,21 @@ class GameScene extends Phaser.Scene {
 
             // Sun core (bright yellow)
             this.celestialGraphics.fillStyle(sunCore, 1.0 * sunDimming);
-            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius);
+            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius);
 
             // Sun corona (orange glow - multiple layers) - also dimmed
             this.celestialGraphics.fillStyle(sunCorona1, 0.4 * sunDimming);
-            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.4);
+            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 1.4);
             this.celestialGraphics.fillStyle(sunCorona2, 0.2 * sunDimming);
-            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 1.8);
+            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 1.8);
             this.celestialGraphics.fillStyle(sunCorona3, 0.1 * sunDimming);
-            this.celestialGraphics.fillCircle(sunX, sunY, this.dayNightCycle.sunRadius * 2.2);
+            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 2.2);
         }
 
-        // Draw moon with realistic phases (visible during night)
-        if (time < 0.3 || time > 0.7) {
-            const moonPhase = this.dayNightCycle.moonPhase;
-            const radius = this.dayNightCycle.moonRadius;
+        // Draw moon with discrete phases (visible during night) (v4.0.5)
+        if (this.celestialManager.isMoonVisible(time)) {
+            const moonPhase = this.celestialManager.getMoonPhaseNormalized();
+            const radius = this.celestialManager.moonRadius;
 
             // Calculate brightness for this phase
             // Phase 0 = new moon, 0.5 = full moon, 1.0 = new moon
@@ -1129,18 +1106,18 @@ class GameScene extends Phaser.Scene {
             if (brightness > 0.3) {
                 const glowAlpha = brightness * 0.04;
                 this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius * 1.4);
+                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius * 1.4);
             }
 
             // Draw moon phases using proper lunar geometry
             if (brightness < 0.05) {
                 // New moon - barely visible, very dim
                 this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius);
             } else if (brightness >= 0.98) {
                 // Full moon - bright and luminous
                 this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
-                this.celestialGraphics.fillCircle(moonX, moonY, radius);
+                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius);
             } else {
                 // Draw moon phase using the classic method:
                 // Outer edge is always a semicircle, terminator is an ellipse
@@ -1157,27 +1134,27 @@ class GameScene extends Phaser.Scene {
                 if (isWaxing) {
                     // Waxing moon - lit portion on the RIGHT side
                     // Start at top, draw right semicircle (lit edge)
-                    this.celestialGraphics.arc(moonX, moonY, radius, -Math.PI / 2, Math.PI / 2, false);
+                    this.celestialGraphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, false);
 
                     // Draw terminator curve from bottom to top (left side)
                     const segments = 30;
                     for (let i = 0; i <= segments; i++) {
                         const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
-                        const y = moonY + radius * Math.sin(theta);
-                        const x = moonX + radius * k * Math.cos(theta); // Positive k for waxing
+                        const y = moonPos.y + radius * Math.sin(theta);
+                        const x = moonPos.x + radius * k * Math.cos(theta); // Positive k for waxing
                         this.celestialGraphics.lineTo(x, y);
                     }
                 } else {
                     // Waning moon - lit portion on the LEFT side
                     // Start at top, draw left semicircle (lit edge)
-                    this.celestialGraphics.arc(moonX, moonY, radius, -Math.PI / 2, Math.PI / 2, true);
+                    this.celestialGraphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, true);
 
                     // Draw terminator curve from bottom to top (right side)
                     const segments = 30;
                     for (let i = 0; i <= segments; i++) {
                         const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
-                        const y = moonY + radius * Math.sin(theta);
-                        const x = moonX - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
+                        const y = moonPos.y + radius * Math.sin(theta);
+                        const x = moonPos.x - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
                         this.celestialGraphics.lineTo(x, y);
                     }
                 }
