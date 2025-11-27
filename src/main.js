@@ -46,6 +46,7 @@ class GameScene extends Phaser.Scene {
             cloudSpawnTimer: 0,
             cloudCoverage: 0, // Current cloud coverage (0-1)
             nextCloudDay: Math.random(), // Regenerate cloudiness each day
+            snowSpawnTimer: 0, // v4.1.5: timer for winter snow spawning
         };
 
         // SEASONS SYSTEM (v4.0.0)
@@ -777,6 +778,41 @@ class GameScene extends Phaser.Scene {
                     const cloudCell = grid.getCell(spawnX, spawnY);
                     if (cloudCell && cloudCell.data) {
                         cloudCell.data.isSnowCloud = true;
+                    }
+                }
+            }
+        }
+
+        // WINTER SNOW SPAWNING (v4.1.5) - Scattered snowfall across the sky
+        const snowElement = this.elementRegistry.get('snow');
+        if (snowElement && this.seasonManager.getCurrentSeason() === 'winter') {
+            this.weatherSystem.snowSpawnTimer++;
+
+            // Spawn small snow clusters every 30-60 frames (about once per second)
+            const snowSpawnInterval = 30 + Math.floor(Math.random() * 30);
+
+            if (this.weatherSystem.snowSpawnTimer > snowSpawnInterval) {
+                this.weatherSystem.snowSpawnTimer = 0;
+
+                // Random cluster size: 3, 5, or 7 particles
+                const clusterSizes = [3, 5, 7];
+                const clusterSize = clusterSizes[Math.floor(Math.random() * clusterSizes.length)];
+
+                // Random position in upper 30% of screen
+                const spawnX = Math.floor(Math.random() * grid.width);
+                const upperThird = Math.floor(grid.height * 0.3);
+                const spawnY = Math.floor(Math.random() * upperThird);
+
+                // Spawn cluster of snow particles
+                for (let i = 0; i < clusterSize; i++) {
+                    // Spread particles in small area around spawn point (±2 pixels)
+                    const offsetX = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                    const offsetY = Math.floor(Math.random() * 3) - 1; // -1 to +1
+                    const snowX = spawnX + offsetX;
+                    const snowY = spawnY + offsetY;
+
+                    if (grid.isEmpty(snowX, snowY)) {
+                        grid.setElement(snowX, snowY, snowElement);
                     }
                 }
             }
