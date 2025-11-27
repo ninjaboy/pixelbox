@@ -24,12 +24,17 @@ class TreeTrunkElement extends Element {
         if (!cell.data) cell.data = {};
 
         // WATER ABSORPTION - check if water is above this tree
+        // v4.2.3: Reduced from 100% to 8% absorption rate to prevent water drainage
         const above = grid.getElement(x, y - 1);
         if (above && above.name === 'water') {
-            // Absorb the water and increase wetness
+            // Initialize wetness
             if (!cell.data.wetness) cell.data.wetness = 0;
-            cell.data.wetness = Math.min(100, cell.data.wetness + 10); // Cap at 100
-            grid.setElement(x, y - 1, grid.registry.get('empty')); // Water absorbed
+
+            // Only absorb if not fully saturated AND 8% probability (balanced)
+            if (cell.data.wetness < 100 && Math.random() < 0.08) {
+                cell.data.wetness = Math.min(100, cell.data.wetness + 10); // Cap at 100
+                grid.setElement(x, y - 1, grid.registry.get('empty')); // Water absorbed
+            }
         }
 
         // DRY OUT - wetness decreases slowly over time

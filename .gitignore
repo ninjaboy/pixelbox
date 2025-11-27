@@ -12,6 +12,15 @@ Thumbs.db
 
 # Node modules (if any)
 node_modules/
+package-lock.json
+
+# Build output
+dist/
+
+# Capacitor
+ios/
+android/
+.capacitor/
 
 # Vercel
 .vercel

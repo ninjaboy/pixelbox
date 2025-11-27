@@ -1,0 +1,30 @@
+{
+  "appId": "com.pixelbox.app",
+  "appName": "PixelBox",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#000000",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#000000",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#000000"
+    },
+    "Keyboard": {
+      "resize": "none"
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

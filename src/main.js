@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
