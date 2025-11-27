@@ -1044,103 +1044,16 @@ class GameScene extends Phaser.Scene {
 
         // Draw sun (visible during day)
         if (this.celestialManager.isSunVisible(time)) {
-            // Dim sun based on cloud coverage
             const cloudCoverage = this.weatherSystem.cloudCoverage;
-            const sunDimming = 1 - (cloudCoverage * 0.5); // Max 50% dimmer with full cloud cover
-
-            // Apply seasonal tint to sun (v4.0.0)
             const season = this.seasonManager.getCurrentSeason();
             const sunTint = GAME_CONFIG.SUN_TINT[season] || { r: 1, g: 1, b: 1 };
 
-            const sunCore = this.tintColor(0xffff00, sunTint);
-            const sunCorona1 = this.tintColor(0xffa500, sunTint);
-            const sunCorona2 = this.tintColor(0xff8c00, sunTint);
-            const sunCorona3 = this.tintColor(0xff6b35, sunTint);
-
-            // Sun core (bright yellow)
-            this.celestialGraphics.fillStyle(sunCore, 1.0 * sunDimming);
-            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius);
-
-            // Sun corona (orange glow - multiple layers) - also dimmed
-            this.celestialGraphics.fillStyle(sunCorona1, 0.4 * sunDimming);
-            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 1.4);
-            this.celestialGraphics.fillStyle(sunCorona2, 0.2 * sunDimming);
-            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 1.8);
-            this.celestialGraphics.fillStyle(sunCorona3, 0.1 * sunDimming);
-            this.celestialGraphics.fillCircle(sunPos.x, sunPos.y, this.celestialManager.sunRadius * 2.2);
+            this.celestialManager.renderSun(this.celestialGraphics, sunPos, cloudCoverage, sunTint);
         }
 
         // Draw moon with discrete phases (visible during night) (v4.0.5)
         if (this.celestialManager.isMoonVisible(time)) {
-            const moonPhase = this.celestialManager.getMoonPhaseNormalized();
-            const radius = this.celestialManager.moonRadius;
-
-            // Calculate brightness for this phase
-            // Phase 0 = new moon, 0.5 = full moon, 1.0 = new moon
-            const phaseAngle = moonPhase * Math.PI * 2;
-            const illumination = -Math.cos(phaseAngle); // -1 (new) to +1 (full)
-            const brightness = (illumination + 1) / 2; // 0 to 1
-
-            // Subtle moon glow - only when illuminated enough
-            if (brightness > 0.3) {
-                const glowAlpha = brightness * 0.04;
-                this.celestialGraphics.fillStyle(0xa0a0b0, glowAlpha);
-                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius * 1.4);
-            }
-
-            // Draw moon phases using proper lunar geometry
-            if (brightness < 0.05) {
-                // New moon - barely visible, very dim
-                this.celestialGraphics.fillStyle(0x4a4a4a, 0.4);
-                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius);
-            } else if (brightness >= 0.98) {
-                // Full moon - bright and luminous
-                this.celestialGraphics.fillStyle(0xf5f5f5, 1.0);
-                this.celestialGraphics.fillCircle(moonPos.x, moonPos.y, radius);
-            } else {
-                // Draw moon phase using the classic method:
-                // Outer edge is always a semicircle, terminator is an ellipse
-
-                // Phase cycle: 0→new, 0.25→first quarter, 0.5→full, 0.75→third quarter, 1→new
-                // moonPhase 0-0.5: waxing (new→full, right side lit)
-                // moonPhase 0.5-1: waning (full→new, left side lit)
-                const isWaxing = moonPhase < 0.5;
-                const k = illumination; // +1 (full) to -1 (new)
-
-                this.celestialGraphics.fillStyle(0xe8e8e8, 1.0);
-                this.celestialGraphics.beginPath();
-
-                if (isWaxing) {
-                    // Waxing moon - lit portion on the RIGHT side
-                    // Start at top, draw right semicircle (lit edge)
-                    this.celestialGraphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, false);
-
-                    // Draw terminator curve from bottom to top (left side)
-                    const segments = 30;
-                    for (let i = 0; i <= segments; i++) {
-                        const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
-                        const y = moonPos.y + radius * Math.sin(theta);
-                        const x = moonPos.x - radius * k * Math.cos(theta); // Negated k: crescent when k<0, gibbous when k>0
-                        this.celestialGraphics.lineTo(x, y);
-                    }
-                } else {
-                    // Waning moon - lit portion on the LEFT side
-                    // Start at top, draw left semicircle (lit edge)
-                    this.celestialGraphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, true);
-
-                    // Draw terminator curve from bottom to top (right side)
-                    const segments = 30;
-                    for (let i = 0; i <= segments; i++) {
-                        const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
-                        const y = moonPos.y + radius * Math.sin(theta);
-                        const x = moonPos.x + radius * k * Math.cos(theta); // Negated k: gibbous when k>0, crescent when k<0
-                        this.celestialGraphics.lineTo(x, y);
-                    }
-                }
-
-                this.celestialGraphics.closePath();
-                this.celestialGraphics.fillPath();
-            }
+            this.celestialManager.renderMoon(this.celestialGraphics, moonPos);
         }
     }
 

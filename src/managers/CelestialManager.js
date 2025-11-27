@@ -147,6 +147,129 @@ export default class CelestialManager {
     }
 
     /**
+     * Render the sun with corona layers
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object to draw on
+     * @param {Object} sunPos - Sun position {x, y}
+     * @param {number} cloudCoverage - Cloud coverage (0-1)
+     * @param {Object} sunTint - RGB tint object {r, g, b}
+     */
+    renderSun(graphics, sunPos, cloudCoverage, sunTint) {
+        const sunDimming = 1 - (cloudCoverage * 0.5); // Max 50% dimmer with full cloud cover
+
+        const sunCore = this.tintColor(0xffff00, sunTint);
+        const sunCorona1 = this.tintColor(0xffa500, sunTint);
+        const sunCorona2 = this.tintColor(0xff8c00, sunTint);
+        const sunCorona3 = this.tintColor(0xff6b35, sunTint);
+
+        // Sun core (bright yellow)
+        graphics.fillStyle(sunCore, 1.0 * sunDimming);
+        graphics.fillCircle(sunPos.x, sunPos.y, this.sunRadius);
+
+        // Sun corona (orange glow - multiple layers) - also dimmed
+        graphics.fillStyle(sunCorona1, 0.4 * sunDimming);
+        graphics.fillCircle(sunPos.x, sunPos.y, this.sunRadius * 1.4);
+        graphics.fillStyle(sunCorona2, 0.2 * sunDimming);
+        graphics.fillCircle(sunPos.x, sunPos.y, this.sunRadius * 1.8);
+        graphics.fillStyle(sunCorona3, 0.1 * sunDimming);
+        graphics.fillCircle(sunPos.x, sunPos.y, this.sunRadius * 2.2);
+    }
+
+    /**
+     * Apply RGB tint to a color
+     * @param {number} color - Hex color
+     * @param {Object} tint - RGB tint object {r, g, b}
+     * @returns {number} Tinted hex color
+     */
+    tintColor(color, tint) {
+        const r = (color >> 16) & 0xFF;
+        const g = (color >> 8) & 0xFF;
+        const b = color & 0xFF;
+
+        const tintedR = Math.min(255, Math.floor(r * tint.r));
+        const tintedG = Math.min(255, Math.floor(g * tint.g));
+        const tintedB = Math.min(255, Math.floor(b * tint.b));
+
+        return (tintedR << 16) | (tintedG << 8) | tintedB;
+    }
+
+    /**
+     * Render the moon with proper phase geometry
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object to draw on
+     * @param {Object} moonPos - Moon position {x, y}
+     */
+    renderMoon(graphics, moonPos) {
+        const moonPhase = this.getMoonPhaseNormalized();
+        const radius = this.moonRadius;
+
+        // Calculate brightness for this phase
+        // Phase 0 = new moon, 0.5 = full moon, 1.0 = new moon
+        const phaseAngle = moonPhase * Math.PI * 2;
+        const illumination = -Math.cos(phaseAngle); // -1 (new) to +1 (full)
+        const brightness = (illumination + 1) / 2; // 0 to 1
+
+        // Subtle moon glow - only when illuminated enough
+        if (brightness > 0.3) {
+            const glowAlpha = brightness * 0.04;
+            graphics.fillStyle(0xa0a0b0, glowAlpha);
+            graphics.fillCircle(moonPos.x, moonPos.y, radius * 1.4);
+        }
+
+        // Draw moon phases using proper lunar geometry
+        if (brightness < 0.05) {
+            // New moon - barely visible, very dim
+            graphics.fillStyle(0x4a4a4a, 0.4);
+            graphics.fillCircle(moonPos.x, moonPos.y, radius);
+        } else if (brightness >= 0.98) {
+            // Full moon - bright and luminous
+            graphics.fillStyle(0xf5f5f5, 1.0);
+            graphics.fillCircle(moonPos.x, moonPos.y, radius);
+        } else {
+            // Draw moon phase using the classic method:
+            // Outer edge is always a semicircle, terminator is an ellipse
+
+            // Phase cycle: 0→new, 0.25→first quarter, 0.5→full, 0.75→third quarter, 1→new
+            // moonPhase 0-0.5: waxing (new→full, right side lit)
+            // moonPhase 0.5-1: waning (full→new, left side lit)
+            const isWaxing = moonPhase < 0.5;
+            const k = illumination; // +1 (full) to -1 (new)
+
+            graphics.fillStyle(0xe8e8e8, 1.0);
+            graphics.beginPath();
+
+            if (isWaxing) {
+                // Waxing moon - lit portion on the RIGHT side
+                // Start at top, draw right semicircle (lit edge)
+                graphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, false);
+
+                // Draw terminator curve from bottom to top (left side)
+                const segments = 30;
+                for (let i = 0; i <= segments; i++) {
+                    const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
+                    const y = moonPos.y + radius * Math.sin(theta);
+                    const x = moonPos.x - radius * k * Math.cos(theta); // Negated k: crescent when k<0, gibbous when k>0
+                    graphics.lineTo(x, y);
+                }
+            } else {
+                // Waning moon - lit portion on the LEFT side
+                // Start at top, draw left semicircle (lit edge)
+                graphics.arc(moonPos.x, moonPos.y, radius, -Math.PI / 2, Math.PI / 2, true);
+
+                // Draw terminator curve from bottom to top (right side)
+                const segments = 30;
+                for (let i = 0; i <= segments; i++) {
+                    const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
+                    const y = moonPos.y + radius * Math.sin(theta);
+                    const x = moonPos.x + radius * k * Math.cos(theta); // Negated k: gibbous when k>0, crescent when k<0
+                    graphics.lineTo(x, y);
+                }
+            }
+
+            graphics.closePath();
+            graphics.fillPath();
+        }
+    }
+
+    /**
      * Serialize state for save/load
      */
     serialize() {

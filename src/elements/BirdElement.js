@@ -197,8 +197,8 @@ class BirdElement extends Element {
         if (cell.data.isPerching) {
             cell.data.perchTimer++;
 
-            // Rest for 5-10 seconds, then take off
-            const restDuration = 300 + Math.floor(Math.random() * 300); // 5-10 seconds
+            // Rest for 2-4 seconds, then take off (v4.1.3: reduced from 5-10s)
+            const restDuration = 120 + Math.floor(Math.random() * 120); // 2-4 seconds
             if (cell.data.perchTimer > restDuration) {
                 cell.data.isPerching = false;
                 cell.data.perchTimer = 0;
@@ -266,8 +266,8 @@ class BirdElement extends Element {
         }
 
         // PRIORITY 3: TREE-SITTING BEHAVIOR (occasional, when not trapped)
-        // Randomly decide to find a tree to perch (2% chance = less frequent)
-        if (!isTrapped && !cell.data.isPerching && Math.random() > 0.98 && shouldUpdateAI) {
+        // Randomly decide to find a tree to perch (0.5% chance = rare, v4.1.3)
+        if (!isTrapped && !cell.data.isPerching && Math.random() > 0.995 && shouldUpdateAI) {
             let treeLocation = cell.data.cachedTreeLocation;
             if (shouldUpdateAI) {
                 treeLocation = this.findNearbyTree(x, y, grid);
@@ -296,6 +296,27 @@ class BirdElement extends Element {
         // PRIORITY 4: FLYING BEHAVIOR (smooth gliding with flocking)
         cell.data.flyTimer++;
         cell.data.glidePhase += 0.05; // Increment phase for smooth sine wave
+
+        // EDGE AVOIDANCE (v4.1.3) - Turn away from map edges
+        const edgeMargin = 15; // pixels from edge to start turning
+        const nearLeftEdge = x < edgeMargin;
+        const nearRightEdge = x > grid.width - edgeMargin;
+        const nearTopEdge = y < edgeMargin;
+        const nearBottomEdge = y > grid.height - edgeMargin;
+
+        // Force direction change when near horizontal edges
+        if (nearLeftEdge && cell.data.flyDirection === -1) {
+            cell.data.flyDirection = 1; // Turn right
+        } else if (nearRightEdge && cell.data.flyDirection === 1) {
+            cell.data.flyDirection = -1; // Turn left
+        }
+
+        // Adjust altitude target when near vertical edges
+        if (nearTopEdge) {
+            cell.data.altitude = Math.max(cell.data.altitude, Math.floor(grid.height * 0.5));
+        } else if (nearBottomEdge) {
+            cell.data.altitude = Math.min(cell.data.altitude, Math.floor(grid.height * 0.6));
+        }
 
         // Update target altitude occasionally - fly BELOW the clouds
         if (shouldUpdateAI && Math.random() > 0.98) {
