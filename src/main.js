@@ -31,7 +31,14 @@ class GameScene extends Phaser.Scene {
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
             time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
-            speed: 0.001, // 10x faster for testing (full cycle = 1,000 frames = ~16 seconds at 60fps)
+            baseSpeed: 0.001, // Base speed (10x faster for testing)
+        };
+
+        // TIME SPEED SYSTEM (v4.2.0) - Easily reconfigurable
+        this.timeControl = {
+            speedLevels: [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50, 100], // Available speed multipliers
+            currentSpeedIndex: 3, // Start at 1x (index 3 in array)
+            maxPhysicsSpeed: 5, // Cap physics updates at 5x to prevent performance issues
         };
 
         // Track current day number for moon phase changes
@@ -87,6 +94,7 @@ class GameScene extends Phaser.Scene {
         this.versionText = document.getElementById('version');
         this.modeDisplay = document.getElementById('mode-display');
         this.seasonDisplay = document.getElementById('season-display');
+        this.speedDisplay = document.getElementById('speed-display');
 
         // Set version once
         this.versionText.textContent = VERSION;
@@ -345,6 +353,18 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
+            // Time speed controls (v4.2.0) - [ to slow down, ] to speed up
+            if (key === '[') {
+                this.decreaseTimeSpeed();
+                e.preventDefault();
+                return;
+            }
+            if (key === ']') {
+                this.increaseTimeSpeed();
+                e.preventDefault();
+                return;
+            }
+
             // Arrow keys for player movement (only in explore mode)
             if (!this.buildMode) {
                 if (key === 'ARROWLEFT' || key === 'A') {
@@ -425,6 +445,44 @@ class GameScene extends Phaser.Scene {
         this.pixelGrid.setElement(centerX, centerY, playerElement);
         this.playerX = centerX;
         this.playerY = centerY;
+    }
+
+    // TIME SPEED CONTROL METHODS (v4.2.0)
+    getCurrentTimeSpeed() {
+        return this.timeControl.speedLevels[this.timeControl.currentSpeedIndex];
+    }
+
+    increaseTimeSpeed() {
+        if (this.timeControl.currentSpeedIndex < this.timeControl.speedLevels.length - 1) {
+            this.timeControl.currentSpeedIndex++;
+            this.showTimeSpeedIndicator();
+        }
+    }
+
+    decreaseTimeSpeed() {
+        if (this.timeControl.currentSpeedIndex > 0) {
+            this.timeControl.currentSpeedIndex--;
+            this.showTimeSpeedIndicator();
+        }
+    }
+
+    showTimeSpeedIndicator() {
+        const speed = this.getCurrentTimeSpeed();
+        const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
+
+        // Format speed display
+        let speedText;
+        if (speed < 1) {
+            speedText = `⏱️ ${speed}x Speed`;
+        } else if (speed === 1) {
+            speedText = '⏱️ Normal Speed';
+        } else {
+            speedText = `⏩ ${speed}x Speed`;
+        }
+
+        indicator.textContent = speedText;
+        indicator.style.display = 'block';
+        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
     }
 
     findPlayer() {
@@ -587,9 +645,12 @@ class GameScene extends Phaser.Scene {
     update() {
         profiler.start('frame:total');
 
-        // Update day/night cycle
+        // Get current time speed multiplier (v4.2.0)
+        const timeSpeed = this.getCurrentTimeSpeed();
+
+        // Update day/night cycle with time speed multiplier
         const previousTime = this.dayNightCycle.time;
-        this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.speed) % 1.0;
+        this.dayNightCycle.time = (this.dayNightCycle.time + this.dayNightCycle.baseSpeed * timeSpeed) % 1.0;
 
         // Track day changes (when time wraps around)
         if (previousTime > this.dayNightCycle.time) {
@@ -599,9 +660,9 @@ class GameScene extends Phaser.Scene {
         // Update celestial manager (sun/moon positions and moon phases) (v4.0.5)
         this.celestialManager.update(this.dayNightCycle.time, this.currentDay);
 
-        // Update seasons and wind (v4.0.0)
-        this.seasonManager.update(1);
-        this.windManager.update(1);
+        // Update seasons and wind with time speed (v4.2.0)
+        this.seasonManager.update(timeSpeed);
+        this.windManager.update(timeSpeed);
 
         // Pass season data to grid for element access
         this.pixelGrid.setSeasonData({
@@ -666,10 +727,26 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Update physics
+        // Update physics (v4.2.0 - with capped speed for performance)
         profiler.start('physics:update');
         this.pixelGrid.setTimeOfDay(this.dayNightCycle.time); // Pass time to grid for house lighting
-        this.pixelGrid.update();
+
+        // Cap physics updates at maxPhysicsSpeed to prevent performance issues
+        // Time progresses at full speed, but physics is limited
+        const physicsSpeed = Math.min(timeSpeed, this.timeControl.maxPhysicsSpeed);
+        const updateCount = Math.floor(physicsSpeed);
+        const partialUpdate = physicsSpeed - updateCount;
+
+        // Run full updates
+        for (let i = 0; i < updateCount; i++) {
+            this.pixelGrid.update();
+        }
+
+        // Run partial update (for fractional speeds like 0.5x or 2.5x)
+        if (partialUpdate > 0 && Math.random() < partialUpdate) {
+            this.pixelGrid.update();
+        }
+
         profiler.end('physics:update');
 
         // Update player position after physics update (only in explore mode)
@@ -696,6 +773,14 @@ class GameScene extends Phaser.Scene {
         };
         const seasonName = season.charAt(0).toUpperCase() + season.slice(1);
         this.seasonDisplay.textContent = `${seasonEmojis[season]} ${seasonName}`;
+
+        // Update speed display (v4.2.0)
+        const speed = this.getCurrentTimeSpeed();
+        let speedIcon = '⏱️';
+        if (speed < 1) speedIcon = '🐌';
+        else if (speed > 10) speedIcon = '⚡';
+        else if (speed > 1) speedIcon = '⏩';
+        this.speedDisplay.textContent = `${speedIcon} ${speed}x`;
 
         // Update profiler panel if enabled
         if (profiler.enabled) {
