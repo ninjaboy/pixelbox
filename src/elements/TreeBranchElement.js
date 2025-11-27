@@ -57,7 +57,8 @@ class TreeBranchElement extends Element {
         }
 
         // SPRING REGROWTH (v4.0.0) - branches regrow leaves faster in spring
-        let regrowthRate = season === 'spring' ? 0.0001 : 0.00005; // 0.01% spring, 0.005% other seasons
+        // v4.1.0: Increased regrowth rates significantly (10x spring, 10x other seasons)
+        let regrowthRate = season === 'spring' ? 0.001 : 0.0005; // 0.1% spring, 0.05% other seasons
 
         // WATERED GROWTH BOOST - wet branches have increased chance to sprout leaves
         if (cell.data.wetness > 20) {

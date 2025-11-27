@@ -1120,7 +1120,7 @@ class GameScene extends Phaser.Scene {
                     for (let i = 0; i <= segments; i++) {
                         const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top)
                         const y = moonPos.y + radius * Math.sin(theta);
-                        const x = moonPos.x + radius * k * Math.cos(theta); // Positive k for waxing
+                        const x = moonPos.x - radius * k * Math.cos(theta); // Negated k: crescent when k<0, gibbous when k>0
                         this.celestialGraphics.lineTo(x, y);
                     }
                 } else {
@@ -1133,7 +1133,7 @@ class GameScene extends Phaser.Scene {
                     for (let i = 0; i <= segments; i++) {
                         const theta = Math.PI / 2 - (i / segments) * Math.PI; // π/2 to -π/2 (bottom to top - SAME as waxing)
                         const y = moonPos.y + radius * Math.sin(theta);
-                        const x = moonPos.x - radius * k * Math.cos(theta); // Negative k for waning - MIRROR IMAGE
+                        const x = moonPos.x + radius * k * Math.cos(theta); // Negated k: gibbous when k>0, crescent when k<0
                         this.celestialGraphics.lineTo(x, y);
                     }
                 }
