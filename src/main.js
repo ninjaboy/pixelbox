@@ -102,6 +102,16 @@ class GameScene extends Phaser.Scene {
         // Initialize mode display
         this.updateModeDisplay();
 
+        // Setup time speed buttons (v4.2.0 - mobile support)
+        const speedDownBtn = document.getElementById('speed-down');
+        const speedUpBtn = document.getElementById('speed-up');
+        if (speedDownBtn) {
+            speedDownBtn.addEventListener('click', () => this.decreaseTimeSpeed());
+        }
+        if (speedUpBtn) {
+            speedUpBtn.addEventListener('click', () => this.increaseTimeSpeed());
+        }
+
         // Add some initial borders (stone walls)
         this.createBorders();
     }
