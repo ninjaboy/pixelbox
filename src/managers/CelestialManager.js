@@ -41,15 +41,15 @@ export default class CelestialManager {
 
     /**
      * Update moon phase - called once per frame
-     * Changes moon phase once per day when night begins
+     * Changes moon phase once per day at dawn
      */
     update(timeOfDay, currentDay) {
-        // Check if we've entered a new day and it's nighttime
-        // Change phase when time crosses into night (time < 0.2 or time >= 0.8)
-        const isNight = timeOfDay < 0.2 || timeOfDay >= 0.8;
+        // Change moon phase at dawn (time crosses 0.25) on a new day
+        // This makes the change less noticeable than at midnight
+        const isDawn = timeOfDay >= 0.25 && timeOfDay < 0.3;
 
-        // If we're in night and haven't changed phase for this day yet
-        if (isNight && currentDay !== this.lastPhaseChangeDay) {
+        // If we're in dawn and haven't changed phase for this day yet
+        if (isDawn && currentDay !== this.lastPhaseChangeDay) {
             // Advance to next phase
             this.currentMoonPhaseIndex = (this.currentMoonPhaseIndex + 1) % 8;
             this.lastPhaseChangeDay = currentDay;
