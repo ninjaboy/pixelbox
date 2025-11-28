@@ -43,13 +43,13 @@ jobs:
 
       - name: Copy built files to public repo
         run: |
-          # Copy minified dist
-          cp -r dist public-repo/
+          # Copy minified dist contents to root (not the dist folder itself)
+          cp -r dist/* public-repo/
 
           # Copy privacy policy
           cp privacy.html public-repo/
 
-          # Copy minimal README (we'll create this)
+          # Copy minimal README
           cp PUBLIC_README.md public-repo/README.md
 
       - name: Commit and push to public repo
