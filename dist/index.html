@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PixelBox - Particle Aquarium</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-BjBwciEx.svg">
+    <link rel="icon" type="image/x-icon" href="./assets/favicon-C52D-SD9.ico">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: -webkit-fill-available; /* Safari fix for viewport height */
+        }
+        #game-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            box-sizing: border-box;
+            overflow: hidden;
+            min-height: 0; /* Important: allows flex child to shrink below content size */
+            padding: 5px; /* Small padding to ensure canvas doesn't touch edges */
+        }
+        #game-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain;
+        }
+        #element-selector {
+            flex: 0 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px;
+            border-radius: 3px;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            max-width: 100vw;
+            justify-content: center;
+            align-self: center;
+            margin: 3px;
+            margin-bottom: max(3px, env(safe-area-inset-bottom)); /* Account for iOS home indicator */
+            padding-bottom: calc(2px + env(safe-area-inset-bottom)); /* Extra padding for safe area */
+        }
+
+        /* Separator styling - default (horizontal layout) */
+        .element-separator {
+            width: 2px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 1px;
+            flex-shrink: 0;
+        }
+
+        /* Mobile Portrait: Multi-row layout */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #element-selector {
+                max-width: 95vw;
+            }
+            .element-separator {
+                display: none; /* Hide separators on mobile portrait - they break layout when wrapping */
+            }
+        }
+
+        /* Mobile Landscape: Side panel layout */
+        @media (max-width: 900px) and (orientation: landscape) {
+            body {
+                display: block; /* Disable flex for landscape */
+            }
+            #game-container {
+                height: 100vh;
+                width: calc(100vw - 44px); /* Leave space for 32px buttons + 12px margins */
+            }
+            #element-selector {
+                position: fixed;
+                right: 3px;
+                top: 50%;
+                transform: translateY(-50%);
+                flex-direction: column;
+                max-width: 44px;
+                max-height: 95vh;
+                overflow-y: auto;
+                margin-bottom: 0;
+            }
+
+            /* Rotate separators for vertical layout */
+            .element-separator {
+                width: 32px;
+                height: 2px;
+                margin: 2px 0;
+            }
+        }
+        .element-btn {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            touch-action: manipulation;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .element-btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .element-btn:active {
+            transform: translateY(0px) scale(0.95);
+        }
+        .element-btn.active {
+            border-width: 2px;
+            border-color: #00ffff;  /* Bright cyan */
+            box-shadow:
+                0 0 15px rgba(0, 255, 255, 0.9),  /* Strong outer glow */
+                0 0 8px rgba(0, 255, 255, 0.6),  /* Medium glow */
+                inset 0 0 8px rgba(0, 255, 255, 0.4);  /* Inner glow */
+            transform: scale(1.05);
+            position: relative;
+            z-index: 10;  /* Bring active button to front */
+        }
+        .keybind {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1;
+            pointer-events: none;
+            text-shadow: none;
+        }
+        #global-tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.85);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            pointer-events: none;
+            z-index: 10000;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            min-width: 100px;
+            max-width: 200px;
+        }
+        #tooltip-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 10px;
+            color: rgba(0, 255, 255, 0.8);
+            text-transform: uppercase;
+        }
+        #tooltip-props {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 9px;
+            margin-bottom: 3px;
+            line-height: 1.3;
+            white-space: pre-line;
+        }
+        #tooltip-key {
+            color: rgba(255, 200, 100, 0.8);
+            font-size: 8px;
+            font-weight: 500;
+            padding-top: 3px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #stats {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+            backdrop-filter: blur(5px);
+        }
+        #profiler-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            min-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid #0f0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        #profiler-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #0ff;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 4px;
+        }
+        #profiler-panel .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+            padding: 2px 4px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+        #profiler-panel .metric.warn {
+            color: #ff0;
+            background: rgba(255, 255, 0, 0.1);
+        }
+        #profiler-panel .metric.critical {
+            color: #f00;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        #profiler-panel .metric-name {
+            flex: 1;
+        }
+        #profiler-panel .metric-value {
+            font-weight: bold;
+            text-align: right;
+        }
+        #profiler-panel .section {
+            margin-top: 10px;
+        }
+        #profiler-panel kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        /* Menu System */
+        #menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #menu-modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #menu-modal h2 {
+            margin: 0 0 24px 0;
+            font-size: 28px;
+            color: #00ffff;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        #main-menu, #template-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .menu-btn {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 100%);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-align: left;
+        }
+
+        .menu-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(0, 255, 255, 0.1) 100%);
+            border-color: rgba(0, 255, 255, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.3);
+        }
+
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+
+        .menu-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .menu-btn-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .menu-btn-desc {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        .menu-btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .menu-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Template Grid */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .template-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .template-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-color: rgba(0, 255, 255, 0.5);
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.2);
+        }
+
+        .template-btn:active {
+            transform: translateY(-2px);
+        }
+
+        .template-icon {
+            font-size: 48px;
+        }
+
+        .template-name {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .template-desc {
+            font-size: 11px;
+            opacity: 0.6;
+            line-height: 1.3;
+        }
+
+        /* Responsive adjustments for menu */
+        @media (max-width: 600px) {
+            #menu-modal {
+                padding: 24px;
+                width: 95%;
+            }
+
+            .template-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .template-icon {
+                font-size: 36px;
+            }
+
+            .template-name {
+                font-size: 12px;
+            }
+
+            .template-desc {
+                font-size: 10px;
+            }
+        }
+
+        /* Grimoire Modal */
+        #grimoire-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        #grimoire-modal {
+            background: #000000;
+            border: 3px solid #00ff00;
+            border-radius: 0;
+            padding: 24px;
+            max-width: 800px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5), inset 0 0 10px rgba(0, 255, 0, 0.1);
+            animation: slideUp 0.3s ease;
+            position: relative;
+            font-family: 'Courier New', monospace;
+        }
+
+        .grimoire-element {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grimoire-element:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            #grimoire-modal {
+                padding: 16px 12px;
+            }
+
+            #grimoire-content {
+                font-size: 11px;
+            }
+        }
+
+    </style>
+  <script type="module" crossorigin src="./assets/index-BIST_kJL.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/phaser-Dy6k5FA_.js">
+  <script type="module">import.meta.url;import("_").catch(()=>1);(async function*(){})().next();if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
+  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="element-selector">
+        <!-- Will be populated dynamically by JavaScript -->
+    </div>
+
+    <div id="global-tooltip" style="display: none;">
+        <div id="tooltip-name"></div>
+        <div id="tooltip-props"></div>
+        <div id="tooltip-key"></div>
+    </div>
+
+    <div id="stats">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>P: <span id="particles">0</span></div>
+        <div style="font-size: 9px; margin-top: 2px;"><span id="season-display">🌸 Spring</span></div>
+        <div style="font-size: 9px; margin-top: 1px; display: flex; align-items: center; gap: 4px;">
+            <button id="speed-down" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 16px; height: 16px; font-size: 10px; cursor: pointer; border-radius: 2px; padding: 0; line-height: 1;">−</button>
+            <span id="speed-display">⏱️ 1x</span>
+            <button id="speed-up" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 16px; height: 16px; font-size: 10px; cursor: pointer; border-radius: 2px; padding: 0; line-height: 1;">+</button>
+        </div>
+        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15);">
+            <div style="font-size: 9px;">
+                <span id="mode-display" style="color: rgba(0,255,255,0.8);">🔨 Build</span>
+            </div>
+            <div style="font-size: 8px; opacity: 0.5; margin-top: 1px;">
+                <kbd style="background: rgba(255,255,255,0.1); padding: 1px 3px; border-radius: 2px; font-size: 7px;">B</kbd>
+            </div>
+        </div>
+        <div style="display: flex; gap: 3px; margin-top: 4px;">
+            <button id="mute-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="Toggle Sound">
+                <span id="mute-icon">🔊</span>
+            </button>
+            <button id="grimoire-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="How to Play">
+                ❓
+            </button>
+        </div>
+        <div style="font-size: 8px; opacity: 0.4; margin-top: 4px;">v<span id="version">-</span></div>
+    </div>
+
+    <div id="profiler-panel" style="display: none;">
+        <h3>⚡ Performance Profiler <kbd>P</kbd> to toggle</h3>
+        <div id="profiler-content"></div>
+    </div>
+
+    <!-- Grimoire Modal -->
+    <div id="grimoire-overlay" style="display: none;">
+        <div id="grimoire-modal">
+            <button id="grimoire-close" style="position: absolute; top: 12px; right: 12px; background: #000; border: 2px solid #00ff00; border-radius: 0; width: 28px; height: 28px; color: #00ff00; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Courier New', monospace;">×</button>
+
+            <div style="margin: 0 0 20px 0; color: #00ff00; font-size: 14px; border-bottom: 2px solid #00ff00; padding-bottom: 12px;">
+                <div style="text-align: center; font-size: 16px; letter-spacing: 2px;">╔════════════════════════╗</div>
+                <div style="text-align: center; font-size: 16px; letter-spacing: 2px;">║  📖 ELEMENT GUIDE  📖  ║</div>
+                <div style="text-align: center; font-size: 16px; letter-spacing: 2px;">╚════════════════════════╝</div>
+            </div>
+
+            <div id="grimoire-content" style="max-height: 60vh; overflow-y: auto; padding: 8px; color: #00ff00; font-size: 13px; line-height: 1.6;">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <div style="margin-top: 16px; padding: 12px; border: 1px solid #00ff00; background: rgba(0, 255, 0, 0.05); color: #00ff00; font-size: 12px; line-height: 1.5;">
+                <div style="margin-bottom: 4px;">⌨️ CONTROLS:</div>
+                <div>• [B] = Build/Explore • [1-9/A-Z] = Select • Click+Drag = Place</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phaser 3 is now bundled via Vite (imported in src/main.js) -->
+
+    <!-- Anti-throttling measures (web only - not needed in native app) -->
+    <script>
+        // Detect if running in Capacitor (native app) vs web browser
+        const isNativeApp = window.Capacitor !== undefined;
+
+        let wakeLock = null;
+
+        // Wake Lock API - prevents browser from sleeping (web only, not needed in native)
+        async function requestWakeLock() {
+            // Skip wake lock in native app - not needed
+            if (isNativeApp) {
+                console.log('ℹ️ Running in native app - wake lock not needed');
+                return;
+            }
+
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('✅ Wake Lock active (web) - page marked as important');
+
+                    wakeLock.addEventListener('release', () => {
+                        console.log('⚠️ Wake Lock released');
+                    });
+                }
+            } catch (err) {
+                console.log('Wake Lock not available:', err.message);
+            }
+        }
+
+        // Request wake lock when page loads (web only)
+        if (!isNativeApp) {
+            requestWakeLock();
+
+            // Re-request wake lock when tab becomes visible again
+            document.addEventListener('visibilitychange', async () => {
+                if (document.hidden) {
+                    console.warn('⚠️ Tab hidden - Chrome may throttle performance');
+                } else {
+                    console.log('✅ Tab visible - restoring performance');
+                    // Re-acquire wake lock if it was released
+                    if (wakeLock !== null && wakeLock.released) {
+                        await requestWakeLock();
+                    }
+                }
+            });
+        }
+
+        // 2. Mystical ambient soundscape with chord progression & Fibonacci melody
+        let audioContext = null;
+        let oscillators = [];
+        let melodyOscillators = [];
+        let chordGain = null;
+        let melodyGain = null;
+        let playChord = null;
+        let chordProgression = null;
+        let currentChordIndex = 0;
+
+        function setupAmbientDrone() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Safari/iOS: Resume audio context (required for autoplay policy)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('✅ Audio context resumed for Safari/iOS');
+                    }).catch(err => {
+                        console.log('❌ Failed to resume audio context:', err);
+                    });
+                }
+
+                // Separate gain nodes for chord and melody
+                chordGain = audioContext.createGain();
+                melodyGain = audioContext.createGain();
+
+                chordGain.gain.value = 0.025;  // Very subtle chord pad
+                melodyGain.gain.value = 0.015; // Even more subtle melody
+
+                // Mystical chord progression (bass raised one octave for subtlety)
+                // Am9 -> Fmaj9 -> Cmaj9 -> G9 (magical, ethereal progression)
+                chordProgression = [
+                    [220.00, 164.81, 196.00, 246.94, 293.66],  // Am9 (A3, E3, G3, B3, D4) - bass up octave
+                    [174.62, 130.81, 155.56, 196.00, 261.63],   // Fmaj9 (F3, C3, Eb3, G3, C4) - bass up octave
+                    [261.63, 164.81, 196.00, 246.94, 329.63],  // Cmaj9 (C4, E3, G3, B3, E4) - bass up octave
+                    [196.00, 146.83, 196.00, 246.94, 293.66]    // G9 (G3, D3, G3, B3, D4) - bass up octave
+                ];
+
+                currentChordIndex = 0;
+
+                // Create oscillators for current chord
+                playChord = function(chordFreqs) {
+                    // Stop previous oscillators
+                    oscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    oscillators = [];
+
+                    // Don't create new oscillators if muted
+                    if (isMuted) return;
+
+                    // Create new chord
+                    chordFreqs.forEach(freq => {
+                        const osc = audioContext.createOscillator();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        osc.detune.value = (Math.random() - 0.5) * 3; // Slight chorus
+
+                        osc.connect(chordGain);
+                        osc.start();
+                        oscillators.push(osc);
+                    });
+                };
+
+                // Start with first chord
+                playChord(chordProgression[0]);
+
+                // Chord progression: change every 21 seconds (Fibonacci: 21)
+                setInterval(() => {
+                    currentChordIndex = (currentChordIndex + 1) % chordProgression.length;
+                    playChord(chordProgression[currentChordIndex]);
+                }, 21000);
+
+                // TWO MELODY THEMES: Mystical & Mario-like
+
+                // Theme 1: Mystical (A minor pentatonic)
+                const melodyNotes1 = [440.00, 523.25, 587.33, 659.25, 783.99, 880.00]; // A4, C5, D5, E5, G5, A5
+                const melodySequences1 = [
+                    [0, 2, 4],        // A, D, G - ascending gentle
+                    [5, 3, 1],        // A5, E, C - descending sparkle
+                    [1, 3, 4, 3],     // C, E, G, E - ethereal pattern
+                    [4, 2, 0],        // G, D, A - grounding descent
+                ];
+
+                // Theme 2: Mario-like (C major pentatonic, higher octave)
+                const melodyNotes2 = [523.25, 659.25, 783.99, 1046.50, 1174.66]; // C5, E5, G5, C6, D6
+                const melodySequences2 = [
+                    [0, 0, 2, 1],     // C, C, G, E - bouncy start
+                    [1, 2, 3],        // E, G, C6 - ascending jump
+                    [3, 2, 1, 0],     // C6, G, E, C - descending run
+                    [0, 2, 4, 3],     // C, G, D6, C6 - playful hop
+                ];
+
+                let sequenceIndex = 0;
+                let currentTheme = 0; // 0 = mystical, 1 = mario
+
+                function playMelodySequence() {
+                    // Select theme-specific notes and sequences
+                    const melodyNotes = currentTheme === 0 ? melodyNotes1 : melodyNotes2;
+                    const melodySequences = currentTheme === 0 ? melodySequences1 : melodySequences2;
+
+                    const sequence = melodySequences[sequenceIndex];
+                    let delay = 0;
+
+                    // Play each note in the sequence
+                    sequence.forEach((noteIdx, i) => {
+                        setTimeout(() => {
+                            // Don't play if muted
+                            if (isMuted) return;
+
+                            // Stop previous melody note
+                            melodyOscillators.forEach(osc => {
+                                try { osc.stop(); } catch(e) {}
+                            });
+                            melodyOscillators = [];
+
+                            // Create bell-like tone (fundamental + harmonics)
+                            const fundamental = audioContext.createOscillator();
+                            fundamental.type = 'sine';
+                            fundamental.frequency.value = melodyNotes[noteIdx];
+
+                            const harmonic2 = audioContext.createOscillator();
+                            harmonic2.type = 'sine';
+                            harmonic2.frequency.value = melodyNotes[noteIdx] * 2;
+
+                            const harmonic3 = audioContext.createOscillator();
+                            harmonic3.type = 'sine';
+                            harmonic3.frequency.value = melodyNotes[noteIdx] * 3;
+
+                            const harmonic2Gain = audioContext.createGain();
+                            harmonic2Gain.gain.value = 0.2;
+                            const harmonic3Gain = audioContext.createGain();
+                            harmonic3Gain.gain.value = 0.1;
+
+                            fundamental.connect(melodyGain);
+                            harmonic2.connect(harmonic2Gain);
+                            harmonic2Gain.connect(melodyGain);
+                            harmonic3.connect(harmonic3Gain);
+                            harmonic3Gain.connect(melodyGain);
+
+                            const now = audioContext.currentTime;
+
+                            // Quick attack, long decay (bell-like)
+                            melodyGain.gain.setValueAtTime(0, now);
+                            melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.05);
+                            melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 3);
+
+                            fundamental.start(now);
+                            harmonic2.start(now);
+                            harmonic3.start(now);
+
+                            // Stop after decay
+                            fundamental.stop(now + 3);
+                            harmonic2.stop(now + 3);
+                            harmonic3.stop(now + 3);
+
+                            melodyOscillators.push(fundamental, harmonic2, harmonic3);
+                        }, delay);
+
+                        // Notes within sequence: 1.5-2 seconds apart
+                        delay += 1500 + Math.random() * 500;
+                    });
+
+                    // Move to next sequence
+                    sequenceIndex = (sequenceIndex + 1) % melodySequences.length;
+
+                    // Switch theme when we complete all sequences in current theme
+                    if (sequenceIndex === 0) {
+                        currentTheme = (currentTheme + 1) % 2; // Toggle between 0 and 1
+                        console.log(`🎵 Switching to ${currentTheme === 0 ? 'Mystical' : 'Mario'} theme`);
+                    }
+
+                    // LONG PAUSE between sequences: 8-13 seconds (Fibonacci numbers)
+                    const pauseDurations = [8000, 13000, 21000];
+                    const nextPause = pauseDurations[Math.floor(Math.random() * pauseDurations.length)];
+
+                    melodyTimeout = setTimeout(playMelodySequence, delay + nextPause);
+                }
+
+                // Start first melody sequence after 8 seconds (let chord establish + build anticipation)
+                setTimeout(playMelodySequence, 8000);
+
+                // Connect to output
+                chordGain.connect(audioContext.destination);
+                melodyGain.connect(audioContext.destination);
+
+                console.log('✨ Mystical soundscape active: chord progression + Fibonacci melody');
+            } catch (err) {
+                console.log('Audio context not available:', err.message);
+            }
+        }
+
+        // Start audio context on first user interaction (required by browser policy)
+        let audioStarted = false;
+        let isMuted = false;
+        let melodyTimeout = null; // Track melody timeout for proper muting
+        function startAudioOnInteraction() {
+            if (!audioStarted) {
+                setupAmbientDrone();
+                audioStarted = true;
+                document.removeEventListener('click', startAudioOnInteraction);
+                document.removeEventListener('touchstart', startAudioOnInteraction);
+                document.removeEventListener('keydown', startAudioOnInteraction);
+            }
+        }
+        document.addEventListener('click', startAudioOnInteraction);
+        document.addEventListener('touchstart', startAudioOnInteraction); // Mobile support
+        document.addEventListener('keydown', startAudioOnInteraction);
+
+        // Mute button functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const muteBtn = document.getElementById('mute-btn');
+            const muteIcon = document.getElementById('mute-icon');
+
+            muteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering audio start
+
+                if (!audioStarted) {
+                    // Start audio if not started yet
+                    setupAmbientDrone();
+                    audioStarted = true;
+                    return;
+                }
+
+                isMuted = !isMuted;
+
+                if (isMuted) {
+                    // Mute - stop all oscillators and set gains to 0
+                    if (chordGain) chordGain.gain.value = 0;
+                    if (melodyGain) melodyGain.gain.value = 0;
+
+                    // Stop all currently playing oscillators
+                    oscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    melodyOscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    oscillators = [];
+                    melodyOscillators = [];
+
+                    muteIcon.textContent = '🔇';
+                } else {
+                    // Unmute - restart chord progression
+                    // Safari/iOS: Resume audio context if suspended
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+
+                    if (chordGain) chordGain.gain.value = 0.025;
+                    if (melodyGain) melodyGain.gain.value = 0.015;
+
+                    // Restart the current chord
+                    if (playChord && chordProgression) {
+                        playChord(chordProgression[currentChordIndex]);
+                    }
+
+                    muteIcon.textContent = '🔊';
+                }
+            });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (wakeLock !== null) {
+                wakeLock.release();
+            }
+            oscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            melodyOscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            if (audioContext !== null) {
+                audioContext.close();
+            }
+        });
+    </script>
+
+    <!-- Grimoire Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const grimoireBtn = document.getElementById('grimoire-btn');
+            const grimoireOverlay = document.getElementById('grimoire-overlay');
+            const grimoireClose = document.getElementById('grimoire-close');
+            const grimoireContent = document.getElementById('grimoire-content');
+
+            // Retro console grimoire - more emojis, fewer words!
+            const grimoireText = `
+<div>
+> 🔥 FIRE: 💧→💨 | 🛢️→🔥 | 🪵→🔥 | 💣→💥<br>
+> 💧 WATER: 🔥→💨 | 🌋→🪨 | ∙∙→🏖️ | ❄️❄<br>
+> ∙∙ SAND: ⬇️ piles | 💧→🏖️<br>
+> 🪨 STONE: 💪 solid | 🌋+💧→🪨<br>
+> 🪵 WOOD: 🔥❌ burns | 🏗️ building<br>
+> ❄️ ICE: 🔥→💧 | 💧→❄️ | 🏊 floats<br>
+> 🌋 LAVA: 🔥🔥 very hot | 💧→🪨 | ✨ glows<br>
+> 🛢️ OIL: 🔥❌ burns | 💧⬆️ floats<br>
+> 💣 GUNPOWDER: 💥💥💥 explosive!<br>
+> ◇ GLASS: 💪 solid | 🪟 transparent<br>
+> ▉ WALL: 🛡️ indestructible<br>
+> ⚫ COAL: 🔥 fuel | 💧→off<br>
+> ❄ SNOW: 🔥→💧 melts<br>
+> ☢️ ACID: ⚠️ dissolves stuff<br>
+> 🌰 TREE SEED: 📍→🌳 grows<br>
+> 🌿 VINE: 🪨⬆️ climbs<br>
+> 🐟 FISH: 💧 swims | 🥚 eggs<br>
+> 🐦 BIRD: ✈️ day | 😴 night<br>
+> 🪸 CORAL: 💧 underwater<br>
+> 🏠 BUILDER: 👷→🏘️ | 💡 lights<br>
+> 🌡️ STEAM VENT: 💨⬆️ steam
+</div>
+            `;
+
+            // Populate grimoire with simple text
+            grimoireContent.innerHTML = grimoireText;
+
+            // Show/hide grimoire
+            grimoireBtn.addEventListener('click', () => {
+                grimoireOverlay.style.display = 'flex';
+            });
+
+            grimoireClose.addEventListener('click', () => {
+                grimoireOverlay.style.display = 'none';
+            });
+
+            grimoireOverlay.addEventListener('click', (e) => {
+                if (e.target === grimoireOverlay) {
+                    grimoireOverlay.style.display = 'none';
+                }
+            });
+
+            // ESC key to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && grimoireOverlay.style.display === 'flex') {
+                    grimoireOverlay.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+    <!-- Main game script (ES6 Module) -->
+
+    <!-- GoatCounter Analytics -->
+    <script data-goatcounter="https://ninjaboy.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+  <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="./assets/polyfills-legacy-sNMJgwyK.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="./assets/index-legacy-DbnWdMxe.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+</body>
+</html>
