@@ -1,11 +1,11 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { FreezingPropagationBehavior } from '../behaviors/TransformationBehaviors.js';
 import { SeasonalMeltingBehavior } from '../behaviors/SeasonalBehaviors.js';
 
 class IceElement extends Element {
     constructor() {
-        super(18, 'ice', 0x87ceeb, { // Sky blue
+        super(ELEMENT_TYPE.ICE, 'ice', 0x87ceeb, { // Sky blue
             density: 1.8, // Less dense than water (2) so it floats!
             state: STATE.SOLID,
             movable: true, // Can float/move in water

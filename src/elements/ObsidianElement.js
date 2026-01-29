@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class ObsidianElement extends Element {
     constructor() {
-        super(32, 'obsidian', 0x0a0a14, { // Very dark purple-black
+        super(ELEMENT_TYPE.OBSIDIAN, 'obsidian', 0x0a0a14, { // Very dark purple-black
             density: 10, // Very heavy, like stone - sinks through water
             state: STATE.SOLID,
             movable: true, // Can fall and sink through water

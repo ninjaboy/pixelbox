@@ -1,5 +1,5 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 // Tree configuration
 const TREE_CONFIG = {
@@ -21,7 +21,7 @@ const TREE_CONFIG = {
 
 class TreeSeedElement extends Element {
     constructor() {
-        super(10, 'tree_seed', 0x654321, {
+        super(ELEMENT_TYPE.TREE_SEED, 'tree_seed', 0x654321, {
             density: 3,
             state: STATE.SOLID,
             movable: false,

@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class VineElement extends Element {
     constructor() {
-        super(24, 'vine', 0x228b22, { // Forest green
+        super(ELEMENT_TYPE.VINE, 'vine', 0x228b22, { // Forest green
             density: 2,
             state: STATE.SOLID,
             movable: false,

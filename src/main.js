@@ -25,6 +25,14 @@ class GameScene extends Phaser.Scene {
         this.playerY = null;
         this.buildMode = true; // Start in build mode (press B to switch to explore mode)
         this.keys = {}; // Track key states
+        this.sceneReady = false; // Guard: don't update until create() finishes
+
+        // TIME SPEED SYSTEM (v4.2.0) - init early so update() never crashes
+        this.timeControl = {
+            speedLevels: [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50, 100],
+            currentSpeedIndex: 3,
+            maxPhysicsSpeed: 5,
+        };
     }
 
     async create(data) {
@@ -49,12 +57,7 @@ class GameScene extends Phaser.Scene {
             baseSpeed: 0.001, // Base speed (10x faster for testing)
         };
 
-        // TIME SPEED SYSTEM (v4.2.0) - Easily reconfigurable
-        this.timeControl = {
-            speedLevels: [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50, 100], // Available speed multipliers
-            currentSpeedIndex: 3, // Start at 1x (index 3 in array)
-            maxPhysicsSpeed: 5, // Cap physics updates at 5x to prevent performance issues
-        };
+        // TIME SPEED SYSTEM (v4.2.0) - already initialized in constructor
 
         // Track current day number for moon phase changes
         this.currentDay = 0;
@@ -152,6 +155,8 @@ class GameScene extends Phaser.Scene {
 
         // Fade in from menu transition
         this.cameras.main.fadeIn(500, 0, 0, 0);
+
+        this.sceneReady = true;
     }
 
     async loadSavedWorld() {
@@ -808,6 +813,8 @@ class GameScene extends Phaser.Scene {
     }
 
     update() {
+        if (!this.sceneReady) return; // Wait for create() to finish
+
         profiler.start('frame:total');
 
         // Get current time speed multiplier (v4.2.0)

@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class LeafElement extends Element {
     constructor() {
-        super(13, 'leaf', 0x32cd32, { // Lime green - brighter and more vibrant
+        super(ELEMENT_TYPE.LEAF, 'leaf', 0x32cd32, { // Lime green - brighter and more vibrant
             density: 0.5,
             state: STATE.SOLID,
             movable: true, // Can be displaced

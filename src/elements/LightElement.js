@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class LightElement extends Element {
     constructor() {
-        super(50, 'light', 0xfff4e0, { // Warm white light
+        super(ELEMENT_TYPE.LIGHT, 'light', 0xfff4e0, { // Warm white light
             density: 0,
             state: STATE.SOLID,
             movable: false,

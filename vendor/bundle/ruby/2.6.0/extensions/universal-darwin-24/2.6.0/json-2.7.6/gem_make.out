@@ -1,5 +1,5 @@
 current directory: /Users/ninjabot/projects/pixelbox/vendor/bundle/ruby/2.6.0/gems/json-2.7.6/ext/json/ext/generator
-/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/bin/ruby -I /System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/2.6.0 -r ./siteconf20251127-66551-1ipc5pa.rb extconf.rb
+/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/bin/ruby -I /System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/2.6.0 -r ./siteconf20251202-69552-j0hqfd.rb extconf.rb
 checking for whether -std=c99 is accepted as CFLAGS... *** extconf.rb failed ***
 Could not create Makefile due to some reason, probably lack of necessary
 libraries and/or headers.  Check the mkmf.log file for more details.  You may

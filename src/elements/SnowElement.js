@@ -1,10 +1,10 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { HeatTransformationBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class SnowElement extends Element {
     constructor() {
-        super(31, 'snow', 0xffffff, { // Pure white
+        super(ELEMENT_TYPE.SNOW, 'snow', 0xffffff, { // Pure white
             density: 1, // Very light, lighter than water
             state: STATE.POWDER,
             movable: true,

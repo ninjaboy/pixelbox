@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class WoodElement extends Element {
     constructor() {
-        super(5, 'wood', 0x8b4513, {
+        super(ELEMENT_TYPE.WOOD, 'wood', 0x8b4513, {
             density: 5,
             state: STATE.SOLID,
             movable: false,

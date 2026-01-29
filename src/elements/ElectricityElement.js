@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class ElectricityElement extends Element {
     constructor() {
-        super(35, 'electricity', 0xffff00, { // Bright yellow/electric blue
+        super(ELEMENT_TYPE.ELECTRICITY, 'electricity', 0xffff00, { // Bright yellow/electric blue
             density: 0, // Massless like fire
             state: STATE.GAS,
             movable: true,

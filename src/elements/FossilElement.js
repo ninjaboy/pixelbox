@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class FossilElement extends Element {
     constructor() {
-        super(15, 'fossil', 0x8b7355, { // Gray-brown color
+        super(ELEMENT_TYPE.FOSSIL, 'fossil', 0x8b7355, { // Gray-brown color
             density: 8,
             state: STATE.SOLID,
             movable: false,

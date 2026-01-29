@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class WallElement extends Element {
     constructor() {
-        super(18, 'wall', 0x444444, {
+        super(ELEMENT_TYPE.WALL, 'wall', 0x444444, {
             density: 10,
             state: STATE.SOLID,
             movable: false,  // Static - never moves

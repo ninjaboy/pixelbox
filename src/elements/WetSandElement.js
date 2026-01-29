@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class WetSandElement extends Element {
     constructor() {
-        super(18, 'wet_sand', 0x8b7355, { // Darker brown color
+        super(ELEMENT_TYPE.WET_SAND, 'wet_sand', 0x8b7355, { // Darker brown color
             density: 9, // Much heavier than lava (8) - wet sand blocks lava flow
             state: STATE.POWDER,
             dispersion: 0,

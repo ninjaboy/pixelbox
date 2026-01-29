@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class CoalElement extends Element {
     constructor() {
-        super(29, 'coal', 0x1a1a1a, { // Very dark gray/black
+        super(ELEMENT_TYPE.COAL, 'coal', 0x1a1a1a, { // Very dark gray/black
             density: 5,
             state: STATE.SOLID,
             movable: true, // Coal can fall

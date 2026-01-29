@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class TreeBranchElement extends Element {
     constructor() {
-        super(12, 'tree_branch', 0x8b5a3c, {
+        super(ELEMENT_TYPE.TREE_BRANCH, 'tree_branch', 0x8b5a3c, {
             density: 5,
             state: STATE.SOLID,
             movable: false,

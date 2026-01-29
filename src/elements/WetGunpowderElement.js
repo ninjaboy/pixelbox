@@ -1,11 +1,11 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 import { WetDryTransitionBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class WetGunpowderElement extends Element {
     constructor() {
-        super(19, 'wet_gunpowder', 0x2a2a1a, {
+        super(ELEMENT_TYPE.WET_GUNPOWDER, 'wet_gunpowder', 0x2a2a1a, {
             density: 4,  // Heavy when wet
             state: STATE.POWDER,
             movable: true,

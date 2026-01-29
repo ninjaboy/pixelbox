@@ -1,10 +1,10 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { BurningBehavior, EmissionBehavior, WaterExtinguishBehavior } from '../behaviors/CombustionBehaviors.js';
 
 class BurningCoalElement extends Element {
     constructor() {
-        super(30, 'burning_coal', 0xff4500, { // Orange-red hot coal
+        super(ELEMENT_TYPE.BURNING_COAL, 'burning_coal', 0xff4500, { // Orange-red hot coal
             density: 5,
             state: STATE.SOLID,
             movable: false,

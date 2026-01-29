@@ -1,10 +1,10 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { GravityBehavior } from '../behaviors/MovementBehaviors.js';
 
 class GrassSeedElement extends Element {
     constructor() {
-        super(31, 'grass_seed', 0x9acd32, { // Yellow-green
+        super(ELEMENT_TYPE.GRASS_SEED, 'grass_seed', 0x9acd32, { // Yellow-green
             density: 1.5,
             state: STATE.SOLID,
             movable: true,

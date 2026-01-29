@@ -1,10 +1,10 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class BirdElement extends Element {
     constructor() {
         // White birds
-        super(42, 'bird', 0xffffff, {
+        super(ELEMENT_TYPE.BIRD, 'bird', 0xffffff, {
             density: 1.5, // Light so they can fly easily
             state: STATE.SOLID,
             movable: true,

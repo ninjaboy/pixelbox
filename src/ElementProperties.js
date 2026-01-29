@@ -86,6 +86,21 @@ const ELEMENT_TYPE = {
     SALT: 26,
     GLASS: 27,
     PLANT: 28,
+    COAL: 29,
+    BURNING_COAL: 30,
+    SNOW: 31,
+    SLUSH: 32,
+    OBSIDIAN: 33,
+    STEAM_VENT: 34,
+    CORAL: 35,
+    ELECTRICITY: 36,
+    VINE: 37,
+    GRASS_SEED: 38,
+    FISH_EGG: 39,
+    HOUSE_SEED: 41,
+    BIRD: 42,
+    BIRD_EGG: 43,
+    LIGHT: 50,
 };
 
 export { STATE, TEMPERATURE, TAG, ELEMENT_TYPE };

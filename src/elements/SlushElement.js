@@ -1,11 +1,11 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 import { LiquidFlowBehavior } from '../behaviors/MovementBehaviors.js';
 import { HeatTransformationBehavior } from '../behaviors/TransformationBehaviors.js';
 
 class SlushElement extends Element {
     constructor() {
-        super(32, 'slush', 0xb0e0e6, { // Powder blue - between snow white and ice blue
+        super(ELEMENT_TYPE.SLUSH, 'slush', 0xb0e0e6, { // Powder blue - between snow white and ice blue
             density: 1.9, // Heavier than ice (1.8) but lighter than water (2)
             state: STATE.LIQUID,
             movable: true,

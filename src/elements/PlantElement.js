@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class PlantElement extends Element {
     constructor() {
-        super(24, 'plant', 0x32cd32, { // Lime green
+        super(ELEMENT_TYPE.PLANT, 'plant', 0x32cd32, { // Lime green
             density: 2,
             state: STATE.SOLID,
             movable: false,

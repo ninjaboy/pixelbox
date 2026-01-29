@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class SteamVentElement extends Element {
     constructor() {
-        super(33, 'steam_vent', 0x555555, { // Dark gray
+        super(ELEMENT_TYPE.STEAM_VENT, 'steam_vent', 0x555555, { // Dark gray
             density: 10,
             state: STATE.SOLID,
             movable: false,

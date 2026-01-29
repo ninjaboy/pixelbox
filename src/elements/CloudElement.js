@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE } from '../ElementProperties.js';
+import { STATE, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class CloudElement extends Element {
     constructor() {
-        super(13, 'cloud', 0xf0f0f0, {
+        super(ELEMENT_TYPE.CLOUD, 'cloud', 0xf0f0f0, {
             density: 0,
             state: STATE.GAS,
             dispersion: 1,

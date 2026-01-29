@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class CoralElement extends Element {
     constructor() {
-        super(34, 'coral', 0xff6b9d, { // Pink coral
+        super(ELEMENT_TYPE.CORAL, 'coral', 0xff6b9d, { // Pink coral
             density: 8,
             state: STATE.SOLID,
             movable: false,

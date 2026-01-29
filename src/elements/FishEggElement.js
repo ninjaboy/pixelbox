@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class FishEggElement extends Element {
     constructor() {
-        super(30, 'fish_egg', 0x9370db, { // Purple color
+        super(ELEMENT_TYPE.FISH_EGG, 'fish_egg', 0x9370db, { // Purple color
             density: 3, // Slightly heavier than water, lighter than fish
             state: STATE.SOLID,
             movable: true,

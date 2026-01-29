@@ -1,9 +1,9 @@
 import Element from '../Element.js';
-import { STATE, TAG } from '../ElementProperties.js';
+import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
 
 class GlassElement extends Element {
     constructor() {
-        super(21, 'glass', 0xadd8e6, { // Light blue, semi-transparent look
+        super(ELEMENT_TYPE.GLASS, 'glass', 0xadd8e6, { // Light blue, semi-transparent look
             density: 5,
             state: STATE.SOLID,
             movable: false,
