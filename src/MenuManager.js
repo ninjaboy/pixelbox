@@ -1,7 +1,7 @@
 // MenuManager - Handles game menu, templates, and settings
 import WorldTemplates from './WorldTemplates.js';
 import { getAvailableWorlds, loadWorldByName } from '../worlds.config.js';
-import purchaseManager, { PRODUCT_PRICE } from './PurchaseManager.js';
+import purchaseManager from './PurchaseManager.js';
 
 export default class MenuManager {
     constructor(gameScene) {
@@ -197,17 +197,20 @@ export default class MenuManager {
     async unlockAll() {
         const btn = document.getElementById('unlock-all-btn');
         if (btn) {
-            btn.textContent = '⏳ Unlocking...';
+            btn.textContent = '⏳ Purchasing...';
             btn.style.opacity = '0.6';
         }
 
-        const success = await purchaseManager.unlock();
+        const success = await purchaseManager.purchase();
 
         if (success && btn) {
             btn.textContent = '🎉 Unlocked!';
             setTimeout(() => {
                 this.updatePurchaseUI();
             }, 1000);
+        } else if (btn) {
+            // Reset on cancel/failure
+            this.updatePurchaseUI();
         }
     }
 
@@ -229,7 +232,7 @@ export default class MenuManager {
             }
         } else {
             if (unlockBtn) {
-                unlockBtn.textContent = `✨ Unlock All Elements — ${PRODUCT_PRICE}`;
+                unlockBtn.textContent = `✨ Unlock All Elements — ${purchaseManager.getPrice()}`;
                 unlockBtn.style.opacity = '1';
                 unlockBtn.style.pointerEvents = '';
             }

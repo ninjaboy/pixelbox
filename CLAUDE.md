@@ -142,6 +142,36 @@ Update `version.js` with format `MAJOR.MINOR.PATCH`:
 - Minor: New elements, mechanics, substantial improvements
 - Patch: Bug fixes, tweaks, refactoring
 
+## In-App Purchases (IAP)
+
+**Plugin**: `cordova-plugin-purchase` v13 (supports Capacitor + StoreKit)
+
+**Product**: `com.ninjaboy.pixellence.unlock_all_elements` — NON_CONSUMABLE (£2.99)
+
+**Key files**:
+| File | Purpose |
+|------|---------|
+| `src/PurchaseManager.js` | Singleton IAP manager — StoreKit integration + local cache |
+| `src/UnlockModal.js` | Premium element unlock modal UI |
+| `src/MenuManager.js` | Menu integration (Unlock All / Restore Purchases buttons) |
+
+**How it works**:
+1. On init, loads cached unlock state from `@capacitor/preferences` (instant)
+2. On native iOS, initializes `CdvPurchase.store` and registers the product
+3. `purchase()` triggers the real StoreKit dialog on iOS, or local unlock on web
+4. `restorePurchases()` uses Apple's restore flow (required by App Store Review Guidelines)
+5. Ownership cached locally for fast startup; StoreKit is source of truth
+
+**Element tiers** (defined in `PurchaseManager.js`):
+- FREE: fire, water, sand, stone, wood, wall, eraser
+- PREMIUM: steam_vent, oil, lava, acid, slush, gunpowder, snow, ice, glass, coal, tree_seed, vine, fish, bird, coral, house_seed
+
+**iOS Setup**:
+1. Enable "In-App Purchase" capability in Xcode (Signing & Capabilities)
+2. Create the product in App Store Connect
+3. `npm run build && npx cap copy ios` to sync
+4. `cd ios/App && LANG=en_US.UTF-8 pod install` to update pods
+
 ## Important Considerations
 
 - **WASM Build**: Uses `RUSTFLAGS='-C target-feature=+simd128'` for SIMD; scalar fallback for compatibility

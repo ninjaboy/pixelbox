@@ -5,7 +5,7 @@
  * Shows element info + unlock CTA.
  */
 
-import purchaseManager, { PRODUCT_PRICE, PREMIUM_ELEMENTS } from './PurchaseManager.js';
+import purchaseManager, { PREMIUM_ELEMENTS } from './PurchaseManager.js';
 
 class UnlockModal {
     constructor() {
@@ -91,7 +91,8 @@ class UnlockModal {
             margin-bottom: 20px;
             line-height: 1.5;
         `;
-        desc.textContent = `Unlock all ${PREMIUM_ELEMENTS.length} premium elements for ${PRODUCT_PRICE}`;
+        this.descEl = desc;
+        desc.textContent = `Unlock all ${PREMIUM_ELEMENTS.length} premium elements for ${purchaseManager.getPrice()}`;
 
         // Element preview (small grid of premium element icons)
         const preview = document.createElement('div');
@@ -128,7 +129,7 @@ class UnlockModal {
             font-family: inherit;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         `;
-        unlockBtn.textContent = `✨ Unlock All — ${PRODUCT_PRICE}`;
+        unlockBtn.textContent = `✨ Unlock All — ${purchaseManager.getPrice()}`;
         unlockBtn.addEventListener('click', () => this._handleUnlock());
 
         // Add hover/active states
@@ -205,6 +206,26 @@ class UnlockModal {
         this._build();
         this._onUnlockCallback = onUnlock;
 
+        // Refresh price from live store data
+        const price = purchaseManager.getPrice();
+        if (this.descEl) {
+            this.descEl.textContent = `Unlock all ${PREMIUM_ELEMENTS.length} premium elements for ${price}`;
+        }
+        const buyBtn = document.getElementById('unlock-modal-buy');
+        if (buyBtn) {
+            buyBtn.textContent = `✨ Unlock All — ${price}`;
+            buyBtn.style.opacity = '1';
+            buyBtn.style.pointerEvents = '';
+            buyBtn.style.background = 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)';
+        }
+
+        // Show "Available on iOS" hint if on web
+        if (!purchaseManager.isStoreAvailable()) {
+            if (this.descEl) {
+                this.descEl.textContent += '\n(Testing mode — real purchase on iOS)';
+            }
+        }
+
         // Set element name
         const displayName = elementName.replace(/_/g, ' ');
         const config = elementConfigs?.[elementName];
@@ -253,12 +274,12 @@ class UnlockModal {
     async _handleUnlock() {
         const buyBtn = document.getElementById('unlock-modal-buy');
         if (buyBtn) {
-            buyBtn.textContent = '⏳ Unlocking...';
+            buyBtn.textContent = '⏳ Purchasing...';
             buyBtn.style.opacity = '0.7';
             buyBtn.style.pointerEvents = 'none';
         }
 
-        const success = await purchaseManager.unlock();
+        const success = await purchaseManager.purchase();
 
         if (success) {
             // Show success feedback
@@ -275,9 +296,10 @@ class UnlockModal {
             // Auto-close after brief celebration
             setTimeout(() => this.hide(), 800);
         } else {
-            // Reset button on failure
+            // Reset button on failure (user cancelled or error)
+            const price = purchaseManager.getPrice();
             if (buyBtn) {
-                buyBtn.textContent = `✨ Unlock All — ${PRODUCT_PRICE}`;
+                buyBtn.textContent = `✨ Unlock All — ${price}`;
                 buyBtn.style.opacity = '1';
                 buyBtn.style.pointerEvents = '';
                 buyBtn.style.background = 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)';
