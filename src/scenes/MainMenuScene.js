@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { VERSION } from '../../version.js';
 import storageManager from '../StorageManager.js';
+import purchaseManager from '../PurchaseManager.js';
 
 /**
  * MainMenuScene - Main menu with sky/sunset background
@@ -47,20 +48,24 @@ export default class MainMenuScene extends Phaser.Scene {
         // Add glow effect to title
         this.titleText.postFX.addGlow(0xff6b35, 4, 0, false, 0.1, 6);
 
-        // Subtitle / version
-        this.add.text(width / 2, height * 0.32, `Particle Sandbox  ·  v${VERSION}`, {
+        // Subtitle / version (with premium badge if unlocked)
+        const versionSuffix = purchaseManager.isUnlocked() ? '  ★' : '';
+        this.add.text(width / 2, height * 0.32, `Particle Sandbox  ·  v${VERSION}${versionSuffix}`, {
             fontFamily: 'monospace',
             fontSize: '11px',
-            color: 'rgba(255, 255, 255, 0.5)',
+            color: purchaseManager.isUnlocked() ? 'rgba(255, 200, 50, 0.6)' : 'rgba(255, 255, 255, 0.5)',
             align: 'center'
         }).setOrigin(0.5);
 
         // Menu buttons - we'll create these as interactive graphics + text
         this.buttons = [];
 
-        // Check for saved world
+        // Check for saved world and init purchase manager
         this.hasSave = false;
-        this.checkSavedWorld().then(() => {
+        Promise.all([
+            this.checkSavedWorld(),
+            purchaseManager.init()
+        ]).then(() => {
             this.buildMenu(width, height);
         });
 

@@ -1,0 +1,291 @@
+/**
+ * UnlockModal.js - Premium unlock prompt modal
+ * 
+ * Pixel-art styled modal shown when tapping a locked element.
+ * Shows element info + unlock CTA.
+ */
+
+import purchaseManager, { PRODUCT_PRICE, PREMIUM_ELEMENTS } from './PurchaseManager.js';
+
+class UnlockModal {
+    constructor() {
+        this.overlay = null;
+        this._onUnlockCallback = null;
+        this._built = false;
+    }
+
+    /**
+     * Build the modal DOM (once)
+     */
+    _build() {
+        if (this._built) return;
+
+        // Create overlay
+        this.overlay = document.createElement('div');
+        this.overlay.id = 'unlock-overlay';
+        this.overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            animation: fadeIn 0.2s ease;
+        `;
+
+        // Modal container
+        const modal = document.createElement('div');
+        modal.id = 'unlock-modal';
+        modal.style.cssText = `
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 3px solid rgba(255, 200, 50, 0.6);
+            border-radius: 16px;
+            padding: 28px 24px;
+            max-width: 340px;
+            width: 88%;
+            box-shadow: 0 0 30px rgba(255, 200, 50, 0.25), inset 0 0 15px rgba(255, 200, 50, 0.05);
+            animation: slideUp 0.25s ease;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+        `;
+
+        // Lock icon
+        const lockIcon = document.createElement('div');
+        lockIcon.style.cssText = `
+            font-size: 42px;
+            margin-bottom: 8px;
+        `;
+        lockIcon.textContent = '🔒';
+
+        // Title
+        const title = document.createElement('div');
+        title.id = 'unlock-modal-title';
+        title.style.cssText = `
+            font-size: 18px;
+            font-weight: bold;
+            color: rgba(255, 200, 50, 0.95);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        `;
+        title.textContent = 'Premium Element';
+
+        // Element name
+        this.elementNameEl = document.createElement('div');
+        this.elementNameEl.id = 'unlock-modal-element';
+        this.elementNameEl.style.cssText = `
+            font-size: 22px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 16px;
+        `;
+
+        // Description
+        const desc = document.createElement('div');
+        desc.style.cssText = `
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        `;
+        desc.textContent = `Unlock all ${PREMIUM_ELEMENTS.length} premium elements for ${PRODUCT_PRICE}`;
+
+        // Element preview (small grid of premium element icons)
+        const preview = document.createElement('div');
+        preview.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        `;
+
+        // Will be populated when shown (needs elementConfigs from GameScene)
+        this.previewContainer = preview;
+
+        // Unlock button
+        const unlockBtn = document.createElement('button');
+        unlockBtn.id = 'unlock-modal-buy';
+        unlockBtn.style.cssText = `
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            border: 2px solid rgba(255, 200, 50, 0.5);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        `;
+        unlockBtn.textContent = `✨ Unlock All — ${PRODUCT_PRICE}`;
+        unlockBtn.addEventListener('click', () => this._handleUnlock());
+
+        // Add hover/active states
+        unlockBtn.addEventListener('mouseenter', () => {
+            unlockBtn.style.transform = 'translateY(-2px)';
+            unlockBtn.style.boxShadow = '0 4px 16px rgba(255, 140, 66, 0.4)';
+        });
+        unlockBtn.addEventListener('mouseleave', () => {
+            unlockBtn.style.transform = '';
+            unlockBtn.style.boxShadow = '';
+        });
+
+        // Cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.id = 'unlock-modal-cancel';
+        cancelBtn.style.cssText = `
+            width: 100%;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        `;
+        cancelBtn.textContent = 'Not Now';
+        cancelBtn.addEventListener('click', () => this.hide());
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+            cancelBtn.style.color = 'rgba(255, 255, 255, 0.7)';
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            cancelBtn.style.color = 'rgba(255, 255, 255, 0.5)';
+        });
+
+        // Assemble modal
+        modal.appendChild(lockIcon);
+        modal.appendChild(title);
+        modal.appendChild(this.elementNameEl);
+        modal.appendChild(desc);
+        modal.appendChild(preview);
+        modal.appendChild(unlockBtn);
+        modal.appendChild(cancelBtn);
+
+        this.overlay.appendChild(modal);
+        document.body.appendChild(this.overlay);
+
+        // Close on overlay click
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) this.hide();
+        });
+
+        // ESC to close
+        this._escHandler = (e) => {
+            if (e.key === 'Escape' && this.overlay.style.display === 'flex') {
+                this.hide();
+            }
+        };
+        document.addEventListener('keydown', this._escHandler);
+
+        this._built = true;
+    }
+
+    /**
+     * Show the unlock modal for a specific element
+     * @param {string} elementName - The locked element that was tapped
+     * @param {object} elementConfigs - Element icon/color configs from GameScene
+     * @param {Function} onUnlock - Callback when unlock succeeds
+     */
+    show(elementName, elementConfigs, onUnlock) {
+        this._build();
+        this._onUnlockCallback = onUnlock;
+
+        // Set element name
+        const displayName = elementName.replace(/_/g, ' ');
+        const config = elementConfigs?.[elementName];
+        this.elementNameEl.textContent = config ? `${config.icon} ${displayName}` : displayName;
+
+        // Populate preview grid with premium element icons
+        this.previewContainer.innerHTML = '';
+        PREMIUM_ELEMENTS.forEach(name => {
+            const elConfig = elementConfigs?.[name];
+            if (!elConfig) return;
+
+            const chip = document.createElement('span');
+            chip.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 26px;
+                height: 26px;
+                background: ${elConfig.color};
+                border-radius: 4px;
+                font-size: 14px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                ${name === elementName ? 'box-shadow: 0 0 8px rgba(255, 200, 50, 0.6); border-color: rgba(255, 200, 50, 0.6);' : ''}
+            `;
+            chip.textContent = elConfig.icon;
+            chip.title = name.replace(/_/g, ' ');
+            this.previewContainer.appendChild(chip);
+        });
+
+        this.overlay.style.display = 'flex';
+    }
+
+    /**
+     * Hide the modal
+     */
+    hide() {
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
+    }
+
+    /**
+     * Handle unlock button press
+     * @private
+     */
+    async _handleUnlock() {
+        const buyBtn = document.getElementById('unlock-modal-buy');
+        if (buyBtn) {
+            buyBtn.textContent = '⏳ Unlocking...';
+            buyBtn.style.opacity = '0.7';
+            buyBtn.style.pointerEvents = 'none';
+        }
+
+        const success = await purchaseManager.unlock();
+
+        if (success) {
+            // Show success feedback
+            if (buyBtn) {
+                buyBtn.textContent = '🎉 Unlocked!';
+                buyBtn.style.background = 'linear-gradient(135deg, #00cc88 0%, #00aa66 100%)';
+            }
+
+            // Notify callback
+            if (this._onUnlockCallback) {
+                this._onUnlockCallback();
+            }
+
+            // Auto-close after brief celebration
+            setTimeout(() => this.hide(), 800);
+        } else {
+            // Reset button on failure
+            if (buyBtn) {
+                buyBtn.textContent = `✨ Unlock All — ${PRODUCT_PRICE}`;
+                buyBtn.style.opacity = '1';
+                buyBtn.style.pointerEvents = '';
+                buyBtn.style.background = 'linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%)';
+            }
+        }
+    }
+}
+
+// Export singleton
+const unlockModal = new UnlockModal();
+export default unlockModal;

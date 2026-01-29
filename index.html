@@ -154,6 +154,34 @@
             pointer-events: none;
             text-shadow: none;
         }
+
+        /* Premium element lock styling */
+        .lock-overlay {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 9px;
+            line-height: 1;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+            transition: opacity 0.3s ease;
+            z-index: 5;
+        }
+        .element-btn.premium-element:not(.locked) .lock-overlay {
+            opacity: 0;
+        }
+        .element-btn.locked {
+            opacity: 0.6;
+            filter: saturate(0.4);
+        }
+        .element-btn.locked:hover {
+            opacity: 0.85;
+            filter: saturate(0.6);
+        }
+        .element-btn.locked.active {
+            border-color: rgba(255, 200, 50, 0.5);
+            box-shadow: 0 0 8px rgba(255, 200, 50, 0.3);
+        }
         #global-tooltip {
             position: fixed;
             background: rgba(0, 0, 0, 0.85);
@@ -539,6 +567,9 @@
             <button id="grimoire-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="How to Play">
                 ❓
             </button>
+            <button id="menu-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="Menu">
+                ☰
+            </button>
         </div>
         <div style="font-size: 8px; opacity: 0.4; margin-top: 4px;">v<span id="version">-</span></div>
     </div>
@@ -546,6 +577,65 @@
     <div id="profiler-panel" style="display: none;">
         <h3>⚡ Performance Profiler <kbd>P</kbd> to toggle</h3>
         <div id="profiler-content"></div>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div id="menu-overlay" style="display: none;">
+        <div id="menu-modal">
+            <h2>☰ Menu</h2>
+            <div id="main-menu">
+                <button class="menu-btn" id="new-game-btn">
+                    <span class="menu-icon">🌍</span>
+                    <div>
+                        <div class="menu-btn-title">New Game</div>
+                        <div class="menu-btn-desc">Start a fresh world</div>
+                    </div>
+                </button>
+                <button class="menu-btn" id="templates-btn">
+                    <span class="menu-icon">📋</span>
+                    <div>
+                        <div class="menu-btn-title">Templates</div>
+                        <div class="menu-btn-desc">Load a pre-built world</div>
+                    </div>
+                </button>
+                <button class="menu-btn" id="export-world-btn">
+                    <span class="menu-icon">📤</span>
+                    <div>
+                        <div class="menu-btn-title">Export World</div>
+                        <div class="menu-btn-desc">Share your creation</div>
+                    </div>
+                </button>
+                <button class="menu-btn" id="import-world-btn">
+                    <span class="menu-icon">📥</span>
+                    <div>
+                        <div class="menu-btn-title">Import World</div>
+                        <div class="menu-btn-desc">Load a shared world</div>
+                    </div>
+                </button>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;"></div>
+                <button class="menu-btn" id="unlock-all-btn" style="border-color: rgba(255, 200, 50, 0.4); background: linear-gradient(135deg, rgba(255, 200, 50, 0.1) 0%, rgba(255, 140, 50, 0.05) 100%);">
+                    <span class="menu-icon">✨</span>
+                    <div>
+                        <div class="menu-btn-title" style="color: rgba(255, 200, 50, 0.95);">Unlock All Elements</div>
+                        <div class="menu-btn-desc">Get all 16 premium elements</div>
+                    </div>
+                </button>
+                <button class="menu-btn-secondary" id="restore-purchases-btn">🔄 Restore Purchases</button>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;"></div>
+                <button class="menu-btn-secondary" id="close-menu-btn">✕ Close</button>
+            </div>
+            <div id="template-menu" style="display: none;">
+                <button class="menu-btn-secondary" id="back-btn">← Back</button>
+                <div class="template-grid">
+                    <!-- Templates populated by JS -->
+                </div>
+                <div id="premade-worlds-container" style="display: none;">
+                    <h3 style="color: #00cccc; font-size: 14px; margin: 12px 0 8px;">Pre-made Worlds</h3>
+                    <div id="premade-worlds-list" class="template-grid"></div>
+                </div>
+            </div>
+            <div style="font-size: 8px; opacity: 0.3; text-align: center; margin-top: 12px;">v<span id="menu-version">-</span></div>
+        </div>
     </div>
 
     <!-- Grimoire Modal -->

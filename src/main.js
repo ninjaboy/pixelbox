@@ -9,6 +9,9 @@ import CelestialManager from './managers/CelestialManager.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
 import SplashScene from './scenes/SplashScene.js';
 import MainMenuScene from './scenes/MainMenuScene.js';
+import purchaseManager from './PurchaseManager.js';
+import unlockModal from './UnlockModal.js';
+import MenuManager from './MenuManager.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -24,8 +27,11 @@ class GameScene extends Phaser.Scene {
         this.keys = {}; // Track key states
     }
 
-    create(data) {
+    async create(data) {
         const { width, height } = this.sys.game.config;
+
+        // Initialize purchase manager
+        await purchaseManager.init();
 
         // Show game UI elements (hidden during splash/menu)
         this.setGameUIVisible(true);
@@ -106,6 +112,22 @@ class GameScene extends Phaser.Scene {
 
         // Set version once
         this.versionText.textContent = VERSION;
+
+        // Initialize MenuManager (needs WorldSerializer first)
+        if (!this.worldSerializer) {
+            const { default: WorldSerializer } = await import('./WorldSerializer.js');
+            this.worldSerializer = new WorldSerializer(this);
+        }
+        this.menuManager = new MenuManager(this);
+        this.menuManager.init();
+
+        // Wire up menu button
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => {
+                this.menuManager.showMenu();
+            });
+        }
 
         // Initialize mode display
         this.updateModeDisplay();
@@ -284,13 +306,26 @@ class GameScene extends Phaser.Scene {
             if (!element && elementName !== 'eraser') return;
 
             const config = this.elementConfigs[elementName];
+            const isPremium = purchaseManager.isPremiumElement(elementName);
+            const isLocked = isPremium && !purchaseManager.isUnlocked();
+
             const btn = document.createElement('button');
             btn.className = 'element-btn';
+            if (isPremium) btn.classList.add('premium-element');
+            if (isLocked) btn.classList.add('locked');
             if (elementName === 'sand') btn.classList.add('active');
             btn.dataset.element = elementName;
             btn.dataset.key = key;
             btn.style.background = config.color;
             btn.textContent = config.icon;
+
+            // Add lock overlay for premium elements when locked
+            if (isPremium) {
+                const lockOverlay = document.createElement('div');
+                lockOverlay.className = 'lock-overlay';
+                lockOverlay.textContent = '🔒';
+                btn.appendChild(lockOverlay);
+            }
 
             // Add keybind indicator
             const keybind = document.createElement('div');
@@ -310,6 +345,10 @@ class GameScene extends Phaser.Scene {
                 }
 
                 tooltipKey.textContent = key;
+
+                if (isPremium && !purchaseManager.isUnlocked()) {
+                    tooltipProps.textContent = '🔒 Premium — tap to unlock';
+                }
 
                 const rect = btn.getBoundingClientRect();
                 globalTooltip.style.display = 'block';
@@ -342,6 +381,15 @@ class GameScene extends Phaser.Scene {
             btn.addEventListener('mouseleave', hideTooltip);
 
             const selectElement = () => {
+                // If premium and locked, show unlock modal instead
+                if (purchaseManager.isPremiumElement(elementName) && !purchaseManager.isUnlocked()) {
+                    hideTooltip();
+                    unlockModal.show(elementName, this.elementConfigs, () => {
+                        this.refreshElementLocks();
+                    });
+                    return;
+                }
+
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedElement = elementName;
@@ -440,6 +488,15 @@ class GameScene extends Phaser.Scene {
             // Check element buttons
             const btn = document.querySelector(`.element-btn[data-key="${key}"]`);
             if (btn) {
+                // If the button is for a locked premium element, show unlock modal
+                const elName = btn.dataset.element;
+                if (elName && purchaseManager.isPremiumElement(elName) && !purchaseManager.isUnlocked()) {
+                    unlockModal.show(elName, this.elementConfigs, () => {
+                        this.refreshElementLocks();
+                    });
+                    e.preventDefault();
+                    return;
+                }
                 btn.click();
                 e.preventDefault();
             }
@@ -454,6 +511,14 @@ class GameScene extends Phaser.Scene {
 
         // Profiler panel reference
         this.profilerPanel = document.getElementById('profiler-content');
+
+        // Setup debug triple-tap on version number to toggle premium unlock
+        this.setupDebugUnlockGesture();
+
+        // Listen for purchase state changes (e.g., from menu restore)
+        purchaseManager.onChange(() => {
+            this.refreshElementLocks();
+        });
 
         // Player will spawn when exiting build mode for the first time
     }
@@ -477,6 +542,53 @@ class GameScene extends Phaser.Scene {
         `;
         document.body.appendChild(indicator);
         return indicator;
+    }
+
+    /**
+     * Refresh lock state on all element buttons (after unlock/lock toggle)
+     */
+    refreshElementLocks() {
+        const isUnlocked = purchaseManager.isUnlocked();
+        document.querySelectorAll('.element-btn.premium-element').forEach(btn => {
+            if (isUnlocked) {
+                btn.classList.remove('locked');
+            } else {
+                btn.classList.add('locked');
+            }
+        });
+    }
+
+    /**
+     * Setup debug triple-tap on version to toggle unlock state
+     */
+    setupDebugUnlockGesture() {
+        const versionEl = document.getElementById('version');
+        if (!versionEl) return;
+
+        let tapCount = 0;
+        let tapTimer = null;
+        const parentEl = versionEl.parentElement || versionEl;
+
+        parentEl.style.cursor = 'pointer';
+        parentEl.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            tapCount++;
+
+            if (tapTimer) clearTimeout(tapTimer);
+            tapTimer = setTimeout(() => { tapCount = 0; }, 600);
+
+            if (tapCount >= 3) {
+                tapCount = 0;
+                const newState = await purchaseManager.debugToggle();
+                this.refreshElementLocks();
+
+                // Show feedback
+                const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
+                indicator.textContent = newState ? '🔓 DEV: Premium Unlocked' : '🔒 DEV: Premium Locked';
+                indicator.style.display = 'block';
+                setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+            }
+        });
     }
 
     updateModeDisplay() {

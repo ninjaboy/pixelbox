@@ -1,6 +1,7 @@
 // MenuManager - Handles game menu, templates, and settings
 import WorldTemplates from './WorldTemplates.js';
 import { getAvailableWorlds, loadWorldByName } from '../worlds.config.js';
+import purchaseManager, { PRODUCT_PRICE } from './PurchaseManager.js';
 
 export default class MenuManager {
     constructor(gameScene) {
@@ -62,6 +63,16 @@ export default class MenuManager {
             this.importWorld();
         });
 
+        // Restore Purchases button
+        document.getElementById('restore-purchases-btn')?.addEventListener('click', () => {
+            this.restorePurchases();
+        });
+
+        // Unlock All button (from menu)
+        document.getElementById('unlock-all-btn')?.addEventListener('click', () => {
+            this.unlockAll();
+        });
+
         // Set menu version
         const menuVersion = document.getElementById('menu-version');
         if (menuVersion && this.gameScene.versionText) {
@@ -71,6 +82,7 @@ export default class MenuManager {
 
     showMenu() {
         this.menuOverlay.style.display = 'flex';
+        this.updatePurchaseUI();
         this.showMainMenu();
     }
 
@@ -161,6 +173,70 @@ export default class MenuManager {
         const success = await this.gameScene.worldSerializer.showDownloadDialog();
         if (success) {
             this.hideMenu();
+        }
+    }
+
+    async restorePurchases() {
+        const btn = document.getElementById('restore-purchases-btn');
+        if (btn) {
+            btn.textContent = 'Restoring...';
+            btn.style.opacity = '0.6';
+        }
+
+        const restored = await purchaseManager.restorePurchases();
+
+        if (btn) {
+            btn.textContent = restored ? '✅ Restored!' : 'No purchases found';
+            btn.style.opacity = '1';
+            setTimeout(() => {
+                this.updatePurchaseUI();
+            }, 1500);
+        }
+    }
+
+    async unlockAll() {
+        const btn = document.getElementById('unlock-all-btn');
+        if (btn) {
+            btn.textContent = '⏳ Unlocking...';
+            btn.style.opacity = '0.6';
+        }
+
+        const success = await purchaseManager.unlock();
+
+        if (success && btn) {
+            btn.textContent = '🎉 Unlocked!';
+            setTimeout(() => {
+                this.updatePurchaseUI();
+            }, 1000);
+        }
+    }
+
+    /**
+     * Update purchase-related UI in the menu based on unlock state
+     */
+    updatePurchaseUI() {
+        const unlockBtn = document.getElementById('unlock-all-btn');
+        const restoreBtn = document.getElementById('restore-purchases-btn');
+
+        if (purchaseManager.isUnlocked()) {
+            if (unlockBtn) {
+                unlockBtn.textContent = '✅ All Elements Unlocked';
+                unlockBtn.style.opacity = '0.5';
+                unlockBtn.style.pointerEvents = 'none';
+            }
+            if (restoreBtn) {
+                restoreBtn.style.display = 'none';
+            }
+        } else {
+            if (unlockBtn) {
+                unlockBtn.textContent = `✨ Unlock All Elements — ${PRODUCT_PRICE}`;
+                unlockBtn.style.opacity = '1';
+                unlockBtn.style.pointerEvents = '';
+            }
+            if (restoreBtn) {
+                restoreBtn.textContent = '🔄 Restore Purchases';
+                restoreBtn.style.display = '';
+            }
         }
     }
 }
