@@ -47,3 +47,4 @@ Gemfile.lock
 .env
 .env.local
 .env*.local
+vendor/
