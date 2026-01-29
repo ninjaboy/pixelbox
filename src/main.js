@@ -7,6 +7,8 @@ import SeasonManager from './managers/SeasonManager.js';
 import WindManager from './managers/WindManager.js';
 import CelestialManager from './managers/CelestialManager.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
+import SplashScene from './scenes/SplashScene.js';
+import MainMenuScene from './scenes/MainMenuScene.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -22,8 +24,14 @@ class GameScene extends Phaser.Scene {
         this.keys = {}; // Track key states
     }
 
-    create() {
+    create(data) {
         const { width, height } = this.sys.game.config;
+
+        // Show game UI elements (hidden during splash/menu)
+        this.setGameUIVisible(true);
+
+        // Check if we should continue from a saved game
+        this.shouldContinue = data && data.continueGame === true;
 
         // Create pixel grid (4x4 pixel size for better performance on mobile)
         this.pixelSize = 4;
@@ -114,6 +122,41 @@ class GameScene extends Phaser.Scene {
 
         // Add some initial borders (stone walls)
         this.createBorders();
+
+        // If continuing from a saved game, load the world
+        if (this.shouldContinue) {
+            this.loadSavedWorld();
+        }
+
+        // Fade in from menu transition
+        this.cameras.main.fadeIn(500, 0, 0, 0);
+    }
+
+    async loadSavedWorld() {
+        try {
+            const { default: storageManager } = await import('./StorageManager.js');
+            const worldData = await storageManager.loadCurrentWorld();
+            if (worldData) {
+                // Create a WorldSerializer if not already present
+                if (!this.worldSerializer) {
+                    const { default: WorldSerializer } = await import('./WorldSerializer.js');
+                    this.worldSerializer = new WorldSerializer(this);
+                }
+                this.worldSerializer.deserializeWorld(worldData);
+                console.log('📂 Continued from saved world');
+            }
+        } catch (e) {
+            console.error('❌ Failed to load saved world:', e);
+        }
+    }
+
+    setGameUIVisible(visible) {
+        const display = visible ? '' : 'none';
+        const elements = ['element-selector', 'stats', 'global-tooltip'];
+        elements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = display;
+        });
     }
 
     createBorders() {
@@ -1406,7 +1449,7 @@ const config = {
     height: Math.min(window.innerHeight, 600),
     parent: 'game-container',
     backgroundColor: '#000000',
-    scene: GameScene,
+    scene: [SplashScene, MainMenuScene, GameScene],
     render: {
         pixelArt: true,
         antialias: false
