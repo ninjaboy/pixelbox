@@ -272,6 +272,13 @@ class UnlockModal {
      * @private
      */
     async _handleUnlock() {
+        console.log('💰 _handleUnlock called');
+        console.log('💰 isUnlocked:', purchaseManager.isUnlocked());
+        console.log('💰 isStoreAvailable:', purchaseManager.isStoreAvailable());
+        console.log('💰 _isNative:', purchaseManager._isNative);
+        console.log('💰 _storeReady:', purchaseManager._storeReady);
+        console.log('💰 _product:', purchaseManager._product);
+
         const buyBtn = document.getElementById('unlock-modal-buy');
         if (buyBtn) {
             buyBtn.textContent = '⏳ Purchasing...';
@@ -279,7 +286,14 @@ class UnlockModal {
             buyBtn.style.pointerEvents = 'none';
         }
 
-        const success = await purchaseManager.purchase();
+        let success;
+        try {
+            success = await purchaseManager.purchase();
+            console.log('💰 purchase() returned:', success);
+        } catch (err) {
+            console.error('💰 purchase() threw:', err);
+            success = false;
+        }
 
         if (success) {
             // Show success feedback

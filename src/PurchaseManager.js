@@ -67,14 +67,24 @@ class PurchaseManager {
         }
 
         // 2. Detect native environment
+        console.log('💰 PurchaseManager: Detecting environment...');
+        console.log('💰 window.CdvPurchase:', typeof window.CdvPurchase);
+        console.log('💰 window.CdvPurchase?.store:', typeof window.CdvPurchase?.store);
+        console.log('💰 window.Cordova:', typeof window.Cordova);
+        console.log('💰 window.cordova:', typeof window.cordova);
+        console.log('💰 navigator.userAgent:', navigator.userAgent);
+
         this._isNative = typeof window !== 'undefined'
             && window.CdvPurchase !== undefined
             && window.CdvPurchase.store !== undefined;
+
+        console.log('💰 isNative:', this._isNative);
 
         if (this._isNative) {
             await this._initStore();
         } else {
             console.log('💰 PurchaseManager: Web mode — real IAP unavailable, using local cache only');
+            console.log('💰 Available window keys with Cdv/cordova:', Object.keys(window).filter(k => /cdv|cordova|purchase|store/i.test(k)));
         }
 
         this._initialized = true;

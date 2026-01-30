@@ -1,4 +1,14 @@
 import Phaser from 'phaser';
+import eruda from 'eruda';
+import * as Sentry from '@sentry/browser';
+
+// Init eruda devtools (visible on device for debugging)
+eruda.init();
+console.log('🔧 Eruda devtools initialized');
+
+// Sentry — DSN нужно настроить после регистрации на sentry.io
+// Sentry.init({ dsn: 'YOUR_DSN_HERE', environment: 'development', tracesSampleRate: 1.0 });
+
 import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
 import { VERSION } from '../version.js';
