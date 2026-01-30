@@ -2,9 +2,27 @@ import Phaser from 'phaser';
 import eruda from 'eruda';
 import * as Sentry from '@sentry/browser';
 
-// Init eruda devtools (visible on device for debugging)
-eruda.init();
-console.log('🔧 Eruda devtools initialized');
+// Eruda devtools — hidden, triple-tap top-left corner to toggle
+let _erudaReady = false;
+let _tapCount = 0;
+let _tapTimer = null;
+document.addEventListener('click', (e) => {
+    if (e.clientX < 60 && e.clientY < 60) {
+        _tapCount++;
+        clearTimeout(_tapTimer);
+        _tapTimer = setTimeout(() => { _tapCount = 0; }, 800);
+        if (_tapCount >= 3) {
+            _tapCount = 0;
+            if (!_erudaReady) {
+                eruda.init();
+                _erudaReady = true;
+                console.log('🔧 Eruda activated');
+            } else {
+                eruda._devTools.toggle();
+            }
+        }
+    }
+});
 
 // Sentry — DSN нужно настроить после регистрации на sentry.io
 // Sentry.init({ dsn: 'YOUR_DSN_HERE', environment: 'development', tracesSampleRate: 1.0 });
