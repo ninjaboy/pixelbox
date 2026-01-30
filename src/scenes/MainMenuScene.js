@@ -60,13 +60,23 @@ export default class MainMenuScene extends Phaser.Scene {
         // Menu buttons - we'll create these as interactive graphics + text
         this.buttons = [];
 
-        // Check for saved world and init purchase manager
+        // Build menu immediately with defaults, then update async
         this.hasSave = false;
-        Promise.all([
-            this.checkSavedWorld(),
-            purchaseManager.init()
+        this.buildMenu(width, height);
+
+        // Check for saved world and init purchase manager in background
+        // Update the Continue button state when done
+        const initTimeout = new Promise(resolve => setTimeout(resolve, 5000)); // 5s max
+        Promise.race([
+            Promise.all([
+                this.checkSavedWorld(),
+                purchaseManager.init()
+            ]),
+            initTimeout
         ]).then(() => {
-            this.buildMenu(width, height);
+            this.updateContinueButton(width, height);
+        }).catch(err => {
+            console.warn('Menu init error:', err);
         });
 
         // Fade in
@@ -97,7 +107,8 @@ export default class MainMenuScene extends Phaser.Scene {
             '🌍  New Game',
             'Start a fresh world',
             () => this.startNewGame(),
-            true
+            true,
+            'newgame'
         );
 
         // "Continue" button
@@ -107,7 +118,8 @@ export default class MainMenuScene extends Phaser.Scene {
             '▶️  Continue',
             this.hasSave ? 'Resume your saved world' : 'No saved world found',
             () => this.continueGame(),
-            this.hasSave
+            this.hasSave,
+            'continue'
         );
 
         // Footer text
@@ -119,7 +131,47 @@ export default class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
     }
 
-    createButton(x, y, w, h, label, desc, callback, enabled) {
+    updateContinueButton(width, height) {
+        // Update Continue button if save state changed after async check
+        const continueBtn = this.buttons.find(b => b.id === 'continue');
+        if (!continueBtn) return;
+
+        const { btn, labelText, descText, hitArea } = continueBtn;
+        const buttonWidth = Math.min(260, width * 0.7);
+        const buttonHeight = 52;
+        const x = width / 2;
+        const startY = height * 0.48;
+        const gap = 16;
+        const y = startY + buttonHeight + gap;
+
+        if (this.hasSave && !continueBtn.enabled) {
+            // Upgrade from disabled to enabled
+            continueBtn.enabled = true;
+            const borderColor = 0x00cccc;
+            const fillColor = 0x0a1628;
+            const fillAlpha = 0.85;
+
+            btn.clear();
+            btn.fillStyle(fillColor, fillAlpha);
+            btn.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            btn.lineStyle(2, borderColor, 0.7);
+            btn.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+
+            labelText.setColor('#ffffff');
+            descText.setText('Resume your saved world');
+            descText.setColor('rgba(255, 255, 255, 0.45)');
+
+            if (!hitArea) {
+                const zone = this.add.zone(x, y, buttonWidth, buttonHeight).setInteractive({ useHandCursor: true });
+                zone.on('pointerup', () => this.continueGame());
+                continueBtn.hitArea = zone;
+            }
+
+            btn.postFX.addGlow(borderColor, 1, 0, false, 0.05, 4);
+        }
+    }
+
+    createButton(x, y, w, h, label, desc, callback, enabled, id = null) {
         const btn = this.add.graphics();
         const borderColor = enabled ? 0x00cccc : 0x444444;
         const fillColor = enabled ? 0x0a1628 : 0x0a0a14;
@@ -150,9 +202,10 @@ export default class MainMenuScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
+        let hitArea = null;
         if (enabled) {
             // Make button interactive
-            const hitArea = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+            hitArea = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
 
             hitArea.on('pointerover', () => {
                 btn.clear();
@@ -186,7 +239,7 @@ export default class MainMenuScene extends Phaser.Scene {
             btn.postFX.addGlow(borderColor, 1, 0, false, 0.05, 4);
         }
 
-        this.buttons.push({ btn, labelText, descText, enabled });
+        this.buttons.push({ btn, labelText, descText, enabled, id, hitArea });
     }
 
     startNewGame() {
