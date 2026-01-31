@@ -76,11 +76,21 @@
         /* Mobile Landscape: Side panel layout */
         @media (max-width: 900px) and (orientation: landscape) {
             body {
-                display: block; /* Disable flex for landscape */
+                display: flex;
+                flex-direction: column;
             }
+            #game-header {
+                height: 26px;
+                font-size: 10px;
+                padding-left: max(10px, env(safe-area-inset-left));
+                padding-right: max(10px, env(safe-area-inset-right));
+            }
+            #game-header .hdr-btn { width: 20px; height: 20px; font-size: 11px; }
             #game-container {
-                height: 100vh;
+                flex: 1;
+                height: auto;
                 width: calc(100vw - 44px); /* Leave space for 32px buttons + 12px margins */
+                min-height: 0;
             }
             #element-selector {
                 position: fixed;
@@ -213,18 +223,168 @@
             padding-top: 3px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
+        /* ── Game Header Bar ── */
+        #game-header {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 32px;
+            padding: 0 10px;
+            padding-top: env(safe-area-inset-top, 0px);
+            background: rgba(0, 0, 0, 0.85);
+            border-bottom: 2px solid rgba(218, 165, 32, 0.6);
+            color: rgba(255, 255, 255, 0.85);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            z-index: 500;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #game-header .header-left,
+        #game-header .header-center,
+        #game-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #game-header .header-left { flex: 1; justify-content: flex-start; }
+        #game-header .header-center { flex: 0 0 auto; }
+        #game-header .header-right { flex: 1; justify-content: flex-end; }
+        #game-header .hdr-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(218, 165, 32, 0.35);
+            color: rgba(255, 255, 255, 0.8);
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, border-color 0.15s;
+            touch-action: manipulation;
+        }
+        #game-header .hdr-btn:active {
+            background: rgba(218, 165, 32, 0.25);
+            border-color: rgba(218, 165, 32, 0.7);
+        }
+        #game-header #season-display {
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: rgba(255, 220, 120, 0.9);
+        }
+        #game-header #speed-display {
+            font-size: 10px;
+            min-width: 36px;
+            text-align: center;
+            color: rgba(0, 255, 255, 0.85);
+        }
+
+        /* ── Settings Modal ── */
+        #settings-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            animation: fadeIn 0.25s ease;
+        }
+        #settings-modal {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+            border: 2px solid rgba(218, 165, 32, 0.5);
+            border-radius: 4px;
+            padding: 20px 24px;
+            max-width: 320px;
+            width: 85%;
+            box-shadow: 0 0 24px rgba(218, 165, 32, 0.15), inset 0 0 12px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.25s ease;
+            position: relative;
+            font-family: 'Courier New', monospace;
+        }
+        #settings-modal h3 {
+            margin: 0 0 16px 0;
+            text-align: center;
+            color: rgba(218, 165, 32, 0.9);
+            font-size: 14px;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(218, 165, 32, 0.3);
+            padding-bottom: 10px;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 12px;
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-row label { flex: 1; cursor: pointer; }
+        .settings-toggle {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(218, 165, 32, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+            touch-action: manipulation;
+        }
+        .settings-toggle:active,
+        .settings-toggle.active {
+            background: rgba(218, 165, 32, 0.2);
+            border-color: rgba(218, 165, 32, 0.6);
+            color: rgba(218, 165, 32, 0.95);
+        }
+        #settings-close {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(218, 165, 32, 0.4);
+            width: 24px; height: 24px;
+            color: rgba(218, 165, 32, 0.8);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .settings-version {
+            text-align: center;
+            font-size: 8px;
+            opacity: 0.35;
+            margin-top: 12px;
+        }
+
+        /* ── Stats (minimal, hidden by default) ── */
         #stats {
             position: fixed;
-            top: 8px;
+            top: calc(36px + env(safe-area-inset-top, 0px));
             right: 8px;
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(0, 0, 0, 0.3);
-            padding: 6px 8px;
-            border-radius: 4px;
-            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.25);
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 9px;
             font-family: monospace;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(3px);
+            display: none;
+            z-index: 499;
         }
+        #stats.visible { display: block; }
         #profiler-panel {
             position: fixed;
             top: 10px;
@@ -526,6 +686,21 @@
     </style>
 </head>
 <body>
+    <!-- ── Header Bar ── -->
+    <div id="game-header">
+        <div class="header-left">
+            <span id="season-display">🌸 Spring</span>
+        </div>
+        <div class="header-center">
+            <button id="speed-down" class="hdr-btn" title="Slower">−</button>
+            <span id="speed-display">⏱️ 1x</span>
+            <button id="speed-up" class="hdr-btn" title="Faster">+</button>
+        </div>
+        <div class="header-right">
+            <button id="settings-btn" class="hdr-btn" title="Settings" style="font-size:13px;">⚙️</button>
+        </div>
+    </div>
+
     <div id="game-container"></div>
 
     <div id="element-selector">
@@ -538,32 +713,41 @@
         <div id="tooltip-key"></div>
     </div>
 
+    <!-- Minimal stats overlay (hidden by default, toggled from settings) -->
     <div id="stats">
-        <div>FPS: <span id="fps">60</span></div>
-        <div>P: <span id="particles">0</span></div>
-        <div style="font-size: 9px; margin-top: 2px;"><span id="season-display">🌸 Spring</span></div>
-        <div style="font-size: 9px; margin-top: 1px; display: flex; align-items: center; gap: 4px;">
-            <button id="speed-down" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 16px; height: 16px; font-size: 10px; cursor: pointer; border-radius: 2px; padding: 0; line-height: 1;">−</button>
-            <span id="speed-display">⏱️ 1x</span>
-            <button id="speed-up" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 16px; height: 16px; font-size: 10px; cursor: pointer; border-radius: 2px; padding: 0; line-height: 1;">+</button>
-        </div>
-        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15);">
-            <div style="font-size: 9px;">
-                <span id="mode-display" style="color: rgba(0,255,255,0.8);">🔨 Build</span>
+        <span>FPS: <span id="fps">60</span></span> &nbsp;
+        <span>P: <span id="particles">0</span></span>
+    </div>
+
+    <!-- Hidden elements that JS still references -->
+    <span id="mode-display" style="display:none;">🔨 Build</span>
+    <span id="version" style="display:none;">-</span>
+
+    <!-- Settings Modal -->
+    <div id="settings-overlay" style="display: none;">
+        <div id="settings-modal">
+            <button id="settings-close">×</button>
+            <h3>⚙ SETTINGS</h3>
+            <div class="settings-row">
+                <label>🔊 Sound</label>
+                <button id="mute-btn" class="settings-toggle active" title="Toggle Sound">
+                    <span id="mute-icon">ON</span>
+                </button>
             </div>
-            <div style="font-size: 8px; opacity: 0.5; margin-top: 1px;">
-                <kbd style="background: rgba(255,255,255,0.1); padding: 1px 3px; border-radius: 2px; font-size: 7px;">B</kbd>
+            <div class="settings-row">
+                <label>🔨 Build Mode</label>
+                <button id="build-toggle" class="settings-toggle active">ON</button>
             </div>
+            <div class="settings-row">
+                <label>📊 FPS Counter</label>
+                <button id="fps-toggle" class="settings-toggle">OFF</button>
+            </div>
+            <div class="settings-row">
+                <label>📖 Element Guide</label>
+                <button id="grimoire-btn" class="settings-toggle">OPEN</button>
+            </div>
+            <div class="settings-version">v<span id="settings-version">-</span></div>
         </div>
-        <div style="display: flex; gap: 3px; margin-top: 4px;">
-            <button id="mute-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="Toggle Sound">
-                <span id="mute-icon">🔊</span>
-            </button>
-            <button id="grimoire-btn" style="flex: 1; padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;" title="How to Play">
-                ❓
-            </button>
-        </div>
-        <div style="font-size: 8px; opacity: 0.4; margin-top: 4px;">v<span id="version">-</span></div>
     </div>
 
     <div id="profiler-panel" style="display: none;">
@@ -884,7 +1068,8 @@
                     oscillators = [];
                     melodyOscillators = [];
 
-                    muteIcon.textContent = '🔇';
+                    muteIcon.textContent = 'OFF';
+                    muteBtn.classList.remove('active');
                 } else {
                     // Unmute - restart chord progression
                     // Safari/iOS: Resume audio context if suspended
@@ -900,7 +1085,64 @@
                         playChord(chordProgression[currentChordIndex]);
                     }
 
-                    muteIcon.textContent = '🔊';
+                    muteIcon.textContent = 'ON';
+                    muteBtn.classList.add('active');
+                }
+            });
+
+            // ── Settings Panel Wiring ──
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsOverlay = document.getElementById('settings-overlay');
+            const settingsClose = document.getElementById('settings-close');
+            const fpsToggle = document.getElementById('fps-toggle');
+            const buildToggle = document.getElementById('build-toggle');
+            const statsDiv = document.getElementById('stats');
+            const settingsVersion = document.getElementById('settings-version');
+            const versionEl = document.getElementById('version');
+
+            // Open/close settings
+            settingsBtn.addEventListener('click', () => {
+                settingsOverlay.style.display = 'flex';
+                // Sync version
+                if (versionEl) settingsVersion.textContent = versionEl.textContent;
+                // Sync build mode state from Phaser scene
+                if (window.__pixellenceScene) {
+                    const bm = window.__pixellenceScene.buildMode;
+                    buildToggle.textContent = bm ? 'ON' : 'OFF';
+                    if (bm) buildToggle.classList.add('active');
+                    else buildToggle.classList.remove('active');
+                }
+            });
+            settingsClose.addEventListener('click', () => { settingsOverlay.style.display = 'none'; });
+            settingsOverlay.addEventListener('click', (e) => {
+                if (e.target === settingsOverlay) settingsOverlay.style.display = 'none';
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && settingsOverlay.style.display === 'flex') {
+                    settingsOverlay.style.display = 'none';
+                }
+            });
+
+            // FPS toggle
+            fpsToggle.addEventListener('click', () => {
+                const showing = statsDiv.classList.toggle('visible');
+                fpsToggle.textContent = showing ? 'ON' : 'OFF';
+                if (showing) fpsToggle.classList.add('active');
+                else fpsToggle.classList.remove('active');
+            });
+
+            // Build mode toggle
+            buildToggle.addEventListener('click', () => {
+                if (window.__pixellenceScene) {
+                    const scene = window.__pixellenceScene;
+                    scene.buildMode = !scene.buildMode;
+                    if (!scene.buildMode && scene.playerX === null) {
+                        scene.spawnPlayer();
+                    }
+                    scene.updateModeDisplay();
+                    buildToggle.textContent = scene.buildMode ? 'ON' : 'OFF';
+                    if (scene.buildMode) buildToggle.classList.add('active');
+                    else buildToggle.classList.remove('active');
                 }
             });
         });
@@ -960,8 +1202,10 @@
             // Populate grimoire with simple text
             grimoireContent.innerHTML = grimoireText;
 
-            // Show/hide grimoire
+            // Show/hide grimoire (close settings first)
             grimoireBtn.addEventListener('click', () => {
+                const settingsOv = document.getElementById('settings-overlay');
+                if (settingsOv) settingsOv.style.display = 'none';
                 grimoireOverlay.style.display = 'flex';
             });
 

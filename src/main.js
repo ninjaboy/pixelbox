@@ -190,6 +190,9 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.fadeIn(500, 0, 0, 0);
 
         this.sceneReady = true;
+
+        // Expose scene for settings panel
+        window.__pixellenceScene = this;
     }
 
     async loadSavedWorld() {
