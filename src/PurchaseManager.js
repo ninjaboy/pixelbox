@@ -33,10 +33,15 @@ export const PREMIUM_ELEMENTS = [
 
 const STORAGE_KEY = 'pixelbox_premium_unlocked';
 
-// ─── Debug alert helper (visible on-device for TestFlight debugging) ────────
+// ─── Telemetry helper ───────────────────────────────────────────────────────
 
-function iapAlert(msg) {
-    alert('IAP: ' + msg);
+function iapLog(msg, data = null) {
+    const entry = `💰 [IAP] ${msg}`;
+    if (data) {
+        console.log(entry, data);
+    } else {
+        console.log(entry);
+    }
 }
 
 class PurchaseManager {
@@ -85,14 +90,14 @@ class PurchaseManager {
             && window.CdvPurchase.store !== undefined;
 
         console.log('💰 isNative:', this._isNative);
-        iapAlert(`init() — CdvPurchase: ${typeof window.CdvPurchase}, isNative: ${this._isNative}`);
+        iapLog(`init() — CdvPurchase: ${typeof window.CdvPurchase}, isNative: ${this._isNative}`);
 
         if (this._isNative) {
             await this._initStore();
         } else {
             console.log('💰 PurchaseManager: Web mode — real IAP unavailable, using local cache only');
             console.log('💰 Available window keys with Cdv/cordova:', Object.keys(window).filter(k => /cdv|cordova|purchase|store/i.test(k)));
-            iapAlert('init() — NOT native. Keys: ' + Object.keys(window).filter(k => /cdv|cordova|purchase|store/i.test(k)).join(', '));
+            iapLog('init() — NOT native. Keys: ' + Object.keys(window).filter(k => /cdv|cordova|purchase|store/i.test(k)).join(', '));
         }
 
         this._initialized = true;
@@ -166,11 +171,11 @@ class PurchaseManager {
 
             if (errors.length > 0) {
                 console.warn('💰 Store init errors:', errors);
-                iapAlert('_initStore() ERRORS: ' + errors.map(e => e.message || e.code || JSON.stringify(e)).join('; '));
+                iapLog('_initStore() ERRORS: ' + errors.map(e => e.message || e.code || JSON.stringify(e)).join('; '));
             }
 
             this._storeReady = true;
-            iapAlert('_initStore() — store ready, owned=' + store.owned(PRODUCT_ID));
+            iapLog('_initStore() — store ready, owned=' + store.owned(PRODUCT_ID));
 
             // Re-check ownership now that store is ready
             if (store.owned(PRODUCT_ID)) {
@@ -180,7 +185,7 @@ class PurchaseManager {
             console.log('💰 Store initialized successfully');
         } catch (error) {
             console.error('❌ PurchaseManager: Store init failed:', error);
-            iapAlert('_initStore() EXCEPTION: ' + (error.message || error));
+            iapLog('_initStore() EXCEPTION: ' + (error.message || error));
             // Fall back to local cache — already loaded above
         }
     }
@@ -242,20 +247,20 @@ class PurchaseManager {
     async purchase() {
         if (this._unlocked) {
             console.log('💰 Already unlocked');
-            iapAlert('purchase() — already unlocked, returning true');
+            iapLog('purchase() — already unlocked, returning true');
             return true;
         }
 
-        iapAlert(`purchase() — isNative=${this._isNative}, storeReady=${this._storeReady}`);
+        iapLog(`purchase() — isNative=${this._isNative}, storeReady=${this._storeReady}`);
 
         // ── Native purchase via StoreKit ──
         if (this._isNative && this._storeReady) {
-            iapAlert('purchase() — taking NATIVE path');
+            iapLog('purchase() — taking NATIVE path');
             return await this._nativePurchase();
         }
 
         // ── Web fallback: local unlock for testing ──
-        iapAlert('purchase() — taking WEB fallback path');
+        iapLog('purchase() — taking WEB fallback path');
         console.log('💰 Web mode: unlocking locally for testing');
         await this._setUnlocked(true);
         return true;
@@ -269,35 +274,35 @@ class PurchaseManager {
     async _nativePurchase() {
         const store = this._store;
         if (!store) {
-            iapAlert('_nativePurchase() — store is null!');
+            iapLog('_nativePurchase() — store is null!');
             return false;
         }
 
         const product = store.get(PRODUCT_ID);
-        iapAlert(`_nativePurchase() — product: ${product ? product.id : 'NOT FOUND'}`);
+        iapLog(`_nativePurchase() — product: ${product ? product.id : 'NOT FOUND'}`);
         if (!product) {
             console.error('💰 Product not found in store');
             return false;
         }
 
         const offer = product.getOffer();
-        iapAlert(`_nativePurchase() — offer: ${offer ? 'found' : 'NOT FOUND'}, product.state: ${product.state}`);
+        iapLog(`_nativePurchase() — offer: ${offer ? 'found' : 'NOT FOUND'}, product.state: ${product.state}`);
         if (!offer) {
             console.error('💰 No offer available for product');
             return false;
         }
 
         try {
-            iapAlert('_nativePurchase() — calling offer.order()…');
+            iapLog('_nativePurchase() — calling offer.order()…');
             // This triggers the native Apple Pay / StoreKit dialog
             const error = await offer.order();
             if (error) {
                 if (error.code === window.CdvPurchase.ErrorCode.PAYMENT_CANCELLED) {
                     console.log('💰 Purchase cancelled by user');
-                    iapAlert('_nativePurchase() — user cancelled');
+                    iapLog('_nativePurchase() — user cancelled');
                 } else {
                     console.error('💰 Purchase failed:', error.code, error.message);
-                    iapAlert(`_nativePurchase() — order error: ${error.code} ${error.message}`);
+                    iapLog(`_nativePurchase() — order error: ${error.code} ${error.message}`);
                 }
                 return false;
             }
@@ -308,7 +313,7 @@ class PurchaseManager {
             return await this._waitForUnlock(8000);
         } catch (error) {
             console.error('❌ Purchase exception:', error);
-            iapAlert('_nativePurchase() EXCEPTION: ' + (error.message || error));
+            iapLog('_nativePurchase() EXCEPTION: ' + (error.message || error));
             return false;
         }
     }
