@@ -185,9 +185,12 @@ class UnlockModal {
         this.overlay.appendChild(modal);
         document.body.appendChild(this.overlay);
 
-        // Close on overlay click
+        // Close on overlay click / touch
         this.overlay.addEventListener('click', (e) => {
             if (e.target === this.overlay) this.hide();
+        });
+        this.overlay.addEventListener('touchend', (e) => {
+            if (e.target === this.overlay) { e.stopPropagation(); this.hide(); }
         });
 
         // ESC to close
@@ -273,8 +276,13 @@ class UnlockModal {
             this.overlay.style.pointerEvents = 'none';
         }
 
+        // Blur whatever button/element the modal left focused
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
         // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
-        const canvas = document.querySelector('#game-container canvas');
+        const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.focus();
         }
