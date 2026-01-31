@@ -131,11 +131,18 @@ class UnlockModal {
         `;
         unlockBtn.textContent = `✨ Unlock All — ${purchaseManager.getPrice()}`;
         // Use both click and touchend for iOS WKWebView compatibility
-        // IMPORTANT: preventDefault on touchstart to prevent iOS scroll gesture,
-        // stopPropagation on touchend to avoid breaking touch delivery after close
-        unlockBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
-        unlockBtn.addEventListener('click', (e) => { e.preventDefault(); this._handleUnlock(); });
-        unlockBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this._handleUnlock(); });
+        // touchend fires first on iOS; click is fallback for desktop/simulator
+        // Use _handledByTouch flag to prevent double-fire
+        unlockBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (this._touchHandled) { this._touchHandled = false; return; }
+            this._handleUnlock();
+        });
+        unlockBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            this._touchHandled = true;
+            this._handleUnlock();
+        });
 
         // Add hover/active states
         unlockBtn.addEventListener('mouseenter', () => {
@@ -163,9 +170,16 @@ class UnlockModal {
             font-family: inherit;
         `;
         cancelBtn.textContent = 'Not Now';
-        cancelBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
-        cancelBtn.addEventListener('click', (e) => { e.preventDefault(); this.hide(); });
-        cancelBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this.hide(); });
+        cancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (this._cancelTouchHandled) { this._cancelTouchHandled = false; return; }
+            this.hide();
+        });
+        cancelBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            this._cancelTouchHandled = true;
+            this.hide();
+        });
         cancelBtn.addEventListener('mouseenter', () => {
             cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
             cancelBtn.style.color = 'rgba(255, 255, 255, 0.7)';
@@ -188,10 +202,13 @@ class UnlockModal {
         document.body.appendChild(this.overlay);
 
         // Close on overlay click / touch
-        // IMPORTANT: must handle touchstart to prevent iOS scroll gesture
-        // which breaks touch delivery to element buttons after modal closes
+        // touchstart: prevent iOS scroll/zoom gesture but DON'T preventDefault
+        // on buttons (it blocks click events). Only prevent on overlay background.
         this.overlay.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent iOS scroll/zoom gesture
+            // Only preventDefault on the overlay background itself, not on child buttons
+            if (e.target === this.overlay) {
+                e.preventDefault();
+            }
         });
         this.overlay.addEventListener('click', (e) => {
             if (e.target === this.overlay) this.hide();
