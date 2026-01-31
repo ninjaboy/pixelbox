@@ -131,8 +131,10 @@ class UnlockModal {
         `;
         unlockBtn.textContent = `✨ Unlock All — ${purchaseManager.getPrice()}`;
         // Use both click and touchend for iOS WKWebView compatibility
+        // IMPORTANT: use stopPropagation (not preventDefault) on touchend to avoid
+        // breaking iOS touch delivery to the Phaser canvas after modal closes
         unlockBtn.addEventListener('click', (e) => { e.preventDefault(); this._handleUnlock(); });
-        unlockBtn.addEventListener('touchend', (e) => { e.preventDefault(); this._handleUnlock(); });
+        unlockBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this._handleUnlock(); });
 
         // Add hover/active states
         unlockBtn.addEventListener('mouseenter', () => {
@@ -161,7 +163,7 @@ class UnlockModal {
         `;
         cancelBtn.textContent = 'Not Now';
         cancelBtn.addEventListener('click', (e) => { e.preventDefault(); this.hide(); });
-        cancelBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.hide(); });
+        cancelBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this.hide(); });
         cancelBtn.addEventListener('mouseenter', () => {
             cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
             cancelBtn.style.color = 'rgba(255, 255, 255, 0.7)';
@@ -258,6 +260,7 @@ class UnlockModal {
             this.previewContainer.appendChild(chip);
         });
 
+        this.overlay.style.pointerEvents = '';
         this.overlay.style.display = 'flex';
     }
 
@@ -267,6 +270,13 @@ class UnlockModal {
     hide() {
         if (this.overlay) {
             this.overlay.style.display = 'none';
+            this.overlay.style.pointerEvents = 'none';
+        }
+
+        // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
+        const canvas = document.querySelector('#game-container canvas');
+        if (canvas) {
+            canvas.focus();
         }
     }
 
