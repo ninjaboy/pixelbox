@@ -132,28 +132,28 @@ export default class SplashScene extends Phaser.Scene {
                 '.#.',
                 '.##',
             ],
-            'B': [
-                '####.',
+            'n': [
+                '.....',
+                '.....',
+                '#.##.',
+                '##..#',
                 '#...#',
                 '#...#',
-                '####.',
                 '#...#',
-                '#...#',
-                '####.',
             ],
-            'o': [
+            'c': [
                 '.....',
                 '.....',
                 '.###.',
                 '#...#',
-                '#...#',
+                '#....',
                 '#...#',
                 '.###.',
             ],
         };
 
         const title = 'Pixellence';
-        const letterWidths = { 'P': 5, 'i': 3, 'x': 5, 'e': 5, 'l': 3, 'B': 5, 'o': 5 };
+        const letterWidths = { 'P': 5, 'i': 3, 'x': 5, 'e': 5, 'l': 3, 'n': 5, 'c': 5 };
         const pixelSize = 5;
         const spacing = 2;
 
