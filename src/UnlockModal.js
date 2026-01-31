@@ -131,8 +131,9 @@ class UnlockModal {
         `;
         unlockBtn.textContent = `✨ Unlock All — ${purchaseManager.getPrice()}`;
         // Use both click and touchend for iOS WKWebView compatibility
-        // IMPORTANT: use stopPropagation (not preventDefault) on touchend to avoid
-        // breaking iOS touch delivery to the Phaser canvas after modal closes
+        // IMPORTANT: preventDefault on touchstart to prevent iOS scroll gesture,
+        // stopPropagation on touchend to avoid breaking touch delivery after close
+        unlockBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
         unlockBtn.addEventListener('click', (e) => { e.preventDefault(); this._handleUnlock(); });
         unlockBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this._handleUnlock(); });
 
@@ -162,6 +163,7 @@ class UnlockModal {
             font-family: inherit;
         `;
         cancelBtn.textContent = 'Not Now';
+        cancelBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
         cancelBtn.addEventListener('click', (e) => { e.preventDefault(); this.hide(); });
         cancelBtn.addEventListener('touchend', (e) => { e.stopPropagation(); this.hide(); });
         cancelBtn.addEventListener('mouseenter', () => {
@@ -186,6 +188,11 @@ class UnlockModal {
         document.body.appendChild(this.overlay);
 
         // Close on overlay click / touch
+        // IMPORTANT: must handle touchstart to prevent iOS scroll gesture
+        // which breaks touch delivery to element buttons after modal closes
+        this.overlay.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent iOS scroll/zoom gesture
+        });
         this.overlay.addEventListener('click', (e) => {
             if (e.target === this.overlay) this.hide();
         });
@@ -282,10 +289,15 @@ class UnlockModal {
         }
 
         // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
-        const canvas = document.querySelector('canvas');
-        if (canvas) {
-            canvas.focus();
-        }
+        // IMPORTANT: defer focus to avoid interfering with iOS touch state machine
+        // Calling focus() synchronously inside a touchend handler breaks subsequent
+        // touch delivery to DOM elements (element selector buttons)
+        setTimeout(() => {
+            const canvas = document.querySelector('canvas');
+            if (canvas) {
+                canvas.focus();
+            }
+        }, 100);
     }
 
     /**

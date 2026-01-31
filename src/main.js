@@ -436,8 +436,12 @@ class GameScene extends Phaser.Scene {
                 // If premium and locked, show unlock modal instead
                 if (purchaseManager.isPremiumElement(elementName) && !purchaseManager.isUnlocked()) {
                     hideTooltip();
-                    unlockModal.show(elementName, this.elementConfigs, () => {
-                        this.refreshElementLocks();
+                    // Defer modal show to next frame to avoid breaking iOS touch chain
+                    // Showing overlay during touchend handler corrupts touch state machine
+                    requestAnimationFrame(() => {
+                        unlockModal.show(elementName, this.elementConfigs, () => {
+                            this.refreshElementLocks();
+                        });
                     });
                     return;
                 }
