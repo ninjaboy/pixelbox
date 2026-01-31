@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { VERSION } from '../../version.js';
+import { pixelFont, letterWidths } from '../PixelFont.js';
 
 /**
  * SplashScene - Animated splash screen with particle effects
@@ -85,75 +86,7 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     buildTitlePixels(width, height) {
-        // Pixel font for "Pixellence" - each letter is 5x7 pixels
-        const pixelFont = {
-            'P': [
-                '####.',
-                '#...#',
-                '#...#',
-                '####.',
-                '#....',
-                '#....',
-                '#....',
-            ],
-            'i': [
-                '.#.',
-                '...',
-                '.#.',
-                '.#.',
-                '.#.',
-                '.#.',
-                '.#.',
-            ],
-            'x': [
-                '.....',
-                '.....',
-                '#...#',
-                '.#.#.',
-                '..#..',
-                '.#.#.',
-                '#...#',
-            ],
-            'e': [
-                '.....',
-                '.....',
-                '.###.',
-                '#...#',
-                '#####',
-                '#....',
-                '.####',
-            ],
-            'l': [
-                '.#.',
-                '.#.',
-                '.#.',
-                '.#.',
-                '.#.',
-                '.#.',
-                '.##',
-            ],
-            'n': [
-                '.....',
-                '.....',
-                '#.##.',
-                '##..#',
-                '#...#',
-                '#...#',
-                '#...#',
-            ],
-            'c': [
-                '.....',
-                '.....',
-                '.###.',
-                '#...#',
-                '#....',
-                '#...#',
-                '.###.',
-            ],
-        };
-
         const title = 'Pixellence';
-        const letterWidths = { 'P': 5, 'i': 3, 'x': 5, 'e': 5, 'l': 3, 'n': 5, 'c': 5 };
         const pixelSize = 5;
         const spacing = 2;
 
@@ -327,7 +260,7 @@ export default class SplashScene extends Phaser.Scene {
 
     setGameUIVisible(visible) {
         const display = visible ? '' : 'none';
-        const elements = ['element-selector', 'stats', 'global-tooltip'];
+        const elements = ['element-selector', 'stats', 'global-tooltip', 'game-header'];
         elements.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = display;

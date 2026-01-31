@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { VERSION } from '../../version.js';
 import storageManager from '../StorageManager.js';
 import purchaseManager from '../PurchaseManager.js';
+import { buildPixelText } from '../PixelFont.js';
 
 /**
  * MainMenuScene - Main menu with sky/sunset background
@@ -34,19 +35,14 @@ export default class MainMenuScene extends Phaser.Scene {
             this.spawnAmbientParticle(width, height, true);
         }
 
-        // Title - "Pixellence" as Phaser text with glow-like styling
-        this.titleText = this.add.text(width / 2, height * 0.22, 'Pixellence', {
-            fontFamily: 'monospace',
-            fontSize: '42px',
-            fontStyle: 'bold',
-            color: '#ff8c42',
-            align: 'center',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
-
-        // Add glow effect to title
-        this.titleText.postFX.addGlow(0xff6b35, 4, 0, false, 0.1, 6);
+        // Title - "Pixellence" as pixel art
+        this.titleGraphics = this.add.graphics();
+        this.titleColors = [
+            0xff6b35, 0xff8c42, 0xffa500, 0xffdd44,
+            0x00ffff, 0x4a90e2, 0x00cccc, 0x87ceeb
+        ];
+        this.titlePixels = buildPixelText('Pixellence', width / 2, height * 0.22, 4, this.titleColors);
+        this.titleElapsed = 0;
 
         // Subtitle / version (with premium badge if unlocked)
         const versionSuffix = purchaseManager.isUnlocked() ? '  ★' : '';
@@ -120,6 +116,20 @@ export default class MainMenuScene extends Phaser.Scene {
             () => this.continueGame(),
             this.hasSave,
             'continue'
+        );
+
+        // "Settings" button (smaller, secondary style)
+        this.createButton(
+            buttonX, startY + (buttonHeight + gap) * 2,
+            buttonWidth, buttonHeight * 0.7,
+            '⚙️  Settings',
+            'Sound, controls & help',
+            () => {
+                const overlay = document.getElementById('settings-overlay');
+                if (overlay) overlay.style.display = 'flex';
+            },
+            true,
+            'settings'
         );
 
         // Footer text
@@ -309,9 +319,14 @@ export default class MainMenuScene extends Phaser.Scene {
             );
         }
 
-        // Pulse title glow
-        const pulse = 0.8 + Math.sin(time * 0.002) * 0.2;
-        this.titleText.setAlpha(pulse);
+        // Draw pixel title with shimmer
+        this.titleElapsed += delta;
+        this.titleGraphics.clear();
+        for (const tp of this.titlePixels) {
+            const shimmer = 0.85 + Math.sin(this.titleElapsed * 0.003 + tp.x * 0.05) * 0.15;
+            this.titleGraphics.fillStyle(tp.color, shimmer);
+            this.titleGraphics.fillRect(tp.x, tp.y, tp.size, tp.size);
+        }
     }
 
     renderSky(width, height, time) {
@@ -376,7 +391,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     setGameUIVisible(visible) {
         const display = visible ? '' : 'none';
-        const elements = ['element-selector', 'stats', 'global-tooltip'];
+        const elements = ['element-selector', 'stats', 'global-tooltip', 'game-header'];
         elements.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = display;
