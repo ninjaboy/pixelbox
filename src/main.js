@@ -215,6 +215,9 @@ class GameScene extends Phaser.Scene {
 
     setGameUIVisible(visible) {
         const display = visible ? '' : 'none';
+        const headerDisplay = visible ? 'flex' : 'none';
+        const header = document.getElementById('game-header');
+        if (header) header.style.display = headerDisplay;
         const elements = ['element-selector', 'stats', 'global-tooltip'];
         elements.forEach(id => {
             const el = document.getElementById(id);
