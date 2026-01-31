@@ -3,7 +3,7 @@ import { VERSION } from '../../version.js';
 
 /**
  * SplashScene - Animated splash screen with particle effects
- * Shows game title "PixelBox" with falling pixel particles
+ * Shows game title "Pixellence" with falling pixel particles
  * Auto-transitions to MainMenuScene after ~3 seconds, or tap/click to skip
  */
 export default class SplashScene extends Phaser.Scene {
@@ -43,7 +43,7 @@ export default class SplashScene extends Phaser.Scene {
             this.spawnAmbientParticle(true);
         }
 
-        // Title text pixels - we'll render "PixelBox" as pixel art
+        // Title text pixels - we'll render "Pixellence" as pixel art
         this.buildTitlePixels(width, height);
 
         // Version text (Phaser text, shown after title reveals)
@@ -85,7 +85,7 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     buildTitlePixels(width, height) {
-        // Pixel font for "PixelBox" - each letter is 5x7 pixels
+        // Pixel font for "Pixellence" - each letter is 5x7 pixels
         const pixelFont = {
             'P': [
                 '####.',
@@ -152,7 +152,7 @@ export default class SplashScene extends Phaser.Scene {
             ],
         };
 
-        const title = 'PixelBox';
+        const title = 'Pixellence';
         const letterWidths = { 'P': 5, 'i': 3, 'x': 5, 'e': 5, 'l': 3, 'B': 5, 'o': 5 };
         const pixelSize = 5;
         const spacing = 2;

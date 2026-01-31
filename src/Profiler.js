@@ -1,4 +1,4 @@
-// Performance Profiler for PixelBox
+// Performance Profiler for Pixellence
 // Tracks timing data for element updates, rendering, and other operations
 
 class Profiler {

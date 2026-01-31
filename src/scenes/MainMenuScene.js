@@ -34,8 +34,8 @@ export default class MainMenuScene extends Phaser.Scene {
             this.spawnAmbientParticle(width, height, true);
         }
 
-        // Title - "PixelBox" as Phaser text with glow-like styling
-        this.titleText = this.add.text(width / 2, height * 0.22, 'PixelBox', {
+        // Title - "Pixellence" as Phaser text with glow-like styling
+        this.titleText = this.add.text(width / 2, height * 0.22, 'Pixellence', {
             fontFamily: 'monospace',
             fontSize: '42px',
             fontStyle: 'bold',

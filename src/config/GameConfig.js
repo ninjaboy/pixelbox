@@ -1,5 +1,5 @@
 /**
- * GameConfig.js - Central configuration for PixelBox game systems
+ * GameConfig.js - Central configuration for Pixellence game systems
  *
  * This file contains all tunable parameters for:
  * - Time system (days, months, seasons)
