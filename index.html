@@ -703,6 +703,26 @@
 
     <div id="game-container"></div>
 
+    <div id="brush-control" style="
+        display: none;
+        width: 100%;
+        z-index: 100;
+        background: rgba(0,0,0,0.6);
+        padding: 4px 12px;
+        box-sizing: border-box;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-family: monospace;
+        color: #aaa;
+        font-size: 11px;
+    ">
+        <button id="brush-down" class="hdr-btn" style="width:28px;height:28px;font-size:14px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;">−</button>
+        <canvas id="brush-preview" width="40" height="40" style="border-radius:4px;"></canvas>
+        <span id="brush-size-label" style="min-width:20px;text-align:center;color:#00cccc;font-weight:bold;">1x</span>
+        <button id="brush-up" class="hdr-btn" style="width:28px;height:28px;font-size:14px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;">+</button>
+    </div>
+
     <div id="element-selector">
         <!-- Will be populated dynamically by JavaScript -->
     </div>

@@ -178,6 +178,12 @@ class GameScene extends Phaser.Scene {
             speedUpBtn.addEventListener('click', () => this.increaseTimeSpeed());
         }
 
+        // Brush size multiplier (1x = default, scales element's brushSize)
+        this.brushMultiplier = 1;
+        this.brushMultiplierLevels = [0.5, 1, 2, 3, 5];
+        this.brushMultiplierIndex = 1; // start at 1x
+        this.setupBrushControl();
+
         // Add some initial borders (stone walls)
         this.createBorders();
 
@@ -272,6 +278,8 @@ class GameScene extends Phaser.Scene {
 
     setupElementSelector() {
         const selector = document.getElementById('element-selector');
+        // Clear existing buttons to avoid duplicates on scene restart
+        selector.innerHTML = '';
         const globalTooltip = document.getElementById('global-tooltip');
         const tooltipName = document.getElementById('tooltip-name');
         const tooltipProps = document.getElementById('tooltip-props');
@@ -661,6 +669,55 @@ class GameScene extends Phaser.Scene {
         return this.timeControl.speedLevels[this.timeControl.currentSpeedIndex];
     }
 
+    setupBrushControl() {
+        const control = document.getElementById('brush-control');
+        const downBtn = document.getElementById('brush-down');
+        const upBtn = document.getElementById('brush-up');
+        const label = document.getElementById('brush-size-label');
+        const preview = document.getElementById('brush-preview');
+
+        if (control) control.style.display = 'flex';
+
+        const updateBrush = () => {
+            this.brushMultiplier = this.brushMultiplierLevels[this.brushMultiplierIndex];
+            if (label) {
+                const m = this.brushMultiplier;
+                label.textContent = m < 1 ? '½x' : `${m}x`;
+            }
+            // Draw preview dot
+            if (preview) {
+                const ctx = preview.getContext('2d');
+                ctx.clearRect(0, 0, 40, 40);
+                const radius = Math.min(18, 3 + this.brushMultiplier * 4);
+                ctx.fillStyle = '#00cccc';
+                ctx.beginPath();
+                ctx.arc(20, 20, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,204,204,0.4)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        };
+
+        if (downBtn) downBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.brushMultiplierIndex > 0) {
+                this.brushMultiplierIndex--;
+                updateBrush();
+            }
+        });
+
+        if (upBtn) upBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.brushMultiplierIndex < this.brushMultiplierLevels.length - 1) {
+                this.brushMultiplierIndex++;
+                updateBrush();
+            }
+        });
+
+        updateBrush();
+    }
+
     increaseTimeSpeed() {
         if (this.timeControl.currentSpeedIndex < this.timeControl.speedLevels.length - 1) {
             this.timeControl.currentSpeedIndex++;
@@ -815,8 +872,9 @@ class GameScene extends Phaser.Scene {
 
         if (!element) return;
 
-        // Use element's brush size and emission density
-        const brushSize = element.brushSize;
+        // Use element's brush size scaled by user multiplier
+        const baseBrush = element.brushSize;
+        const brushSize = Math.max(0, Math.round(baseBrush * this.brushMultiplier));
         const emissionDensity = element.emissionDensity;
 
         // Don't generate boulder IDs for user-drawn stones - let them fall individually

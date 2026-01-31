@@ -19,9 +19,9 @@ export default class MainMenuScene extends Phaser.Scene {
         // Hide game UI elements during menu
         this.setGameUIVisible(false);
 
-        // Sky rendering state - use sunset time for a beautiful backdrop
-        this.skyTime = 0.72; // Dusk — gorgeous sunset colors
-        this.skyDirection = 0.0001; // Very slowly shift sky
+        // Sky rendering state - deep night sky so text pops
+        this.skyTime = 0.90; // Night sky — dark, text-friendly
+        this.skyDirection = 0.00005; // Very slowly shift sky
 
         // Create graphics for sky
         this.skyGraphics = this.add.graphics();
@@ -29,7 +29,7 @@ export default class MainMenuScene extends Phaser.Scene {
         // Ambient particles for atmosphere
         this.ambientParticles = [];
         this.particleGraphics = this.add.graphics();
-        this.palette = [0xff6b35, 0xffa500, 0xff4500, 0xffdd44, 0x00cccc];
+        this.palette = [0x00cccc, 0x4a90e2, 0x87ceeb, 0x6b5bff, 0xffdd44];
 
         for (let i = 0; i < 30; i++) {
             this.spawnAmbientParticle(width, height, true);
@@ -90,40 +90,35 @@ export default class MainMenuScene extends Phaser.Scene {
     }
 
     buildMenu(width, height) {
-        const buttonWidth = Math.min(260, width * 0.7);
-        const buttonHeight = 52;
+        const buttonWidth = Math.min(280, width * 0.75);
+        const buttonHeight = 48;
         const buttonX = width / 2;
-        const startY = height * 0.48;
-        const gap = 16;
+        const startY = height * 0.46;
+        const gap = 20;
 
-        // "New Game" button
+        // Pixel font buttons - no icons, no subtitles
         this.createButton(
             buttonX, startY,
             buttonWidth, buttonHeight,
-            '🌍  New Game',
-            'Start a fresh world',
+            'New Game',
             () => this.startNewGame(),
             true,
             'newgame'
         );
 
-        // "Continue" button
         this.createButton(
             buttonX, startY + buttonHeight + gap,
             buttonWidth, buttonHeight,
-            '▶️  Continue',
-            this.hasSave ? 'Resume your saved world' : 'No saved world found',
+            'Continue',
             () => this.continueGame(),
             this.hasSave,
             'continue'
         );
 
-        // "Settings" button (smaller, secondary style)
         this.createButton(
             buttonX, startY + (buttonHeight + gap) * 2,
-            buttonWidth, buttonHeight * 0.7,
-            '⚙️  Settings',
-            'Sound, controls & help',
+            buttonWidth, buttonHeight,
+            'Settings',
             () => {
                 const overlay = document.getElementById('settings-overlay');
                 if (overlay) overlay.style.display = 'flex';
@@ -132,44 +127,32 @@ export default class MainMenuScene extends Phaser.Scene {
             'settings'
         );
 
-        // Footer text
-        this.add.text(width / 2, height * 0.93, 'tap an element · draw on the world · watch it come alive', {
-            fontFamily: 'monospace',
-            fontSize: '9px',
-            color: 'rgba(255, 255, 255, 0.3)',
-            align: 'center'
-        }).setOrigin(0.5);
+        // Footer in pixel font too
+        this.footerPixels = buildPixelText('tap . draw . play', width / 2, height * 0.93, 2, [0xffffff]);
+        this.footerGraphics = this.add.graphics();
     }
 
     updateContinueButton(width, height) {
-        // Update Continue button if save state changed after async check
         const continueBtn = this.buttons.find(b => b.id === 'continue');
         if (!continueBtn) return;
 
-        const { btn, labelText, descText, hitArea } = continueBtn;
-        const buttonWidth = Math.min(260, width * 0.7);
-        const buttonHeight = 52;
+        const { btn, hitArea } = continueBtn;
+        const buttonWidth = Math.min(280, width * 0.75);
+        const buttonHeight = 48;
         const x = width / 2;
-        const startY = height * 0.48;
-        const gap = 16;
+        const startY = height * 0.46;
+        const gap = 20;
         const y = startY + buttonHeight + gap;
 
         if (this.hasSave && !continueBtn.enabled) {
-            // Upgrade from disabled to enabled
             continueBtn.enabled = true;
-            const borderColor = 0x00cccc;
-            const fillColor = 0x0a1628;
-            const fillAlpha = 0.85;
 
             btn.clear();
-            btn.fillStyle(fillColor, fillAlpha);
-            btn.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            btn.lineStyle(2, borderColor, 0.7);
-            btn.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            this.drawPixelBorder(btn, x, y, buttonWidth, buttonHeight, 3, 0x00cccc, 0x0a1628, 0.85);
 
-            labelText.setColor('#ffffff');
-            descText.setText('Resume your saved world');
-            descText.setColor('rgba(255, 255, 255, 0.45)');
+            if (continueBtn.labelPixels) {
+                continueBtn.labelPixels.forEach(p => p.color = 0xffffff);
+            }
 
             if (!hitArea) {
                 const zone = this.add.zone(x, y, buttonWidth, buttonHeight).setInteractive({ useHandCursor: true });
@@ -177,79 +160,74 @@ export default class MainMenuScene extends Phaser.Scene {
                 continueBtn.hitArea = zone;
             }
 
-            btn.postFX.addGlow(borderColor, 1, 0, false, 0.05, 4);
+            btn.postFX.addGlow(0x00cccc, 1, 0, false, 0.05, 4);
         }
     }
 
-    createButton(x, y, w, h, label, desc, callback, enabled, id = null) {
+    drawPixelBorder(gfx, x, y, w, h, ps, borderColor, fillColor, fillAlpha) {
+        // Pixel-art button: filled rect with chunky pixel corners cut
+        const left = x - w / 2;
+        const top = y - h / 2;
+
+        // Fill body
+        gfx.fillStyle(fillColor, fillAlpha);
+        gfx.fillRect(left + ps, top, w - ps * 2, h);           // main body
+        gfx.fillRect(left, top + ps, ps, h - ps * 2);           // left strip
+        gfx.fillRect(left + w - ps, top + ps, ps, h - ps * 2);  // right strip
+
+        // Border - top
+        gfx.fillStyle(borderColor, 0.7);
+        gfx.fillRect(left + ps, top, w - ps * 2, ps);
+        // Border - bottom
+        gfx.fillRect(left + ps, top + h - ps, w - ps * 2, ps);
+        // Border - left
+        gfx.fillRect(left, top + ps, ps, h - ps * 2);
+        // Border - right
+        gfx.fillRect(left + w - ps, top + ps, ps, h - ps * 2);
+    }
+
+    createButton(x, y, w, h, label, callback, enabled, id = null) {
         const btn = this.add.graphics();
         const borderColor = enabled ? 0x00cccc : 0x444444;
         const fillColor = enabled ? 0x0a1628 : 0x0a0a14;
         const fillAlpha = enabled ? 0.85 : 0.5;
+        const ps = 3; // pixel size for border
 
-        // Draw button background
-        btn.fillStyle(fillColor, fillAlpha);
-        btn.fillRoundedRect(x - w / 2, y - h / 2, w, h, 10);
-        btn.lineStyle(2, borderColor, enabled ? 0.7 : 0.3);
-        btn.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10);
+        // Draw pixel-art button
+        this.drawPixelBorder(btn, x, y, w, h, ps, borderColor, fillColor, fillAlpha);
 
-        // Label text
-        const labelColor = enabled ? '#ffffff' : '#555555';
-        const labelText = this.add.text(x, y - 7, label, {
-            fontFamily: 'monospace',
-            fontSize: '16px',
-            fontStyle: 'bold',
-            color: labelColor,
-            align: 'center'
-        }).setOrigin(0.5);
-
-        // Description text
-        const descColor = enabled ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.2)';
-        const descText = this.add.text(x, y + 13, desc, {
-            fontFamily: 'monospace',
-            fontSize: '10px',
-            color: descColor,
-            align: 'center'
-        }).setOrigin(0.5);
+        // Pixel font label
+        const labelColor = enabled ? 0xffffff : 0x555555;
+        const labelPixels = buildPixelText(label, x, y, ps, [labelColor]);
+        const labelGraphics = this.add.graphics();
 
         let hitArea = null;
         if (enabled) {
-            // Make button interactive
             hitArea = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
 
             hitArea.on('pointerover', () => {
                 btn.clear();
-                btn.fillStyle(0x102040, 0.95);
-                btn.fillRoundedRect(x - w / 2, y - h / 2, w, h, 10);
-                btn.lineStyle(2, 0x00ffff, 1);
-                btn.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10);
+                this.drawPixelBorder(btn, x, y, w, h, ps, 0x00ffff, 0x102040, 0.95);
             });
 
             hitArea.on('pointerout', () => {
                 btn.clear();
-                btn.fillStyle(fillColor, fillAlpha);
-                btn.fillRoundedRect(x - w / 2, y - h / 2, w, h, 10);
-                btn.lineStyle(2, borderColor, 0.7);
-                btn.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10);
+                this.drawPixelBorder(btn, x, y, w, h, ps, borderColor, fillColor, fillAlpha);
             });
 
             hitArea.on('pointerdown', () => {
                 btn.clear();
-                btn.fillStyle(0x183060, 1);
-                btn.fillRoundedRect(x - w / 2, y - h / 2, w, h, 10);
-                btn.lineStyle(2, 0x00ffff, 1);
-                btn.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10);
+                this.drawPixelBorder(btn, x, y, w, h, ps, 0x00ffff, 0x183060, 1);
             });
 
             hitArea.on('pointerup', () => {
                 callback();
             });
 
-            // Add glow effect on enabled buttons
             btn.postFX.addGlow(borderColor, 1, 0, false, 0.05, 4);
         }
 
-        this.buttons.push({ btn, labelText, descText, enabled, id, hitArea });
+        this.buttons.push({ btn, labelPixels, labelGraphics, enabled, id, hitArea });
     }
 
     startNewGame() {
@@ -287,8 +265,8 @@ export default class MainMenuScene extends Phaser.Scene {
 
         // Slowly shift sky time for a living backdrop
         this.skyTime += this.skyDirection * dt;
-        if (this.skyTime > 0.78) this.skyDirection = -0.0001;
-        if (this.skyTime < 0.65) this.skyDirection = 0.0001;
+        if (this.skyTime > 0.95) this.skyDirection = -0.00005;
+        if (this.skyTime < 0.82) this.skyDirection = 0.00005;
 
         // Render sky
         this.renderSky(width, height, this.skyTime);
@@ -326,6 +304,27 @@ export default class MainMenuScene extends Phaser.Scene {
             const shimmer = 0.85 + Math.sin(this.titleElapsed * 0.003 + tp.x * 0.05) * 0.15;
             this.titleGraphics.fillStyle(tp.color, shimmer);
             this.titleGraphics.fillRect(tp.x, tp.y, tp.size, tp.size);
+        }
+
+        // Draw button pixel text
+        for (const button of this.buttons) {
+            if (button.labelGraphics && button.labelPixels) {
+                button.labelGraphics.clear();
+                for (const p of button.labelPixels) {
+                    const alpha = button.enabled ? 0.9 : 0.3;
+                    button.labelGraphics.fillStyle(p.color, alpha);
+                    button.labelGraphics.fillRect(p.x, p.y, p.size, p.size);
+                }
+            }
+        }
+
+        // Draw footer pixel text
+        if (this.footerGraphics && this.footerPixels) {
+            this.footerGraphics.clear();
+            for (const p of this.footerPixels) {
+                this.footerGraphics.fillStyle(p.color, 0.25);
+                this.footerGraphics.fillRect(p.x, p.y, p.size, p.size);
+            }
         }
     }
 
