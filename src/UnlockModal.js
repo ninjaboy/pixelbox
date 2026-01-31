@@ -130,7 +130,9 @@ class UnlockModal {
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         `;
         unlockBtn.textContent = `✨ Unlock All — ${purchaseManager.getPrice()}`;
-        unlockBtn.addEventListener('click', () => this._handleUnlock());
+        // Use both click and touchend for iOS WKWebView compatibility
+        unlockBtn.addEventListener('click', (e) => { e.preventDefault(); this._handleUnlock(); });
+        unlockBtn.addEventListener('touchend', (e) => { e.preventDefault(); this._handleUnlock(); });
 
         // Add hover/active states
         unlockBtn.addEventListener('mouseenter', () => {
@@ -158,7 +160,8 @@ class UnlockModal {
             font-family: inherit;
         `;
         cancelBtn.textContent = 'Not Now';
-        cancelBtn.addEventListener('click', () => this.hide());
+        cancelBtn.addEventListener('click', (e) => { e.preventDefault(); this.hide(); });
+        cancelBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.hide(); });
         cancelBtn.addEventListener('mouseenter', () => {
             cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
             cancelBtn.style.color = 'rgba(255, 255, 255, 0.7)';
@@ -272,6 +275,10 @@ class UnlockModal {
      * @private
      */
     async _handleUnlock() {
+        // Debounce — prevent double-fire from touch + click
+        if (this._purchasing) return;
+        this._purchasing = true;
+        setTimeout(() => { this._purchasing = false; }, 1000);
         console.log('💰 _handleUnlock called');
         console.log('💰 isUnlocked:', purchaseManager.isUnlocked());
         console.log('💰 isStoreAvailable:', purchaseManager.isStoreAvailable());

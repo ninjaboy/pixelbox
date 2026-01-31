@@ -3,14 +3,17 @@ import eruda from 'eruda';
 import * as Sentry from '@sentry/browser';
 
 // Eruda devtools — hidden, triple-tap top-left corner to toggle
+// Uses touchend for iOS WKWebView compatibility; larger zone (100x100) to avoid notch/Dynamic Island
 let _erudaReady = false;
 let _tapCount = 0;
 let _tapTimer = null;
-document.addEventListener('click', (e) => {
-    if (e.clientX < 60 && e.clientY < 60) {
+const _erudaTapHandler = (e) => {
+    const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    if (x < 100 && y < 100) {
         _tapCount++;
         clearTimeout(_tapTimer);
-        _tapTimer = setTimeout(() => { _tapCount = 0; }, 800);
+        _tapTimer = setTimeout(() => { _tapCount = 0; }, 1000);
         if (_tapCount >= 3) {
             _tapCount = 0;
             if (!_erudaReady) {
@@ -22,7 +25,9 @@ document.addEventListener('click', (e) => {
             }
         }
     }
-});
+};
+document.addEventListener('touchend', _erudaTapHandler);
+document.addEventListener('click', _erudaTapHandler);
 
 // Sentry — DSN нужно настроить после регистрации на sentry.io
 // Sentry.init({ dsn: 'YOUR_DSN_HERE', environment: 'development', tracesSampleRate: 1.0 });
