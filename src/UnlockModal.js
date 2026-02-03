@@ -293,28 +293,45 @@ class UnlockModal {
 
     /**
      * Hide the modal
+     * Uses requestAnimationFrame to defer DOM mutation out of the touchend handler.
+     * Hiding the overlay synchronously during touchend corrupts the iOS WKWebView
+     * touch state machine, preventing subsequent pointer/touch events from reaching
+     * the Phaser canvas (user can't draw after closing the modal).
      */
     hide() {
-        if (this.overlay) {
-            this.overlay.style.display = 'none';
-            this.overlay.style.pointerEvents = 'none';
-        }
+        if (!this.overlay || this.overlay.style.display === 'none') return;
 
-        // Blur whatever button/element the modal left focused
-        if (document.activeElement) {
-            document.activeElement.blur();
-        }
+        // Immediately block new touches on the overlay while we wait for rAF
+        this.overlay.style.pointerEvents = 'none';
 
-        // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
-        // IMPORTANT: defer focus to avoid interfering with iOS touch state machine
-        // Calling focus() synchronously inside a touchend handler breaks subsequent
-        // touch delivery to DOM elements (element selector buttons)
-        setTimeout(() => {
-            const canvas = document.querySelector('canvas');
-            if (canvas) {
-                canvas.focus();
+        // Defer the actual DOM hide to next frame — this is critical on iOS.
+        // Modifying display during a touchend handler breaks WebKit's touch
+        // delivery to underlying elements (the Phaser canvas).
+        requestAnimationFrame(() => {
+            if (this.overlay) {
+                this.overlay.style.display = 'none';
             }
-        }, 100);
+
+            // Blur whatever button/element the modal left focused
+            if (document.activeElement && document.activeElement !== document.body) {
+                document.activeElement.blur();
+            }
+
+            // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
+            // Extra delay lets the browser fully process the layout change before
+            // we ask it to route events back to the canvas.
+            setTimeout(() => {
+                const canvas = document.querySelector('canvas');
+                if (canvas) {
+                    canvas.focus();
+                }
+                // Also poke Phaser's input manager in case it lost track
+                const scene = window.__pixellenceScene;
+                if (scene && scene.input && scene.input.manager) {
+                    scene.input.manager.enabled = true;
+                }
+            }, 120);
+        });
     }
 
     /**
