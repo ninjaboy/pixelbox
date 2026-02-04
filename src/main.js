@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import eruda from 'eruda';
-import * as Sentry from '@sentry/browser';
+import sentryManager from './SentryManager.js';
+
+// Initialize Sentry early (production only)
+sentryManager.init();
 
 // Eruda devtools — hidden, triple-tap top-left corner to toggle
 // Uses touchend for iOS WKWebView compatibility; larger zone (100x100) to avoid notch/Dynamic Island
@@ -29,8 +32,6 @@ const _erudaTapHandler = (e) => {
 document.addEventListener('touchend', _erudaTapHandler);
 document.addEventListener('click', _erudaTapHandler);
 
-// Sentry — DSN нужно настроить после регистрации на sentry.io
-// Sentry.init({ dsn: 'YOUR_DSN_HERE', environment: 'development', tracesSampleRate: 1.0 });
 
 import registry from './init.js';
 import PixelGrid from './PixelGrid.js';
@@ -1048,6 +1049,13 @@ class GameScene extends Phaser.Scene {
         // Update stats
         this.fpsText.textContent = Math.round(this.game.loop.actualFps);
         this.particlesText.textContent = this.pixelGrid.particleCount;
+
+        // Update Sentry context with current game state
+        sentryManager.setContext({
+            selectedElement: this.selectedElement,
+            particleCount: this.pixelGrid.particleCount,
+            season: this.seasonManager.getCurrentSeason(),
+        });
 
         // Update season display (v4.0.0)
         const season = this.seasonManager.getCurrentSeason();
