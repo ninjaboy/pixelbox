@@ -1133,18 +1133,20 @@
                     else buildToggle.classList.remove('active');
                 }
             });
-            // Hide settings modal - deferred to rAF to prevent iOS touch state corruption
+            // Hide settings modal - deferred to double rAF to prevent iOS touch state corruption
             function hideSettingsModal() {
                 if (settingsOverlay.style.display === 'none') return;
                 settingsOverlay.style.pointerEvents = 'none';
                 requestAnimationFrame(() => {
-                    settingsOverlay.style.display = 'none';
-                    settingsOverlay.style.pointerEvents = '';
-                    // Re-focus canvas for touch input
-                    setTimeout(() => {
-                        const canvas = document.querySelector('canvas');
-                        if (canvas) canvas.focus();
-                    }, 120);
+                    requestAnimationFrame(() => {
+                        settingsOverlay.style.display = 'none';
+                        settingsOverlay.style.pointerEvents = '';
+                        // Re-focus canvas for touch input
+                        setTimeout(() => {
+                            const canvas = document.querySelector('canvas');
+                            if (canvas) canvas.focus();
+                        }, 150);
+                    });
                 });
             }
             settingsClose.addEventListener('click', hideSettingsModal);

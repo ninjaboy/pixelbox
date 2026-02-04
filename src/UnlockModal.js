@@ -307,30 +307,33 @@ class UnlockModal {
         // Defer the actual DOM hide to next frame — this is critical on iOS.
         // Modifying display during a touchend handler breaks WebKit's touch
         // delivery to underlying elements (the Phaser canvas).
+        // Double rAF ensures we're fully out of the touch event cycle.
         requestAnimationFrame(() => {
-            if (this.overlay) {
-                this.overlay.style.display = 'none';
-            }
-
-            // Blur whatever button/element the modal left focused
-            if (document.activeElement && document.activeElement !== document.body) {
-                document.activeElement.blur();
-            }
-
-            // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
-            // Extra delay lets the browser fully process the layout change before
-            // we ask it to route events back to the canvas.
-            setTimeout(() => {
-                const canvas = document.querySelector('canvas');
-                if (canvas) {
-                    canvas.focus();
+            requestAnimationFrame(() => {
+                if (this.overlay) {
+                    this.overlay.style.display = 'none';
                 }
-                // Also poke Phaser's input manager in case it lost track
-                const scene = window.__pixellenceScene;
-                if (scene && scene.input && scene.input.manager) {
-                    scene.input.manager.enabled = true;
+
+                // Blur whatever button/element the modal left focused
+                if (document.activeElement && document.activeElement !== document.body) {
+                    document.activeElement.blur();
                 }
-            }, 120);
+
+                // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
+                // Extra delay lets the browser fully process the layout change before
+                // we ask it to route events back to the canvas.
+                setTimeout(() => {
+                    const canvas = document.querySelector('canvas');
+                    if (canvas) {
+                        canvas.focus();
+                    }
+                    // Also poke Phaser's input manager in case it lost track
+                    const scene = window.__pixellenceScene;
+                    if (scene && scene.input && scene.input.manager) {
+                        scene.input.manager.enabled = true;
+                    }
+                }, 150);
+            });
         });
     }
 
