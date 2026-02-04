@@ -199,6 +199,17 @@ class GameScene extends Phaser.Scene {
 
         // Expose scene for settings panel
         window.__pixellenceScene = this;
+
+        // DEBUG: Global touch listener to track if events reach canvas
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+            canvas.addEventListener('touchstart', (e) => {
+                console.log('🖐️ canvas touchstart', e.touches.length, 'touches');
+            }, { passive: true });
+            canvas.addEventListener('pointerdown', (e) => {
+                console.log('🖐️ canvas pointerdown', e.pointerType);
+            });
+        }
     }
 
     async loadSavedWorld() {
@@ -853,6 +864,8 @@ class GameScene extends Phaser.Scene {
     }
 
     startDrawing(pointer) {
+        console.log('🎨 startDrawing called, buildMode:', this.buildMode);
+        console.log('🎨 input.manager.enabled:', this.input?.manager?.enabled);
         // Only allow drawing in build mode
         if (this.buildMode) {
             this.isDrawing = true;
