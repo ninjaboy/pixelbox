@@ -1133,13 +1133,27 @@
                     else buildToggle.classList.remove('active');
                 }
             });
-            settingsClose.addEventListener('click', () => { settingsOverlay.style.display = 'none'; });
+            // Hide settings modal - deferred to rAF to prevent iOS touch state corruption
+            function hideSettingsModal() {
+                if (settingsOverlay.style.display === 'none') return;
+                settingsOverlay.style.pointerEvents = 'none';
+                requestAnimationFrame(() => {
+                    settingsOverlay.style.display = 'none';
+                    settingsOverlay.style.pointerEvents = '';
+                    // Re-focus canvas for touch input
+                    setTimeout(() => {
+                        const canvas = document.querySelector('canvas');
+                        if (canvas) canvas.focus();
+                    }, 120);
+                });
+            }
+            settingsClose.addEventListener('click', hideSettingsModal);
             settingsOverlay.addEventListener('click', (e) => {
-                if (e.target === settingsOverlay) settingsOverlay.style.display = 'none';
+                if (e.target === settingsOverlay) hideSettingsModal();
             });
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && settingsOverlay.style.display === 'flex') {
-                    settingsOverlay.style.display = 'none';
+                    hideSettingsModal();
                 }
             });
 

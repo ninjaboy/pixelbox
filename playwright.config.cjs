@@ -16,7 +16,7 @@ module.exports = defineConfig({
     use: {
         baseURL: 'http://localhost:3000',
         trace: 'on-first-retry',
-        video: 'on-first-retry',
+        video: 'on',
         screenshot: 'only-on-failure',
         // Use headed mode to see what's happening
         headless: false,
