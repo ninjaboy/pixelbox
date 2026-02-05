@@ -235,7 +235,10 @@ class UnlockModal {
      * @param {Function} onUnlock - Callback when unlock succeeds
      */
     show(elementName, elementConfigs, onUnlock) {
+        console.log('[DEBUG] UnlockModal.show() called for element:', elementName);
+        console.log('[DEBUG] UnlockModal.show() - overlay exists:', !!this.overlay, 'built:', this._built);
         this._build();
+        console.log('[DEBUG] UnlockModal.show() - after build, overlay:', !!this.overlay);
         this._onUnlockCallback = onUnlock;
 
         // Refresh price from live store data
@@ -289,6 +292,13 @@ class UnlockModal {
 
         this.overlay.style.pointerEvents = '';
         this.overlay.style.display = 'flex';
+        console.log('[DEBUG] UnlockModal now visible, overlay.display:', this.overlay.style.display);
+        console.log('[DEBUG] UnlockModal.show() - checking scene input state');
+        const scene = window.__pixellenceScene;
+        if (scene) {
+            console.log('[DEBUG] UnlockModal.show() - scene.isDrawing:', scene.isDrawing);
+            console.log('[DEBUG] UnlockModal.show() - input.manager.enabled:', scene.input?.manager?.enabled);
+        }
     }
 
     /**
@@ -299,63 +309,70 @@ class UnlockModal {
      * the Phaser canvas (user can't draw after closing the modal).
      */
     hide() {
-        console.log('🔒 UnlockModal.hide() called');
-        console.log('🔒 overlay exists:', !!this.overlay);
-        console.log('🔒 overlay display:', this.overlay?.style?.display);
+        console.log('[DEBUG] UnlockModal.hide() called');
+        console.log('[DEBUG] UnlockModal.hide() - overlay exists:', !!this.overlay);
+        console.log('[DEBUG] UnlockModal.hide() - overlay.display:', this.overlay?.style?.display);
+        const scene = window.__pixellenceScene;
+        if (scene) {
+            console.log('[DEBUG] UnlockModal.hide() - BEFORE - scene.isDrawing:', scene.isDrawing);
+            console.log('[DEBUG] UnlockModal.hide() - BEFORE - input.manager.enabled:', scene.input?.manager?.enabled);
+        }
         
         if (!this.overlay || this.overlay.style.display === 'none') {
-            console.log('🔒 hide() early return - overlay missing or already hidden');
+            console.log('[DEBUG] UnlockModal.hide() - early return (overlay missing or already hidden)');
             return;
         }
 
         // Immediately block new touches on the overlay while we wait for rAF
         this.overlay.style.pointerEvents = 'none';
-        console.log('🔒 set pointerEvents=none');
+        console.log('[DEBUG] UnlockModal.hide() - set pointerEvents=none');
 
         // Defer the actual DOM hide to next frame — this is critical on iOS.
         // Modifying display during a touchend handler breaks WebKit's touch
         // delivery to underlying elements (the Phaser canvas).
         // Double rAF ensures we're fully out of the touch event cycle.
-        console.log('🔒 scheduling rAF #1');
+        console.log('[DEBUG] UnlockModal.hide() - scheduling rAF #1');
         requestAnimationFrame(() => {
-            console.log('🔒 rAF #1 fired, scheduling rAF #2');
+            console.log('[DEBUG] UnlockModal.hide() - rAF #1 fired, scheduling rAF #2');
             requestAnimationFrame(() => {
-                console.log('🔒 rAF #2 fired, hiding overlay');
+                console.log('[DEBUG] UnlockModal.hide() - rAF #2 fired, hiding overlay');
                 if (this.overlay) {
                     this.overlay.style.display = 'none';
-                    console.log('🔒 overlay hidden');
+                    console.log('[DEBUG] UnlockModal.hide() - overlay.display set to none');
                 }
 
                 // Blur whatever button/element the modal left focused
                 const activeEl = document.activeElement;
-                console.log('🔒 activeElement:', activeEl?.tagName, activeEl?.className);
+                console.log('[DEBUG] UnlockModal.hide() - activeElement:', activeEl?.tagName, activeEl?.id);
                 if (activeEl && activeEl !== document.body) {
                     activeEl.blur();
-                    console.log('🔒 blurred activeElement');
+                    console.log('[DEBUG] UnlockModal.hide() - blurred activeElement');
                 }
 
                 // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
                 // Extra delay lets the browser fully process the layout change before
                 // we ask it to route events back to the canvas.
-                console.log('🔒 scheduling setTimeout 150ms');
+                console.log('[DEBUG] UnlockModal.hide() - scheduling setTimeout 150ms');
                 setTimeout(() => {
-                    console.log('🔒 setTimeout fired');
+                    console.log('[DEBUG] UnlockModal.hide() - setTimeout fired');
                     const canvas = document.querySelector('canvas');
-                    console.log('🔒 canvas found:', !!canvas);
+                    console.log('[DEBUG] UnlockModal.hide() - canvas found:', !!canvas);
                     if (canvas) {
                         canvas.focus();
-                        console.log('🔒 canvas.focus() called');
+                        console.log('[DEBUG] UnlockModal.hide() - canvas.focus() called');
                     }
                     // Also poke Phaser's input manager in case it lost track
                     const scene = window.__pixellenceScene;
-                    console.log('🔒 scene exists:', !!scene);
-                    console.log('🔒 input.manager exists:', !!scene?.input?.manager);
-                    console.log('🔒 input.manager.enabled before:', scene?.input?.manager?.enabled);
-                    if (scene && scene.input && scene.input.manager) {
-                        scene.input.manager.enabled = true;
-                        console.log('🔒 input.manager.enabled set to true');
+                    console.log('[DEBUG] UnlockModal.hide() - scene exists:', !!scene);
+                    if (scene) {
+                        console.log('[DEBUG] UnlockModal.hide() - scene.isDrawing:', scene.isDrawing);
+                        console.log('[DEBUG] UnlockModal.hide() - input.manager.enabled BEFORE:', scene.input?.manager?.enabled);
+                        if (scene.input && scene.input.manager) {
+                            scene.input.manager.enabled = true;
+                            console.log('[DEBUG] UnlockModal.hide() - input.manager.enabled set to true');
+                        }
                     }
-                    console.log('🔒 hide() complete');
+                    console.log('[DEBUG] UnlockModal.hide() - COMPLETE');
                 }, 150);
             });
         });
