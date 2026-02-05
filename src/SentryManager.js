@@ -99,16 +99,23 @@ class SentryManager {
     }
 
     /**
-     * Capture a message (for non-exception issues)
+     * Capture a message with optional extra context data
+     * Use this for telemetry of user actions - these show up in Sentry dashboard
+     * @param {string} message - The message to log
+     * @param {string} level - Severity level ('info', 'warning', 'error', 'debug')
+     * @param {object} extra - Additional context data to attach
      */
-    captureMessage(message, level = 'info') {
+    captureMessage(message, level = 'info', extra = {}) {
         if (!this.initialized) {
-            console.log(`[Sentry] Not initialized, logging message: ${message}`);
+            console.log(`[Sentry] Not initialized, logging message: ${message}`, extra);
             return;
         }
 
         Sentry.withScope((scope) => {
             scope.setContext('game', this.gameContext);
+            if (Object.keys(extra).length > 0) {
+                scope.setContext('extra', extra);
+            }
             Sentry.captureMessage(message, level);
         });
     }

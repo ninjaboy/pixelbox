@@ -201,51 +201,39 @@ class GameScene extends Phaser.Scene {
         // Expose scene for settings panel
         window.__pixellenceScene = this;
 
-        // DEBUG: Global touch listener to track if events reach canvas
+        // Telemetry: Track touch/pointer events on canvas
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.addEventListener('touchstart', (e) => {
-                sentryManager.addBreadcrumb('canvas touchstart', 'debug', {
+                sentryManager.captureMessage('Touch start', 'info', {
                     touches: e.touches.length,
-                    x: e.touches[0]?.clientX,
-                    y: e.touches[0]?.clientY,
-                    isDrawing: this.isDrawing,
-                    inputEnabled: this.input?.manager?.enabled
+                    x: Math.round(e.touches[0]?.clientX),
+                    y: Math.round(e.touches[0]?.clientY),
+                    element: this.selectedElement
                 });
             }, { passive: true });
             canvas.addEventListener('touchend', (e) => {
-                sentryManager.addBreadcrumb('canvas touchend', 'debug', {
-                    changedTouches: e.changedTouches.length,
-                    isDrawing: this.isDrawing,
-                    inputEnabled: this.input?.manager?.enabled
+                sentryManager.captureMessage('Touch end', 'info', {
+                    changedTouches: e.changedTouches.length
                 });
-            }, { passive: true });
-            canvas.addEventListener('touchmove', (e) => {
-                // Only log occasionally to avoid spam
-                if (Math.random() < 0.1) {
-                    sentryManager.addBreadcrumb('canvas touchmove', 'debug', { isDrawing: this.isDrawing });
-                }
             }, { passive: true });
             canvas.addEventListener('pointerdown', (e) => {
-                sentryManager.addBreadcrumb('canvas pointerdown', 'debug', {
-                    pointerType: e.pointerType,
-                    x: e.clientX,
-                    y: e.clientY,
-                    isDrawing: this.isDrawing,
-                    inputEnabled: this.input?.manager?.enabled
-                });
+                // Only track mouse/pen, touch is tracked above
+                if (e.pointerType !== 'touch') {
+                    sentryManager.captureMessage('Touch start', 'info', {
+                        pointerType: e.pointerType,
+                        x: Math.round(e.clientX),
+                        y: Math.round(e.clientY),
+                        element: this.selectedElement
+                    });
+                }
             });
             canvas.addEventListener('pointerup', (e) => {
-                sentryManager.addBreadcrumb('canvas pointerup', 'debug', {
-                    pointerType: e.pointerType,
-                    isDrawing: this.isDrawing,
-                    inputEnabled: this.input?.manager?.enabled
-                });
-            });
-            canvas.addEventListener('pointermove', (e) => {
-                // Only log when drawing to reduce spam
-                if (this.isDrawing && Math.random() < 0.1) {
-                    sentryManager.addBreadcrumb('canvas pointermove while drawing', 'debug', { x: e.clientX, y: e.clientY });
+                // Only track mouse/pen, touch is tracked above
+                if (e.pointerType !== 'touch') {
+                    sentryManager.captureMessage('Touch end', 'info', {
+                        pointerType: e.pointerType
+                    });
                 }
             });
         }
@@ -485,23 +473,21 @@ class GameScene extends Phaser.Scene {
             const selectElement = () => {
                 // If premium and locked, show unlock modal instead
                 if (purchaseManager.isPremiumElement(elementName) && !purchaseManager.isUnlocked()) {
-                    sentryManager.addBreadcrumb('selectElement() premium element tapped', 'debug', {
-                        elementName,
-                        isDrawingBefore: this.isDrawing
-                    });
                     hideTooltip();
                     // Defer modal show to next frame to avoid breaking iOS touch chain
                     // Showing overlay during touchend handler corrupts touch state machine
-                    sentryManager.addBreadcrumb('selectElement() scheduling rAF to show modal', 'debug');
                     requestAnimationFrame(() => {
-                        sentryManager.addBreadcrumb('selectElement() rAF fired, showing modal', 'debug');
                         unlockModal.show(elementName, this.elementConfigs, () => {
-                            sentryManager.addBreadcrumb('UnlockModal onUnlock callback fired', 'debug');
                             this.refreshElementLocks();
                         });
                     });
                     return;
                 }
+
+                sentryManager.captureMessage('Element selection', 'info', {
+                    element: elementName,
+                    previousElement: this.selectedElement
+                });
 
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -910,31 +896,26 @@ class GameScene extends Phaser.Scene {
     }
 
     startDrawing(pointer) {
-        sentryManager.addBreadcrumb('GameScene.startDrawing() called', 'debug', {
-            pointerX: pointer.x,
-            pointerY: pointer.y,
-            buildMode: this.buildMode,
-            isDrawingBefore: this.isDrawing,
-            inputEnabled: this.input?.manager?.enabled,
-            activePointerId: this.input?.activePointer?.id
-        });
         // Only allow drawing in build mode
         if (this.buildMode) {
             this.isDrawing = true;
-            sentryManager.addBreadcrumb('GameScene.startDrawing() isDrawing set to TRUE', 'debug');
+            sentryManager.captureMessage('Drawing start', 'info', {
+                x: Math.round(pointer.x),
+                y: Math.round(pointer.y),
+                element: this.selectedElement,
+                brushMultiplier: this.brushMultiplier
+            });
             this.draw(pointer);
-        } else {
-            sentryManager.addBreadcrumb('GameScene.startDrawing() NOT in build mode, ignoring', 'debug');
         }
     }
 
     stopDrawing(pointer) {
-        sentryManager.addBreadcrumb('GameScene.stopDrawing() called', 'debug', {
-            isDrawingBefore: this.isDrawing,
-            inputEnabled: this.input?.manager?.enabled
-        });
+        if (this.isDrawing) {
+            sentryManager.captureMessage('Drawing stop', 'info', {
+                element: this.selectedElement
+            });
+        }
         this.isDrawing = false;
-        sentryManager.addBreadcrumb('GameScene.stopDrawing() isDrawing set to FALSE', 'debug');
     }
 
     draw(pointer) {

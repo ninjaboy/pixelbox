@@ -236,10 +236,12 @@ class UnlockModal {
      * @param {Function} onUnlock - Callback when unlock succeeds
      */
     show(elementName, elementConfigs, onUnlock) {
-        sentryManager.addBreadcrumb('UnlockModal.show() called', 'debug', { elementName });
-        sentryManager.addBreadcrumb('UnlockModal.show() state', 'debug', { overlayExists: !!this.overlay, built: this._built });
+        sentryManager.captureMessage('Modal show: UnlockModal', 'info', {
+            elementName,
+            overlayExists: !!this.overlay,
+            built: this._built
+        });
         this._build();
-        sentryManager.addBreadcrumb('UnlockModal.show() after build', 'debug', { overlayExists: !!this.overlay });
         this._onUnlockCallback = onUnlock;
 
         // Refresh price from live store data
@@ -293,14 +295,6 @@ class UnlockModal {
 
         this.overlay.style.pointerEvents = '';
         this.overlay.style.display = 'flex';
-        sentryManager.addBreadcrumb('UnlockModal now visible', 'debug', { overlayDisplay: this.overlay.style.display });
-        const scene = window.__pixellenceScene;
-        if (scene) {
-            sentryManager.addBreadcrumb('UnlockModal.show() scene input state', 'debug', {
-                isDrawing: scene.isDrawing,
-                inputEnabled: scene.input?.manager?.enabled
-            });
-        }
     }
 
     /**
@@ -311,78 +305,48 @@ class UnlockModal {
      * the Phaser canvas (user can't draw after closing the modal).
      */
     hide() {
-        sentryManager.addBreadcrumb('UnlockModal.hide() called', 'debug', {
-            overlayExists: !!this.overlay,
-            overlayDisplay: this.overlay?.style?.display
-        });
-        const scene = window.__pixellenceScene;
-        if (scene) {
-            sentryManager.addBreadcrumb('UnlockModal.hide() BEFORE state', 'debug', {
-                isDrawing: scene.isDrawing,
-                inputEnabled: scene.input?.manager?.enabled
-            });
-        }
-
         if (!this.overlay || this.overlay.style.display === 'none') {
-            sentryManager.addBreadcrumb('UnlockModal.hide() early return', 'debug', { reason: 'overlay missing or already hidden' });
             return;
         }
 
+        sentryManager.captureMessage('Modal hide: UnlockModal', 'info', {
+            overlayExists: !!this.overlay
+        });
+
         // Immediately block new touches on the overlay while we wait for rAF
         this.overlay.style.pointerEvents = 'none';
-        sentryManager.addBreadcrumb('UnlockModal.hide() set pointerEvents=none', 'debug');
 
         // Defer the actual DOM hide to next frame — this is critical on iOS.
         // Modifying display during a touchend handler breaks WebKit's touch
         // delivery to underlying elements (the Phaser canvas).
         // Double rAF ensures we're fully out of the touch event cycle.
-        sentryManager.addBreadcrumb('UnlockModal.hide() scheduling rAF #1', 'debug');
         requestAnimationFrame(() => {
-            sentryManager.addBreadcrumb('UnlockModal.hide() rAF #1 fired', 'debug');
             requestAnimationFrame(() => {
-                sentryManager.addBreadcrumb('UnlockModal.hide() rAF #2 fired, hiding overlay', 'debug');
                 if (this.overlay) {
                     this.overlay.style.display = 'none';
-                    sentryManager.addBreadcrumb('UnlockModal.hide() overlay hidden', 'debug');
                 }
 
                 // Blur whatever button/element the modal left focused
                 const activeEl = document.activeElement;
-                sentryManager.addBreadcrumb('UnlockModal.hide() activeElement', 'debug', {
-                    tagName: activeEl?.tagName,
-                    id: activeEl?.id
-                });
                 if (activeEl && activeEl !== document.body) {
                     activeEl.blur();
-                    sentryManager.addBreadcrumb('UnlockModal.hide() blurred activeElement', 'debug');
                 }
 
                 // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
                 // Extra delay lets the browser fully process the layout change before
                 // we ask it to route events back to the canvas.
-                sentryManager.addBreadcrumb('UnlockModal.hide() scheduling setTimeout 150ms', 'debug');
                 setTimeout(() => {
-                    sentryManager.addBreadcrumb('UnlockModal.hide() setTimeout fired', 'debug');
                     const canvas = document.querySelector('canvas');
-                    sentryManager.addBreadcrumb('UnlockModal.hide() canvas check', 'debug', { canvasFound: !!canvas });
                     if (canvas) {
                         canvas.focus();
-                        sentryManager.addBreadcrumb('UnlockModal.hide() canvas.focus() called', 'debug');
                     }
                     // Also poke Phaser's input manager in case it lost track
                     const scene = window.__pixellenceScene;
                     if (scene) {
-                        sentryManager.addBreadcrumb('UnlockModal.hide() scene state', 'debug', {
-                            isDrawing: scene.isDrawing,
-                            inputEnabledBefore: scene.input?.manager?.enabled
-                        });
                         if (scene.input && scene.input.manager) {
                             scene.input.manager.enabled = true;
-                            sentryManager.addBreadcrumb('UnlockModal.hide() input.manager.enabled set to true', 'debug');
                         }
                     }
-                    sentryManager.addBreadcrumb('UnlockModal.hide() COMPLETE', 'debug');
-                    sentryManager.captureMessage('Modal closed - debug checkpoint', 'debug');
                 }, 150);
             });
         });
