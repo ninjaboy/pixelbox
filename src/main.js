@@ -201,38 +201,59 @@ class GameScene extends Phaser.Scene {
         // Expose scene for settings panel
         window.__pixellenceScene = this;
 
-        // Telemetry: Track touch/pointer events on canvas
+        // Telemetry: Track touch/pointer events on canvas with full state
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.addEventListener('touchstart', (e) => {
-                sentryManager.captureMessage('Touch start', 'info', {
+                // Calculate time since modal was last closed (if any)
+                const msSinceModalClose = unlockModal._lastHideTime
+                    ? Date.now() - unlockModal._lastHideTime
+                    : null;
+                sentryManager.captureMessage('DOM touchstart', 'info', {
                     touches: e.touches.length,
                     x: Math.round(e.touches[0]?.clientX),
                     y: Math.round(e.touches[0]?.clientY),
-                    element: this.selectedElement
+                    element: this.selectedElement,
+                    buildMode: this.buildMode,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled,
+                    inputLocked: this.input?.manager?.locked,
+                    msSinceModalClose,
+                    pointer0: this.input?.manager?.pointers?.[0] ? {
+                        active: this.input.manager.pointers[0].active,
+                        isDown: this.input.manager.pointers[0].isDown,
+                        wasCanceled: this.input.manager.pointers[0].wasCanceled
+                    } : null
                 });
             }, { passive: true });
             canvas.addEventListener('touchend', (e) => {
-                sentryManager.captureMessage('Touch end', 'info', {
-                    changedTouches: e.changedTouches.length
+                sentryManager.captureMessage('DOM touchend', 'info', {
+                    changedTouches: e.changedTouches.length,
+                    buildMode: this.buildMode,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled
                 });
             }, { passive: true });
             canvas.addEventListener('pointerdown', (e) => {
                 // Only track mouse/pen, touch is tracked above
                 if (e.pointerType !== 'touch') {
-                    sentryManager.captureMessage('Touch start', 'info', {
+                    sentryManager.captureMessage('DOM pointerdown', 'info', {
                         pointerType: e.pointerType,
                         x: Math.round(e.clientX),
                         y: Math.round(e.clientY),
-                        element: this.selectedElement
+                        element: this.selectedElement,
+                        buildMode: this.buildMode,
+                        inputEnabled: this.input?.manager?.enabled
                     });
                 }
             });
             canvas.addEventListener('pointerup', (e) => {
                 // Only track mouse/pen, touch is tracked above
                 if (e.pointerType !== 'touch') {
-                    sentryManager.captureMessage('Touch end', 'info', {
-                        pointerType: e.pointerType
+                    sentryManager.captureMessage('DOM pointerup', 'info', {
+                        pointerType: e.pointerType,
+                        buildMode: this.buildMode,
+                        isDrawing: this.isDrawing
                     });
                 }
             });
@@ -526,6 +547,10 @@ class GameScene extends Phaser.Scene {
             // Toggle build mode with B key
             if (key === 'B') {
                 this.buildMode = !this.buildMode;
+                sentryManager.captureMessage('buildMode toggled', 'info', {
+                    buildMode: this.buildMode,
+                    inputEnabled: this.input?.manager?.enabled
+                });
 
                 // Spawn player when exiting build mode for the first time
                 if (!this.buildMode && this.playerX === null) {
@@ -896,6 +921,22 @@ class GameScene extends Phaser.Scene {
     }
 
     startDrawing(pointer) {
+        // Debug: log every startDrawing call to diagnose post-modal issue
+        const msSinceModalClose = unlockModal._lastHideTime
+            ? Date.now() - unlockModal._lastHideTime
+            : null;
+        sentryManager.captureMessage('startDrawing called', 'info', {
+            buildMode: this.buildMode,
+            x: Math.round(pointer.x),
+            y: Math.round(pointer.y),
+            element: this.selectedElement,
+            inputEnabled: this.input?.manager?.enabled,
+            msSinceModalClose,
+            pointerId: pointer.identifier,
+            pointerActive: pointer.active,
+            pointerIsDown: pointer.isDown
+        });
+        
         // Only allow drawing in build mode
         if (this.buildMode) {
             this.isDrawing = true;
@@ -910,6 +951,12 @@ class GameScene extends Phaser.Scene {
     }
 
     stopDrawing(pointer) {
+        sentryManager.captureMessage('Phaser pointerup', 'info', {
+            wasDrawing: this.isDrawing,
+            buildMode: this.buildMode,
+            element: this.selectedElement,
+            inputEnabled: this.input?.manager?.enabled
+        });
         if (this.isDrawing) {
             sentryManager.captureMessage('Drawing stop', 'info', {
                 element: this.selectedElement

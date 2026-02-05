@@ -13,6 +13,7 @@ class UnlockModal {
         this.overlay = null;
         this._onUnlockCallback = null;
         this._built = false;
+        this._lastHideTime = 0;  // Track when modal was hidden for debugging
     }
 
     /**
@@ -236,10 +237,13 @@ class UnlockModal {
      * @param {Function} onUnlock - Callback when unlock succeeds
      */
     show(elementName, elementConfigs, onUnlock) {
+        const scene = window.__pixellenceScene;
         sentryManager.captureMessage('Modal show: UnlockModal', 'info', {
             elementName,
             overlayExists: !!this.overlay,
-            built: this._built
+            built: this._built,
+            inputEnabled: scene?.input?.manager?.enabled,
+            buildMode: scene?.buildMode
         });
         this._build();
         this._onUnlockCallback = onUnlock;
@@ -309,8 +313,10 @@ class UnlockModal {
             return;
         }
 
+        this._lastHideTime = Date.now();
         sentryManager.captureMessage('Modal hide: UnlockModal', 'info', {
-            overlayExists: !!this.overlay
+            overlayExists: !!this.overlay,
+            timestamp: this._lastHideTime
         });
 
         // Immediately block new touches on the overlay while we wait for rAF
@@ -340,12 +346,45 @@ class UnlockModal {
                     if (canvas) {
                         canvas.focus();
                     }
-                    // Also poke Phaser's input manager in case it lost track
+                    // Reset Phaser's input state - CRITICAL for iOS WKWebView
+                    // When modal overlay appears during touch event, iOS may fire touchcancel
+                    // which corrupts Phaser's pointer tracking. resetPointers() clears this.
+                    // See: https://github.com/phaserjs/phaser/issues/3887
                     const scene = window.__pixellenceScene;
-                    if (scene) {
-                        if (scene.input && scene.input.manager) {
+                    if (scene && scene.input) {
+                        const wasEnabled = scene.input?.manager?.enabled;
+                        const pointersBefore = scene.input.manager?.pointers?.map(p => ({
+                            id: p.identifier,
+                            active: p.active,
+                            isDown: p.isDown,
+                            wasCanceled: p.wasCanceled
+                        }));
+
+                        // Re-enable input manager
+                        if (scene.input.manager) {
                             scene.input.manager.enabled = true;
                         }
+
+                        // Reset all pointer states - this is the key fix for iOS
+                        if (typeof scene.input.resetPointers === 'function') {
+                            scene.input.resetPointers();
+                        }
+
+                        const pointersAfter = scene.input.manager?.pointers?.map(p => ({
+                            id: p.identifier,
+                            active: p.active,
+                            isDown: p.isDown,
+                            wasCanceled: p.wasCanceled
+                        }));
+
+                        sentryManager.captureMessage('Modal restore input', 'info', {
+                            wasEnabled,
+                            nowEnabled: scene.input?.manager?.enabled,
+                            buildMode: scene.buildMode,
+                            resetPointersCalled: typeof scene.input.resetPointers === 'function',
+                            pointersBefore: JSON.stringify(pointersBefore),
+                            pointersAfter: JSON.stringify(pointersAfter)
+                        });
                     }
                 }, 150);
             });
