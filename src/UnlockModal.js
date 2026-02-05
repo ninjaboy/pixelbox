@@ -6,6 +6,7 @@
  */
 
 import purchaseManager, { PREMIUM_ELEMENTS } from './PurchaseManager.js';
+import sentryManager from './SentryManager.js';
 
 class UnlockModal {
     constructor() {
@@ -235,10 +236,10 @@ class UnlockModal {
      * @param {Function} onUnlock - Callback when unlock succeeds
      */
     show(elementName, elementConfigs, onUnlock) {
-        console.log('[DEBUG] UnlockModal.show() called for element:', elementName);
-        console.log('[DEBUG] UnlockModal.show() - overlay exists:', !!this.overlay, 'built:', this._built);
+        sentryManager.addBreadcrumb('UnlockModal.show() called', 'debug', { elementName });
+        sentryManager.addBreadcrumb('UnlockModal.show() state', 'debug', { overlayExists: !!this.overlay, built: this._built });
         this._build();
-        console.log('[DEBUG] UnlockModal.show() - after build, overlay:', !!this.overlay);
+        sentryManager.addBreadcrumb('UnlockModal.show() after build', 'debug', { overlayExists: !!this.overlay });
         this._onUnlockCallback = onUnlock;
 
         // Refresh price from live store data
@@ -292,12 +293,13 @@ class UnlockModal {
 
         this.overlay.style.pointerEvents = '';
         this.overlay.style.display = 'flex';
-        console.log('[DEBUG] UnlockModal now visible, overlay.display:', this.overlay.style.display);
-        console.log('[DEBUG] UnlockModal.show() - checking scene input state');
+        sentryManager.addBreadcrumb('UnlockModal now visible', 'debug', { overlayDisplay: this.overlay.style.display });
         const scene = window.__pixellenceScene;
         if (scene) {
-            console.log('[DEBUG] UnlockModal.show() - scene.isDrawing:', scene.isDrawing);
-            console.log('[DEBUG] UnlockModal.show() - input.manager.enabled:', scene.input?.manager?.enabled);
+            sentryManager.addBreadcrumb('UnlockModal.show() scene input state', 'debug', {
+                isDrawing: scene.isDrawing,
+                inputEnabled: scene.input?.manager?.enabled
+            });
         }
     }
 
@@ -309,70 +311,77 @@ class UnlockModal {
      * the Phaser canvas (user can't draw after closing the modal).
      */
     hide() {
-        console.log('[DEBUG] UnlockModal.hide() called');
-        console.log('[DEBUG] UnlockModal.hide() - overlay exists:', !!this.overlay);
-        console.log('[DEBUG] UnlockModal.hide() - overlay.display:', this.overlay?.style?.display);
+        sentryManager.addBreadcrumb('UnlockModal.hide() called', 'debug', {
+            overlayExists: !!this.overlay,
+            overlayDisplay: this.overlay?.style?.display
+        });
         const scene = window.__pixellenceScene;
         if (scene) {
-            console.log('[DEBUG] UnlockModal.hide() - BEFORE - scene.isDrawing:', scene.isDrawing);
-            console.log('[DEBUG] UnlockModal.hide() - BEFORE - input.manager.enabled:', scene.input?.manager?.enabled);
+            sentryManager.addBreadcrumb('UnlockModal.hide() BEFORE state', 'debug', {
+                isDrawing: scene.isDrawing,
+                inputEnabled: scene.input?.manager?.enabled
+            });
         }
-        
+
         if (!this.overlay || this.overlay.style.display === 'none') {
-            console.log('[DEBUG] UnlockModal.hide() - early return (overlay missing or already hidden)');
+            sentryManager.addBreadcrumb('UnlockModal.hide() early return', 'debug', { reason: 'overlay missing or already hidden' });
             return;
         }
 
         // Immediately block new touches on the overlay while we wait for rAF
         this.overlay.style.pointerEvents = 'none';
-        console.log('[DEBUG] UnlockModal.hide() - set pointerEvents=none');
+        sentryManager.addBreadcrumb('UnlockModal.hide() set pointerEvents=none', 'debug');
 
         // Defer the actual DOM hide to next frame — this is critical on iOS.
         // Modifying display during a touchend handler breaks WebKit's touch
         // delivery to underlying elements (the Phaser canvas).
         // Double rAF ensures we're fully out of the touch event cycle.
-        console.log('[DEBUG] UnlockModal.hide() - scheduling rAF #1');
+        sentryManager.addBreadcrumb('UnlockModal.hide() scheduling rAF #1', 'debug');
         requestAnimationFrame(() => {
-            console.log('[DEBUG] UnlockModal.hide() - rAF #1 fired, scheduling rAF #2');
+            sentryManager.addBreadcrumb('UnlockModal.hide() rAF #1 fired', 'debug');
             requestAnimationFrame(() => {
-                console.log('[DEBUG] UnlockModal.hide() - rAF #2 fired, hiding overlay');
+                sentryManager.addBreadcrumb('UnlockModal.hide() rAF #2 fired, hiding overlay', 'debug');
                 if (this.overlay) {
                     this.overlay.style.display = 'none';
-                    console.log('[DEBUG] UnlockModal.hide() - overlay.display set to none');
+                    sentryManager.addBreadcrumb('UnlockModal.hide() overlay hidden', 'debug');
                 }
 
                 // Blur whatever button/element the modal left focused
                 const activeEl = document.activeElement;
-                console.log('[DEBUG] UnlockModal.hide() - activeElement:', activeEl?.tagName, activeEl?.id);
+                sentryManager.addBreadcrumb('UnlockModal.hide() activeElement', 'debug', {
+                    tagName: activeEl?.tagName,
+                    id: activeEl?.id
+                });
                 if (activeEl && activeEl !== document.body) {
                     activeEl.blur();
-                    console.log('[DEBUG] UnlockModal.hide() - blurred activeElement');
+                    sentryManager.addBreadcrumb('UnlockModal.hide() blurred activeElement', 'debug');
                 }
 
                 // Re-focus Phaser canvas so touch/pointer events resume on iOS WKWebView
                 // Extra delay lets the browser fully process the layout change before
                 // we ask it to route events back to the canvas.
-                console.log('[DEBUG] UnlockModal.hide() - scheduling setTimeout 150ms');
+                sentryManager.addBreadcrumb('UnlockModal.hide() scheduling setTimeout 150ms', 'debug');
                 setTimeout(() => {
-                    console.log('[DEBUG] UnlockModal.hide() - setTimeout fired');
+                    sentryManager.addBreadcrumb('UnlockModal.hide() setTimeout fired', 'debug');
                     const canvas = document.querySelector('canvas');
-                    console.log('[DEBUG] UnlockModal.hide() - canvas found:', !!canvas);
+                    sentryManager.addBreadcrumb('UnlockModal.hide() canvas check', 'debug', { canvasFound: !!canvas });
                     if (canvas) {
                         canvas.focus();
-                        console.log('[DEBUG] UnlockModal.hide() - canvas.focus() called');
+                        sentryManager.addBreadcrumb('UnlockModal.hide() canvas.focus() called', 'debug');
                     }
                     // Also poke Phaser's input manager in case it lost track
                     const scene = window.__pixellenceScene;
-                    console.log('[DEBUG] UnlockModal.hide() - scene exists:', !!scene);
                     if (scene) {
-                        console.log('[DEBUG] UnlockModal.hide() - scene.isDrawing:', scene.isDrawing);
-                        console.log('[DEBUG] UnlockModal.hide() - input.manager.enabled BEFORE:', scene.input?.manager?.enabled);
+                        sentryManager.addBreadcrumb('UnlockModal.hide() scene state', 'debug', {
+                            isDrawing: scene.isDrawing,
+                            inputEnabledBefore: scene.input?.manager?.enabled
+                        });
                         if (scene.input && scene.input.manager) {
                             scene.input.manager.enabled = true;
-                            console.log('[DEBUG] UnlockModal.hide() - input.manager.enabled set to true');
+                            sentryManager.addBreadcrumb('UnlockModal.hide() input.manager.enabled set to true', 'debug');
                         }
                     }
-                    console.log('[DEBUG] UnlockModal.hide() - COMPLETE');
+                    sentryManager.addBreadcrumb('UnlockModal.hide() COMPLETE', 'debug');
                 }, 150);
             });
         });

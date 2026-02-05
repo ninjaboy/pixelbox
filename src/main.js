@@ -205,31 +205,47 @@ class GameScene extends Phaser.Scene {
         const canvas = document.querySelector('canvas');
         if (canvas) {
             canvas.addEventListener('touchstart', (e) => {
-                console.log('[DEBUG] canvas touchstart - touches:', e.touches.length, 'x:', e.touches[0]?.clientX, 'y:', e.touches[0]?.clientY);
-                console.log('[DEBUG] canvas touchstart - scene.isDrawing:', this.isDrawing, 'input.enabled:', this.input?.manager?.enabled);
+                sentryManager.addBreadcrumb('canvas touchstart', 'debug', {
+                    touches: e.touches.length,
+                    x: e.touches[0]?.clientX,
+                    y: e.touches[0]?.clientY,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled
+                });
             }, { passive: true });
             canvas.addEventListener('touchend', (e) => {
-                console.log('[DEBUG] canvas touchend - changedTouches:', e.changedTouches.length);
-                console.log('[DEBUG] canvas touchend - scene.isDrawing:', this.isDrawing, 'input.enabled:', this.input?.manager?.enabled);
+                sentryManager.addBreadcrumb('canvas touchend', 'debug', {
+                    changedTouches: e.changedTouches.length,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled
+                });
             }, { passive: true });
             canvas.addEventListener('touchmove', (e) => {
                 // Only log occasionally to avoid spam
                 if (Math.random() < 0.1) {
-                    console.log('[DEBUG] canvas touchmove - scene.isDrawing:', this.isDrawing);
+                    sentryManager.addBreadcrumb('canvas touchmove', 'debug', { isDrawing: this.isDrawing });
                 }
             }, { passive: true });
             canvas.addEventListener('pointerdown', (e) => {
-                console.log('[DEBUG] canvas pointerdown - type:', e.pointerType, 'x:', e.clientX, 'y:', e.clientY);
-                console.log('[DEBUG] canvas pointerdown - scene.isDrawing:', this.isDrawing, 'input.enabled:', this.input?.manager?.enabled);
+                sentryManager.addBreadcrumb('canvas pointerdown', 'debug', {
+                    pointerType: e.pointerType,
+                    x: e.clientX,
+                    y: e.clientY,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled
+                });
             });
             canvas.addEventListener('pointerup', (e) => {
-                console.log('[DEBUG] canvas pointerup - type:', e.pointerType);
-                console.log('[DEBUG] canvas pointerup - scene.isDrawing:', this.isDrawing, 'input.enabled:', this.input?.manager?.enabled);
+                sentryManager.addBreadcrumb('canvas pointerup', 'debug', {
+                    pointerType: e.pointerType,
+                    isDrawing: this.isDrawing,
+                    inputEnabled: this.input?.manager?.enabled
+                });
             });
             canvas.addEventListener('pointermove', (e) => {
                 // Only log when drawing to reduce spam
                 if (this.isDrawing && Math.random() < 0.1) {
-                    console.log('[DEBUG] canvas pointermove while drawing - x:', e.clientX, 'y:', e.clientY);
+                    sentryManager.addBreadcrumb('canvas pointermove while drawing', 'debug', { x: e.clientX, y: e.clientY });
                 }
             });
         }
@@ -469,16 +485,18 @@ class GameScene extends Phaser.Scene {
             const selectElement = () => {
                 // If premium and locked, show unlock modal instead
                 if (purchaseManager.isPremiumElement(elementName) && !purchaseManager.isUnlocked()) {
-                    console.log('[DEBUG] selectElement() - premium element tapped:', elementName);
-                    console.log('[DEBUG] selectElement() - scene.isDrawing BEFORE modal:', this.isDrawing);
+                    sentryManager.addBreadcrumb('selectElement() premium element tapped', 'debug', {
+                        elementName,
+                        isDrawingBefore: this.isDrawing
+                    });
                     hideTooltip();
                     // Defer modal show to next frame to avoid breaking iOS touch chain
                     // Showing overlay during touchend handler corrupts touch state machine
-                    console.log('[DEBUG] selectElement() - scheduling rAF to show modal');
+                    sentryManager.addBreadcrumb('selectElement() scheduling rAF to show modal', 'debug');
                     requestAnimationFrame(() => {
-                        console.log('[DEBUG] selectElement() - rAF fired, showing modal now');
+                        sentryManager.addBreadcrumb('selectElement() rAF fired, showing modal', 'debug');
                         unlockModal.show(elementName, this.elementConfigs, () => {
-                            console.log('[DEBUG] UnlockModal onUnlock callback fired');
+                            sentryManager.addBreadcrumb('UnlockModal onUnlock callback fired', 'debug');
                             this.refreshElementLocks();
                         });
                     });
@@ -892,28 +910,31 @@ class GameScene extends Phaser.Scene {
     }
 
     startDrawing(pointer) {
-        console.log('[DEBUG] GameScene.startDrawing() called');
-        console.log('[DEBUG] GameScene.startDrawing() - pointer.x:', pointer.x, 'pointer.y:', pointer.y);
-        console.log('[DEBUG] GameScene.startDrawing() - buildMode:', this.buildMode);
-        console.log('[DEBUG] GameScene.startDrawing() - isDrawing BEFORE:', this.isDrawing);
-        console.log('[DEBUG] GameScene.startDrawing() - input.manager.enabled:', this.input?.manager?.enabled);
-        console.log('[DEBUG] GameScene.startDrawing() - input.activePointer:', this.input?.activePointer?.id);
+        sentryManager.addBreadcrumb('GameScene.startDrawing() called', 'debug', {
+            pointerX: pointer.x,
+            pointerY: pointer.y,
+            buildMode: this.buildMode,
+            isDrawingBefore: this.isDrawing,
+            inputEnabled: this.input?.manager?.enabled,
+            activePointerId: this.input?.activePointer?.id
+        });
         // Only allow drawing in build mode
         if (this.buildMode) {
             this.isDrawing = true;
-            console.log('[DEBUG] GameScene.startDrawing() - isDrawing set to TRUE');
+            sentryManager.addBreadcrumb('GameScene.startDrawing() isDrawing set to TRUE', 'debug');
             this.draw(pointer);
         } else {
-            console.log('[DEBUG] GameScene.startDrawing() - NOT in build mode, ignoring');
+            sentryManager.addBreadcrumb('GameScene.startDrawing() NOT in build mode, ignoring', 'debug');
         }
     }
 
     stopDrawing(pointer) {
-        console.log('[DEBUG] GameScene.stopDrawing() called');
-        console.log('[DEBUG] GameScene.stopDrawing() - isDrawing BEFORE:', this.isDrawing);
-        console.log('[DEBUG] GameScene.stopDrawing() - input.manager.enabled:', this.input?.manager?.enabled);
+        sentryManager.addBreadcrumb('GameScene.stopDrawing() called', 'debug', {
+            isDrawingBefore: this.isDrawing,
+            inputEnabled: this.input?.manager?.enabled
+        });
         this.isDrawing = false;
-        console.log('[DEBUG] GameScene.stopDrawing() - isDrawing set to FALSE');
+        sentryManager.addBreadcrumb('GameScene.stopDrawing() isDrawing set to FALSE', 'debug');
     }
 
     draw(pointer) {
