@@ -382,6 +382,7 @@ class UnlockModal {
                         }
                     }
                     sentryManager.addBreadcrumb('UnlockModal.hide() COMPLETE', 'debug');
+                    sentryManager.captureMessage('Modal closed - debug checkpoint', 'debug');
                 }, 150);
             });
         });
