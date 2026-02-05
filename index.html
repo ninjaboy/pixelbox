@@ -1246,11 +1246,11 @@
                 }
             });
 
-            // Load Game - show load dialog (use MenuManager if available)
+            // Load Game - show templates/worlds menu
             menuLoadGame.addEventListener('click', () => {
                 hideGameMenu();
                 if (window.__pixellenceScene && window.__pixellenceScene.menuManager) {
-                    window.__pixellenceScene.menuManager.showLoadMenu();
+                    window.__pixellenceScene.menuManager.showMenu();
                 } else {
                     alert('Load feature coming soon!');
                 }
