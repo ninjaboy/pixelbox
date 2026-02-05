@@ -362,6 +362,79 @@
             border-radius: 3px;
             font-family: 'Courier New', monospace;
         }
+
+        /* ── Game Menu Modal ── */
+        #game-menu-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 19000;
+            animation: fadeIn 0.25s ease;
+        }
+        #game-menu-modal {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+            border: 2px solid rgba(218, 165, 32, 0.5);
+            border-radius: 4px;
+            padding: 20px 24px;
+            max-width: 280px;
+            width: 85%;
+            box-shadow: 0 0 24px rgba(218, 165, 32, 0.15), inset 0 0 12px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.25s ease;
+            position: relative;
+            font-family: 'Courier New', monospace;
+        }
+        #game-menu-modal h3 {
+            margin: 0 0 16px 0;
+            text-align: center;
+            color: rgba(218, 165, 32, 0.9);
+            font-size: 14px;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(218, 165, 32, 0.3);
+            padding-bottom: 10px;
+        }
+        .game-menu-btn {
+            display: block;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(218, 165, 32, 0.3);
+            color: rgba(255, 255, 255, 0.85);
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            touch-action: manipulation;
+            text-align: left;
+        }
+        .game-menu-btn:hover, .game-menu-btn:active {
+            background: rgba(218, 165, 32, 0.2);
+            border-color: rgba(218, 165, 32, 0.6);
+            color: rgba(218, 165, 32, 0.95);
+        }
+        .game-menu-btn .emoji {
+            margin-right: 10px;
+        }
+        #game-menu-close {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(218, 165, 32, 0.4);
+            width: 24px; height: 24px;
+            color: rgba(218, 165, 32, 0.8);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
         .settings-version {
             text-align: center;
             font-size: 8px;
@@ -697,7 +770,7 @@
             <button id="speed-up" class="hdr-btn" title="Faster">+</button>
         </div>
         <div class="header-right">
-            <button id="settings-btn" class="hdr-btn" title="Settings" style="font-size:13px;">⚙️</button>
+            <button id="settings-btn" class="hdr-btn" title="Menu" style="font-size:13px;">☰</button>
         </div>
     </div>
 
@@ -742,6 +815,26 @@
     <!-- Hidden elements that JS still references -->
     <span id="mode-display" style="display:none;">🔨 Build</span>
     <span id="version" style="display:none;">-</span>
+
+    <!-- Game Menu Modal -->
+    <div id="game-menu-overlay" style="display: none;">
+        <div id="game-menu-modal">
+            <button id="game-menu-close">×</button>
+            <h3>☰ MENU</h3>
+            <button class="game-menu-btn" id="menu-new-game">
+                <span class="emoji">🆕</span> New Game
+            </button>
+            <button class="game-menu-btn" id="menu-load-game">
+                <span class="emoji">📂</span> Load Game
+            </button>
+            <button class="game-menu-btn" id="menu-settings">
+                <span class="emoji">⚙️</span> Settings
+            </button>
+            <button class="game-menu-btn" id="menu-resume" style="margin-top: 16px; border-color: rgba(100, 200, 100, 0.5);">
+                <span class="emoji">▶️</span> Resume
+            </button>
+        </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settings-overlay" style="display: none;">
@@ -1110,8 +1203,60 @@
                 }
             });
 
-            // ── Settings Panel Wiring ──
+            // ── Game Menu Wiring ──
             const settingsBtn = document.getElementById('settings-btn');
+            const gameMenuOverlay = document.getElementById('game-menu-overlay');
+            const gameMenuClose = document.getElementById('game-menu-close');
+            const menuNewGame = document.getElementById('menu-new-game');
+            const menuLoadGame = document.getElementById('menu-load-game');
+            const menuSettings = document.getElementById('menu-settings');
+            const menuResume = document.getElementById('menu-resume');
+
+            // Open/close game menu
+            settingsBtn.addEventListener('click', () => {
+                gameMenuOverlay.style.display = 'flex';
+            });
+
+            function hideGameMenu() {
+                if (gameMenuOverlay.style.display === 'none') return;
+                gameMenuOverlay.style.pointerEvents = 'none';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        gameMenuOverlay.style.display = 'none';
+                        gameMenuOverlay.style.pointerEvents = '';
+                        setTimeout(() => {
+                            const canvas = document.querySelector('canvas');
+                            if (canvas) canvas.focus();
+                        }, 150);
+                    });
+                });
+            }
+
+            gameMenuClose.addEventListener('click', hideGameMenu);
+            menuResume.addEventListener('click', hideGameMenu);
+            gameMenuOverlay.addEventListener('click', (e) => {
+                if (e.target === gameMenuOverlay) hideGameMenu();
+            });
+
+            // New Game - go to main menu scene
+            menuNewGame.addEventListener('click', () => {
+                hideGameMenu();
+                if (window.__pixelboxGame) {
+                    window.__pixelboxGame.scene.start('MainMenuScene');
+                }
+            });
+
+            // Load Game - show load dialog (use MenuManager if available)
+            menuLoadGame.addEventListener('click', () => {
+                hideGameMenu();
+                if (window.__pixellenceScene && window.__pixellenceScene.menuManager) {
+                    window.__pixellenceScene.menuManager.showLoadMenu();
+                } else {
+                    alert('Load feature coming soon!');
+                }
+            });
+
+            // ── Settings Panel Wiring ──
             const settingsOverlay = document.getElementById('settings-overlay');
             const settingsClose = document.getElementById('settings-close');
             const fpsToggle = document.getElementById('fps-toggle');
@@ -1120,18 +1265,21 @@
             const settingsVersion = document.getElementById('settings-version');
             const versionEl = document.getElementById('version');
 
-            // Open/close settings
-            settingsBtn.addEventListener('click', () => {
-                settingsOverlay.style.display = 'flex';
-                // Sync version
-                if (versionEl) settingsVersion.textContent = versionEl.textContent;
-                // Sync build mode state from Phaser scene
-                if (window.__pixellenceScene) {
-                    const bm = window.__pixellenceScene.buildMode;
-                    buildToggle.textContent = bm ? 'ON' : 'OFF';
-                    if (bm) buildToggle.classList.add('active');
-                    else buildToggle.classList.remove('active');
-                }
+            // Open settings from game menu
+            menuSettings.addEventListener('click', () => {
+                hideGameMenu();
+                setTimeout(() => {
+                    settingsOverlay.style.display = 'flex';
+                    // Sync version
+                    if (versionEl) settingsVersion.textContent = versionEl.textContent;
+                    // Sync build mode state from Phaser scene
+                    if (window.__pixellenceScene) {
+                        const bm = window.__pixellenceScene.buildMode;
+                        buildToggle.textContent = bm ? 'ON' : 'OFF';
+                        if (bm) buildToggle.classList.add('active');
+                        else buildToggle.classList.remove('active');
+                    }
+                }, 200);
             });
             // Hide settings modal - deferred to double rAF to prevent iOS touch state corruption
             function hideSettingsModal() {
@@ -1154,8 +1302,12 @@
                 if (e.target === settingsOverlay) hideSettingsModal();
             });
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && settingsOverlay.style.display === 'flex') {
-                    hideSettingsModal();
+                if (e.key === 'Escape') {
+                    if (settingsOverlay.style.display === 'flex') {
+                        hideSettingsModal();
+                    } else if (gameMenuOverlay.style.display === 'flex') {
+                        hideGameMenu();
+                    }
                 }
             });
 
