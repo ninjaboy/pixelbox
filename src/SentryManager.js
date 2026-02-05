@@ -25,7 +25,7 @@ class SentryManager {
             return;
         }
 
-        const dsn = 'YOUR_SENTRY_DSN_HERE';
+        const dsn = 'https://a734a9e7dd7cc53d78de42be3ef73b7e@o370318.ingest.us.sentry.io/4510832502898688';
 
         // Don't initialize if DSN is not configured
         if (dsn === 'YOUR_SENTRY_DSN_HERE') {
