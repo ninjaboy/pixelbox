@@ -45,7 +45,7 @@ import SplashScene from './scenes/SplashScene.js';
 import MainMenuScene from './scenes/MainMenuScene.js';
 import purchaseManager from './PurchaseManager.js';
 import unlockModal from './UnlockModal.js';
-import MenuManager from './MenuManager.js';
+import BackgroundGenerator from './BackgroundGenerator.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -111,13 +111,29 @@ class GameScene extends Phaser.Scene {
         this.seasonManager = new SeasonManager(GAME_CONFIG);
         this.windManager = new WindManager(GAME_CONFIG, this.seasonManager);
 
-        // Create graphics layers
+        // Create graphics layers with explicit depth ordering
         this.skyGraphics = this.add.graphics();
+        this.skyGraphics.setDepth(-100); // Lowest layer
+
+        // BACKGROUND GENERATOR (procedural biome backgrounds)
+        // Biomes: 'mountains', 'forest', 'desert', 'ocean', 'sky'
+        this.backgroundGenerator = new BackgroundGenerator(this, 'mountains');
+        // BackgroundGenerator sets its own depth at -50
+
         this.celestialGraphics = this.add.graphics();
+        this.celestialGraphics.setDepth(-40); // Sun/moon above background
+
         this.graphics = this.add.graphics();
+        this.graphics.setDepth(0); // Main particles
+
         this.lavaGlowGraphics = this.add.graphics(); // Separate layer for lava surface glow
+        this.lavaGlowGraphics.setDepth(1);
+
         this.lightGlowGraphics = this.add.graphics(); // Separate layer for glowing house lights
+        this.lightGlowGraphics.setDepth(2);
+
         this.overlayGraphics = this.add.graphics();
+        this.overlayGraphics.setDepth(100); // Top overlay
 
         // Add glow to celestial graphics for sun/moon - will be updated dynamically
         const celestialGlow = this.celestialGraphics.postFX.addGlow(0xffdd44, 2, 0, false, 0.1, 5);
@@ -150,20 +166,10 @@ class GameScene extends Phaser.Scene {
         // Set version once
         this.versionText.textContent = VERSION;
 
-        // Initialize MenuManager (needs WorldSerializer first)
+        // Initialize WorldSerializer for save/load functionality
         if (!this.worldSerializer) {
             const { default: WorldSerializer } = await import('./WorldSerializer.js');
             this.worldSerializer = new WorldSerializer(this);
-        }
-        this.menuManager = new MenuManager(this);
-        this.menuManager.init();
-
-        // Wire up menu button
-        const menuBtn = document.getElementById('menu-btn');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', () => {
-                this.menuManager.showMenu();
-            });
         }
 
         // Initialize mode display
@@ -200,6 +206,9 @@ class GameScene extends Phaser.Scene {
 
         // Expose scene for settings panel
         window.__pixellenceScene = this;
+
+        // Start periodic auto-save (every 30 seconds)
+        this.startAutoSave();
 
         // Telemetry: Track touch/pointer events on canvas with full state
         const canvas = document.querySelector('canvas');
@@ -270,12 +279,31 @@ class GameScene extends Phaser.Scene {
                     const { default: WorldSerializer } = await import('./WorldSerializer.js');
                     this.worldSerializer = new WorldSerializer(this);
                 }
-                this.worldSerializer.deserializeWorld(worldData);
-                console.log('📂 Continued from saved world');
+                const success = this.worldSerializer.deserializeWorld(worldData);
+                if (success) {
+                    console.log('📂 Continued from saved world');
+                    // Show brief notification
+                    this.showSaveNotification('📂 World restored');
+                } else {
+                    console.warn('⚠️ Could not restore saved world, starting fresh');
+                    // Clear corrupted save to prevent repeated failures
+                    await storageManager.saveCurrentWorld(null);
+                }
             }
         } catch (e) {
             console.error('❌ Failed to load saved world:', e);
+            // Don't crash the game, just continue with fresh world
         }
+    }
+
+    /**
+     * Show a brief save/load notification
+     */
+    showSaveNotification(message) {
+        const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
+        indicator.textContent = message;
+        indicator.style.display = 'block';
+        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
     }
 
     setGameUIVisible(visible) {
@@ -590,6 +618,13 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
+            // Cycle background biome with G key
+            if (key === 'G') {
+                this.cycleBackgroundBiome();
+                e.preventDefault();
+                return;
+            }
+
             // Arrow keys for player movement (only in explore mode)
             if (!this.buildMode) {
                 if (key === 'ARROWLEFT' || key === 'A') {
@@ -727,6 +762,55 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Start periodic auto-save (saves every 30 seconds)
+     */
+    startAutoSave() {
+        // Clear any existing timer
+        this.stopAutoSave();
+
+        const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
+
+        this.autoSaveTimer = setInterval(async () => {
+            if (this.worldSerializer && this.sceneReady) {
+                try {
+                    await this.worldSerializer.autoSave();
+                } catch (e) {
+                    console.warn('Periodic auto-save failed:', e);
+                }
+            }
+        }, AUTO_SAVE_INTERVAL);
+
+        console.log('⏰ Auto-save enabled (every 30s)');
+    }
+
+    /**
+     * Stop periodic auto-save
+     */
+    stopAutoSave() {
+        if (this.autoSaveTimer) {
+            clearInterval(this.autoSaveTimer);
+            this.autoSaveTimer = null;
+        }
+    }
+
+    /**
+     * Called when scene is stopped/switched - cleanup timers and save
+     */
+    async shutdown() {
+        // Auto-save before shutting down (ensure world is persisted)
+        if (this.worldSerializer && this.sceneReady) {
+            try {
+                await this.worldSerializer.autoSave();
+                console.log('💾 Auto-saved on scene shutdown');
+            } catch (e) {
+                console.warn('Auto-save on shutdown failed:', e);
+            }
+        }
+        this.stopAutoSave();
+        this.sceneReady = false;
+    }
+
     spawnPlayer() {
         const centerX = Math.floor(this.pixelGrid.width / 2);
         const centerY = Math.floor(this.pixelGrid.height * 0.3); // Spawn in upper middle
@@ -819,6 +903,30 @@ class GameScene extends Phaser.Scene {
         }
 
         indicator.textContent = speedText;
+        indicator.style.display = 'block';
+        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+    }
+
+    cycleBackgroundBiome() {
+        if (!this.backgroundGenerator) return;
+
+        const biomes = BackgroundGenerator.getBiomes();
+        const currentIndex = biomes.indexOf(this.backgroundGenerator.biome);
+        const nextIndex = (currentIndex + 1) % biomes.length;
+        const nextBiome = biomes[nextIndex];
+
+        this.backgroundGenerator.setBiome(nextBiome);
+
+        // Show indicator
+        const indicator = document.getElementById('mode-indicator') || this.createModeIndicator();
+        const biomeEmojis = {
+            mountains: '🏔️',
+            forest: '🌲',
+            desert: '🏜️',
+            ocean: '🌊',
+            sky: '☁️'
+        };
+        indicator.textContent = `${biomeEmojis[nextBiome] || '🌍'} ${nextBiome.charAt(0).toUpperCase() + nextBiome.slice(1)} Biome`;
         indicator.style.display = 'block';
         setTimeout(() => { indicator.style.display = 'none'; }, 2000);
     }
@@ -1256,10 +1364,18 @@ class GameScene extends Phaser.Scene {
         const { width, height } = this.sys.game.config;
         const time = this.dayNightCycle.time;
 
-        // 1. RENDER SKY GRADIENT
+        // 1. RENDER SKY GRADIENT (base layer)
         profiler.start('render:sky');
         this.renderSky(width, height, time);
         profiler.end('render:sky');
+
+        // 1.5 RENDER PROCEDURAL BACKGROUND (terrain silhouettes on top of sky)
+        profiler.start('render:background');
+        if (this.backgroundGenerator) {
+            const seasonData = { season: this.seasonManager.getCurrentSeason() };
+            this.backgroundGenerator.render(width, height, time, seasonData);
+        }
+        profiler.end('render:background');
 
         // 2. RENDER SUN/MOON
         profiler.start('render:celestial');
@@ -1778,6 +1894,9 @@ const config = {
     parent: 'game-container',
     backgroundColor: '#000000',
     scene: [SplashScene, MainMenuScene, GameScene],
+    audio: {
+        noAudio: true  // Game uses custom WebAudio soundscape, not Phaser audio
+    },
     render: {
         pixelArt: true,
         antialias: false

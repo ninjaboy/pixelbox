@@ -347,6 +347,25 @@
             border-color: rgba(218, 165, 32, 0.6);
             color: rgba(218, 165, 32, 0.95);
         }
+        .settings-select {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(218, 165, 32, 0.3);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            min-width: 90px;
+        }
+        .settings-select:focus {
+            outline: none;
+            border-color: rgba(218, 165, 32, 0.6);
+        }
+        .settings-select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
         #settings-close {
             position: absolute;
             top: 8px; right: 8px;
@@ -441,38 +460,10 @@
             font-size: 10px;
         }
 
-        /* Menu System */
-        #menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            animation: fadeIn 0.3s ease;
-        }
-
+        /* Shared Animation Keyframes */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
-        }
-
-        #menu-modal {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
-            animation: slideUp 0.3s ease;
         }
 
         @keyframes slideUp {
@@ -483,151 +474,6 @@
             to {
                 transform: translateY(0);
                 opacity: 1;
-            }
-        }
-
-        #menu-modal h2 {
-            margin: 0 0 24px 0;
-            font-size: 28px;
-            color: #00ffff;
-            text-align: center;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        }
-
-        #main-menu, #template-menu {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .menu-btn {
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(0, 255, 255, 0.05) 100%);
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            text-align: left;
-        }
-
-        .menu-btn:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(0, 255, 255, 0.1) 100%);
-            border-color: rgba(0, 255, 255, 0.6);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.3);
-        }
-
-        .menu-btn:active {
-            transform: translateY(0);
-        }
-
-        .menu-icon {
-            font-size: 32px;
-            flex-shrink: 0;
-        }
-
-        .menu-btn-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-
-        .menu-btn-desc {
-            font-size: 13px;
-            opacity: 0.7;
-        }
-
-        .menu-btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 12px;
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .menu-btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Template Grid */
-        .template-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .template-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            text-align: center;
-        }
-
-        .template-btn:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-            border-color: rgba(0, 255, 255, 0.5);
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.2);
-        }
-
-        .template-btn:active {
-            transform: translateY(-2px);
-        }
-
-        .template-icon {
-            font-size: 48px;
-        }
-
-        .template-name {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .template-desc {
-            font-size: 11px;
-            opacity: 0.6;
-            line-height: 1.3;
-        }
-
-        /* Responsive adjustments for menu */
-        @media (max-width: 600px) {
-            #menu-modal {
-                padding: 24px;
-                width: 95%;
-            }
-
-            .template-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .template-icon {
-                font-size: 36px;
-            }
-
-            .template-name {
-                font-size: 12px;
-            }
-
-            .template-desc {
-                font-size: 10px;
             }
         }
 
@@ -764,6 +610,16 @@
                 <button id="fps-toggle" class="settings-toggle">OFF</button>
             </div>
             <div class="settings-row">
+                <label>🏔️ Background</label>
+                <select id="biome-select" class="settings-select">
+                    <option value="mountains">Mountains</option>
+                    <option value="forest">Forest</option>
+                    <option value="desert">Desert</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="sky">Sky Only</option>
+                </select>
+            </div>
+            <div class="settings-row">
                 <label>📖 Element Guide</label>
                 <button id="grimoire-btn" class="settings-toggle">OPEN</button>
             </div>
@@ -856,19 +712,49 @@
         let playChord = null;
         let chordProgression = null;
         let currentChordIndex = 0;
+        let chordIntervalId = null;
+        let audioAvailable = true; // flag to disable audio entirely on fatal errors
+
+        // Check if AudioContext is usable (not closed/failed)
+        function isAudioContextUsable() {
+            return audioContext && audioContext.state !== 'closed' && audioAvailable;
+        }
+
+        // Safely resume a suspended AudioContext (returns promise)
+        async function safeResumeAudioContext() {
+            if (!audioContext || audioContext.state === 'closed') return false;
+            if (audioContext.state === 'suspended') {
+                try {
+                    await audioContext.resume();
+                    return true;
+                } catch (err) {
+                    console.warn('Failed to resume audio context:', err.message);
+                    return false;
+                }
+            }
+            return audioContext.state === 'running';
+        }
 
         function setupAmbientDrone() {
+            // Don't retry if audio was already determined unavailable
+            if (!audioAvailable) return;
+
             try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Reuse existing AudioContext if still usable
+                if (!audioContext || audioContext.state === 'closed') {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Listen for unexpected state changes
+                    audioContext.onstatechange = () => {
+                        if (audioContext.state === 'closed') {
+                            console.warn('AudioContext closed unexpectedly');
+                            stopAllOscillators();
+                        }
+                    };
+                }
 
                 // Safari/iOS: Resume audio context (required for autoplay policy)
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('✅ Audio context resumed for Safari/iOS');
-                    }).catch(err => {
-                        console.log('❌ Failed to resume audio context:', err);
-                    });
-                }
+                safeResumeAudioContext();
 
                 // Separate gain nodes for chord and melody
                 chordGain = audioContext.createGain();
@@ -896,27 +782,33 @@
                     });
                     oscillators = [];
 
-                    // Don't create new oscillators if muted
-                    if (isMuted) return;
+                    // Don't create new oscillators if muted or context unusable
+                    if (isMuted || !isAudioContextUsable()) return;
 
-                    // Create new chord
-                    chordFreqs.forEach(freq => {
-                        const osc = audioContext.createOscillator();
-                        osc.type = 'sine';
-                        osc.frequency.value = freq;
-                        osc.detune.value = (Math.random() - 0.5) * 3; // Slight chorus
+                    try {
+                        // Create new chord
+                        chordFreqs.forEach(freq => {
+                            const osc = audioContext.createOscillator();
+                            osc.type = 'sine';
+                            osc.frequency.value = freq;
+                            osc.detune.value = (Math.random() - 0.5) * 3; // Slight chorus
 
-                        osc.connect(chordGain);
-                        osc.start();
-                        oscillators.push(osc);
-                    });
+                            osc.connect(chordGain);
+                            osc.start();
+                            oscillators.push(osc);
+                        });
+                    } catch (err) {
+                        console.warn('Failed to create chord oscillators:', err.message);
+                    }
                 };
 
                 // Start with first chord
                 playChord(chordProgression[0]);
 
                 // Chord progression: change every 21 seconds (Fibonacci: 21)
-                setInterval(() => {
+                if (chordIntervalId) clearInterval(chordIntervalId);
+                chordIntervalId = setInterval(() => {
+                    if (!isAudioContextUsable()) return;
                     currentChordIndex = (currentChordIndex + 1) % chordProgression.length;
                     playChord(chordProgression[currentChordIndex]);
                 }, 21000);
@@ -945,6 +837,8 @@
                 let currentTheme = 0; // 0 = mystical, 1 = mario
 
                 function playMelodySequence() {
+                    if (!isAudioContextUsable()) return;
+
                     // Select theme-specific notes and sequences
                     const melodyNotes = currentTheme === 0 ? melodyNotes1 : melodyNotes2;
                     const melodySequences = currentTheme === 0 ? melodySequences1 : melodySequences2;
@@ -955,8 +849,8 @@
                     // Play each note in the sequence
                     sequence.forEach((noteIdx, i) => {
                         setTimeout(() => {
-                            // Don't play if muted
-                            if (isMuted) return;
+                            // Don't play if muted or context unusable
+                            if (isMuted || !isAudioContextUsable()) return;
 
                             // Stop previous melody note
                             melodyOscillators.forEach(osc => {
@@ -964,47 +858,51 @@
                             });
                             melodyOscillators = [];
 
-                            // Create bell-like tone (fundamental + harmonics)
-                            const fundamental = audioContext.createOscillator();
-                            fundamental.type = 'sine';
-                            fundamental.frequency.value = melodyNotes[noteIdx];
+                            try {
+                                // Create bell-like tone (fundamental + harmonics)
+                                const fundamental = audioContext.createOscillator();
+                                fundamental.type = 'sine';
+                                fundamental.frequency.value = melodyNotes[noteIdx];
 
-                            const harmonic2 = audioContext.createOscillator();
-                            harmonic2.type = 'sine';
-                            harmonic2.frequency.value = melodyNotes[noteIdx] * 2;
+                                const harmonic2 = audioContext.createOscillator();
+                                harmonic2.type = 'sine';
+                                harmonic2.frequency.value = melodyNotes[noteIdx] * 2;
 
-                            const harmonic3 = audioContext.createOscillator();
-                            harmonic3.type = 'sine';
-                            harmonic3.frequency.value = melodyNotes[noteIdx] * 3;
+                                const harmonic3 = audioContext.createOscillator();
+                                harmonic3.type = 'sine';
+                                harmonic3.frequency.value = melodyNotes[noteIdx] * 3;
 
-                            const harmonic2Gain = audioContext.createGain();
-                            harmonic2Gain.gain.value = 0.2;
-                            const harmonic3Gain = audioContext.createGain();
-                            harmonic3Gain.gain.value = 0.1;
+                                const harmonic2Gain = audioContext.createGain();
+                                harmonic2Gain.gain.value = 0.2;
+                                const harmonic3Gain = audioContext.createGain();
+                                harmonic3Gain.gain.value = 0.1;
 
-                            fundamental.connect(melodyGain);
-                            harmonic2.connect(harmonic2Gain);
-                            harmonic2Gain.connect(melodyGain);
-                            harmonic3.connect(harmonic3Gain);
-                            harmonic3Gain.connect(melodyGain);
+                                fundamental.connect(melodyGain);
+                                harmonic2.connect(harmonic2Gain);
+                                harmonic2Gain.connect(melodyGain);
+                                harmonic3.connect(harmonic3Gain);
+                                harmonic3Gain.connect(melodyGain);
 
-                            const now = audioContext.currentTime;
+                                const now = audioContext.currentTime;
 
-                            // Quick attack, long decay (bell-like)
-                            melodyGain.gain.setValueAtTime(0, now);
-                            melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.05);
-                            melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 3);
+                                // Quick attack, long decay (bell-like)
+                                melodyGain.gain.setValueAtTime(0, now);
+                                melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.05);
+                                melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 3);
 
-                            fundamental.start(now);
-                            harmonic2.start(now);
-                            harmonic3.start(now);
+                                fundamental.start(now);
+                                harmonic2.start(now);
+                                harmonic3.start(now);
 
-                            // Stop after decay
-                            fundamental.stop(now + 3);
-                            harmonic2.stop(now + 3);
-                            harmonic3.stop(now + 3);
+                                // Stop after decay
+                                fundamental.stop(now + 3);
+                                harmonic2.stop(now + 3);
+                                harmonic3.stop(now + 3);
 
-                            melodyOscillators.push(fundamental, harmonic2, harmonic3);
+                                melodyOscillators.push(fundamental, harmonic2, harmonic3);
+                            } catch (err) {
+                                console.warn('Failed to create melody oscillators:', err.message);
+                            }
                         }, delay);
 
                         // Notes within sequence: 1.5-2 seconds apart
@@ -1028,16 +926,31 @@
                 }
 
                 // Start first melody sequence after 8 seconds (let chord establish + build anticipation)
-                setTimeout(playMelodySequence, 8000);
+                melodyTimeout = setTimeout(playMelodySequence, 8000);
 
                 // Connect to output
                 chordGain.connect(audioContext.destination);
                 melodyGain.connect(audioContext.destination);
 
-                console.log('✨ Mystical soundscape active: chord progression + Fibonacci melody');
+                console.log('Mystical soundscape active: chord progression + Fibonacci melody');
             } catch (err) {
-                console.log('Audio context not available:', err.message);
+                // InvalidStateError = audio device failed to start (Sentry error)
+                // NotAllowedError = user gesture required (shouldn't happen here)
+                console.warn('Audio initialization failed:', err.name, err.message);
+                audioAvailable = false;
+                audioContext = null;
             }
+        }
+
+        function stopAllOscillators() {
+            oscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            melodyOscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            oscillators = [];
+            melodyOscillators = [];
         }
 
         // Start audio context on first user interaction (required by browser policy)
@@ -1056,6 +969,16 @@
         document.addEventListener('click', startAudioOnInteraction);
         document.addEventListener('touchstart', startAudioOnInteraction); // Mobile support
         document.addEventListener('keydown', startAudioOnInteraction);
+
+        // Suspend/resume audio when tab visibility changes (saves resources, prevents errors)
+        document.addEventListener('visibilitychange', () => {
+            if (!audioContext || audioContext.state === 'closed') return;
+            if (document.hidden) {
+                audioContext.suspend().catch(() => {});
+            } else if (!isMuted) {
+                safeResumeAudioContext();
+            }
+        });
 
         // Mute button functionality
         document.addEventListener('DOMContentLoaded', () => {
@@ -1078,25 +1001,14 @@
                     // Mute - stop all oscillators and set gains to 0
                     if (chordGain) chordGain.gain.value = 0;
                     if (melodyGain) melodyGain.gain.value = 0;
-
-                    // Stop all currently playing oscillators
-                    oscillators.forEach(osc => {
-                        try { osc.stop(); } catch(e) {}
-                    });
-                    melodyOscillators.forEach(osc => {
-                        try { osc.stop(); } catch(e) {}
-                    });
-                    oscillators = [];
-                    melodyOscillators = [];
+                    stopAllOscillators();
 
                     muteIcon.textContent = 'OFF';
                     muteBtn.classList.remove('active');
                 } else {
                     // Unmute - restart chord progression
-                    // Safari/iOS: Resume audio context if suspended
-                    if (audioContext && audioContext.state === 'suspended') {
-                        audioContext.resume();
-                    }
+                    // Resume audio context if suspended (Safari/iOS or visibility change)
+                    safeResumeAudioContext();
 
                     if (chordGain) chordGain.gain.value = 0.025;
                     if (melodyGain) melodyGain.gain.value = 0.015;
@@ -1113,20 +1025,50 @@
 
             // ── Menu Button → Go to MainMenuScene ──
             const settingsBtn = document.getElementById('settings-btn');
-            
-            settingsBtn.addEventListener('click', async () => {
+
+            const goToMainMenu = async () => {
+                console.log('☰ Menu button pressed');
+                
                 // Save current world state before going to menu
                 if (window.__pixellenceScene && window.__pixellenceScene.worldSerializer) {
                     try {
-                        await window.__pixellenceScene.worldSerializer.autoSave();
+                        console.log('💾 Saving world before menu...');
+                        const saved = await window.__pixellenceScene.worldSerializer.autoSave();
+                        console.log('💾 Save result:', saved);
                     } catch (e) {
                         console.warn('Auto-save before menu failed:', e);
                     }
+                } else {
+                    console.warn('⚠️ No scene or worldSerializer available for save');
                 }
-                // Switch to MainMenuScene
+                
+                // Hide brush control when going to menu
+                const brushControl = document.getElementById('brush-control');
+                if (brushControl) brushControl.style.display = 'none';
+
+                // Switch to MainMenuScene - stop GameScene first to prevent overlap
                 if (window.__pixelboxGame) {
+                    console.log('🎬 Switching to MainMenuScene...');
+                    window.__pixelboxGame.scene.stop('GameScene');
                     window.__pixelboxGame.scene.start('MainMenuScene');
+                } else {
+                    console.warn('⚠️ No game instance found');
                 }
+            };
+            
+            // Support both click and touch for iOS compatibility
+            let menuTouchHandled = false;
+            settingsBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                menuTouchHandled = true;
+                goToMainMenu();
+            });
+            settingsBtn.addEventListener('click', () => {
+                if (menuTouchHandled) {
+                    menuTouchHandled = false;
+                    return;
+                }
+                goToMainMenu();
             });
 
             // ── Settings Panel Wiring ──
@@ -1137,6 +1079,18 @@
             const statsDiv = document.getElementById('stats');
             const settingsVersion = document.getElementById('settings-version');
             const versionEl = document.getElementById('version');
+
+            // Sync version to settings modal when it changes (via MutationObserver)
+            if (settingsVersion && versionEl) {
+                const syncVersion = () => {
+                    if (versionEl.textContent && versionEl.textContent !== '-') {
+                        settingsVersion.textContent = versionEl.textContent;
+                    }
+                };
+                syncVersion(); // Initial sync
+                new MutationObserver(syncVersion).observe(versionEl, { childList: true, characterData: true, subtree: true });
+            }
+
             // Hide settings modal - deferred to double rAF to prevent iOS touch state corruption
             function hideSettingsModal() {
                 if (settingsOverlay.style.display === 'none') return;
@@ -1185,6 +1139,14 @@
                     else buildToggle.classList.remove('active');
                 }
             });
+
+            // Biome selector
+            const biomeSelect = document.getElementById('biome-select');
+            biomeSelect.addEventListener('change', (e) => {
+                if (window.__pixellenceScene && window.__pixellenceScene.backgroundGenerator) {
+                    window.__pixellenceScene.backgroundGenerator.setBiome(e.target.value);
+                }
+            });
         });
 
         // Cleanup on page unload
@@ -1192,14 +1154,11 @@
             if (wakeLock !== null) {
                 wakeLock.release();
             }
-            oscillators.forEach(osc => {
-                try { osc.stop(); } catch(e) {}
-            });
-            melodyOscillators.forEach(osc => {
-                try { osc.stop(); } catch(e) {}
-            });
-            if (audioContext !== null) {
-                audioContext.close();
+            if (chordIntervalId) clearInterval(chordIntervalId);
+            if (melodyTimeout) clearTimeout(melodyTimeout);
+            stopAllOscillators();
+            if (audioContext !== null && audioContext.state !== 'closed') {
+                audioContext.close().catch(() => {});
             }
         });
     </script>
