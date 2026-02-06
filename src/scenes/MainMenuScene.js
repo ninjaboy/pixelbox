@@ -16,6 +16,9 @@ export default class MainMenuScene extends Phaser.Scene {
     create() {
         const { width, height } = this.sys.game.config;
 
+        // Ensure input is enabled for this scene
+        this.input.enabled = true;
+
         // Hide game UI elements during menu
         this.setGameUIVisible(false);
 
@@ -390,7 +393,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
     setGameUIVisible(visible) {
         const display = visible ? '' : 'none';
-        const elements = ['element-selector', 'stats', 'global-tooltip', 'game-header'];
+        const elements = ['element-selector', 'stats', 'global-tooltip', 'game-header', 'brush-control'];
         elements.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = display;

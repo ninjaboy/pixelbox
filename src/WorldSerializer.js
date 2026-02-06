@@ -1,4 +1,9 @@
 // WorldSerializer - Save, load, and share worlds via base64 encoding
+import { VERSION } from '../version.js';
+
+// Serialization format version - bump when format changes
+const SAVE_FORMAT_VERSION = 2;
+
 export default class WorldSerializer {
     constructor(gameScene) {
         this.gameScene = gameScene;
@@ -6,7 +11,8 @@ export default class WorldSerializer {
 
     /**
      * Serialize the current world to a base64 string
-     * Format: width,height|elementId,elementId,elementId...
+     * Format v2: JSON with version, game state, and grid data
+     * Format v1 (legacy): width,height|elementId,elementId,elementId...
      */
     serializeWorld() {
         const grid = this.gameScene.pixelGrid;
@@ -22,88 +28,165 @@ export default class WorldSerializer {
             }
         }
 
-        // Create compact string: dimensions + element IDs
-        const dataString = `${width},${height}|${elements.join(',')}`;
+        // Create save object with metadata
+        const saveData = {
+            formatVersion: SAVE_FORMAT_VERSION,
+            gameVersion: VERSION,
+            timestamp: Date.now(),
+            grid: {
+                width,
+                height,
+                elements: elements.join(',')
+            },
+            gameState: {
+                buildMode: this.gameScene.buildMode,
+                dayTime: this.gameScene.dayNightCycle?.time || 0.35,
+                currentDay: this.gameScene.currentDay || 0,
+                timeSpeedIndex: this.gameScene.timeControl?.currentSpeedIndex || 3
+            },
+            player: {
+                x: this.gameScene.playerX,
+                y: this.gameScene.playerY
+            }
+        };
 
         // Encode to base64
-        const base64 = btoa(dataString);
+        const json = JSON.stringify(saveData);
+        const base64 = btoa(json);
 
         return base64;
     }
 
     /**
      * Deserialize a base64 world string and load it
+     * Supports both v2 (JSON) and v1 (legacy) formats
      */
     deserializeWorld(base64String) {
         try {
             // Decode from base64
             const dataString = atob(base64String);
 
-            // Parse dimensions and element data
-            const [dimensionsStr, elementsStr] = dataString.split('|');
-            const [width, height] = dimensionsStr.split(',').map(Number);
-            const elementIds = elementsStr.split(',').map(Number);
-
-            // Validate dimensions
-            const grid = this.gameScene.pixelGrid;
-            if (width !== grid.width || height !== grid.height) {
-                throw new Error(`Dimension mismatch: Expected ${grid.width}x${grid.height}, got ${width}x${height}`);
+            // Detect format: v2 starts with '{' (JSON), v1 starts with dimensions
+            let saveData;
+            if (dataString.startsWith('{')) {
+                // v2 format: JSON
+                saveData = JSON.parse(dataString);
+            } else {
+                // v1 legacy format: width,height|elementId,elementId,...
+                saveData = this._parseLegacyFormat(dataString);
             }
 
-            // Validate data length
-            if (elementIds.length !== width * height) {
-                throw new Error(`Data length mismatch: Expected ${width * height}, got ${elementIds.length}`);
-            }
-
-            // Clear grid completely (don't use resetWorld - it adds borders!)
-            const empty = this.gameScene.elementRegistry.get('empty');
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    grid.setElement(x, y, empty);
-                }
-            }
-
-            // Reset to build mode
-            this.gameScene.buildMode = true;
-            this.gameScene.updateModeDisplay();
-
-            // Despawn player
-            this.gameScene.playerX = null;
-            this.gameScene.playerY = null;
-
-            // Load elements from serialized data
-            let index = 0;
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const elementId = elementIds[index++];
-                    if (elementId !== 0) {
-                        const element = this.gameScene.elementRegistry.getById(elementId);
-                        if (element) {
-                            grid.setElement(x, y, element);
-                        } else {
-                            console.warn(`⚠️ Unknown element ID: ${elementId} at (${x}, ${y})`);
-                        }
-                    }
-                }
-            }
-
-            // Count loaded elements for debugging
-            const elementCounts = {};
-            elementIds.forEach(id => {
-                if (id !== 0) {
-                    const element = this.gameScene.elementRegistry.getById(id);
-                    const name = element ? element.name : `unknown(${id})`;
-                    elementCounts[name] = (elementCounts[name] || 0) + 1;
-                }
-            });
-
-            return true;
+            return this._loadSaveData(saveData);
 
         } catch (error) {
             console.error('❌ Failed to load world:', error.message);
-            alert(`Failed to load world: ${error.message}`);
+            // Don't show alert for auto-load failures, only for manual imports
             return false;
         }
+    }
+
+    /**
+     * Parse legacy v1 format into v2 structure
+     * @private
+     */
+    _parseLegacyFormat(dataString) {
+        const [dimensionsStr, elementsStr] = dataString.split('|');
+        const [width, height] = dimensionsStr.split(',').map(Number);
+
+        return {
+            formatVersion: 1,
+            grid: {
+                width,
+                height,
+                elements: elementsStr
+            },
+            gameState: {
+                buildMode: true,
+                dayTime: 0.35,
+                currentDay: 0,
+                timeSpeedIndex: 3
+            }
+        };
+    }
+
+    /**
+     * Load save data into the game
+     * @private
+     */
+    _loadSaveData(saveData) {
+        const grid = this.gameScene.pixelGrid;
+        const { width, height, elements } = saveData.grid;
+        const elementIds = elements.split(',').map(Number);
+
+        // Validate dimensions
+        if (width !== grid.width || height !== grid.height) {
+            throw new Error(`Dimension mismatch: Expected ${grid.width}x${grid.height}, got ${width}x${height}`);
+        }
+
+        // Validate data length
+        if (elementIds.length !== width * height) {
+            throw new Error(`Data length mismatch: Expected ${width * height}, got ${elementIds.length}`);
+        }
+
+        // Clear grid completely (don't use resetWorld - it adds borders!)
+        const empty = this.gameScene.elementRegistry.get('empty');
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                grid.setElement(x, y, empty);
+            }
+        }
+
+        // Restore game state
+        const gameState = saveData.gameState || {};
+
+        this.gameScene.buildMode = gameState.buildMode !== false; // Default to true
+        if (this.gameScene.updateModeDisplay) {
+            this.gameScene.updateModeDisplay();
+        }
+
+        // Restore day/night cycle if available
+        if (this.gameScene.dayNightCycle && gameState.dayTime !== undefined) {
+            this.gameScene.dayNightCycle.time = gameState.dayTime;
+        }
+        if (gameState.currentDay !== undefined) {
+            this.gameScene.currentDay = gameState.currentDay;
+        }
+
+        // Restore time speed
+        if (this.gameScene.timeControl && gameState.timeSpeedIndex !== undefined) {
+            this.gameScene.timeControl.currentSpeedIndex = gameState.timeSpeedIndex;
+        }
+
+        // Restore player position if saved, otherwise despawn
+        const playerData = saveData.player;
+        if (playerData && playerData.x !== null && playerData.y !== null) {
+            this.gameScene.playerX = playerData.x;
+            this.gameScene.playerY = playerData.y;
+        } else {
+            this.gameScene.playerX = null;
+            this.gameScene.playerY = null;
+        }
+
+        // Load elements from serialized data
+        let index = 0;
+        let loadedCount = 0;
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const elementId = elementIds[index++];
+                if (elementId !== 0) {
+                    const element = this.gameScene.elementRegistry.getById(elementId);
+                    if (element) {
+                        grid.setElement(x, y, element);
+                        loadedCount++;
+                    } else {
+                        console.warn(`⚠️ Unknown element ID: ${elementId} at (${x}, ${y})`);
+                    }
+                }
+            }
+        }
+
+        console.log(`📂 Loaded world: ${loadedCount} elements, format v${saveData.formatVersion || 1}`);
+        return true;
     }
 
     /**
@@ -255,6 +338,26 @@ export default class WorldSerializer {
 
         } catch (error) {
             alert(`Failed to load world: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Auto-save current world to local storage
+     * Called when navigating to menu or periodically
+     * @returns {Promise<boolean>} Success status
+     */
+    async autoSave() {
+        try {
+            const worldData = this.serializeWorld();
+            const { default: storageManager } = await import('./StorageManager.js');
+            const success = await storageManager.saveCurrentWorld(worldData);
+            if (success) {
+                console.log('💾 World auto-saved');
+            }
+            return success;
+        } catch (error) {
+            console.error('❌ Auto-save failed:', error);
             return false;
         }
     }
