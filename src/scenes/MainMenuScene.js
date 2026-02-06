@@ -16,11 +16,34 @@ export default class MainMenuScene extends Phaser.Scene {
     create() {
         const { width, height } = this.sys.game.config;
 
-        // Ensure input is enabled for this scene
-        this.input.enabled = true;
-
-        // Hide game UI elements during menu
+        // Hide ALL DOM overlays that could block canvas pointer events
         this.setGameUIVisible(false);
+        // Ensure high-z-index overlays are hidden too
+        ['settings-overlay', 'grimoire-overlay'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        // Force-enable input (may be stale after scene.stop→start from DOM handler)
+        this.input.enabled = true;
+        if (this.input.manager) {
+            this.input.manager.enabled = true;
+        }
+        // Hiding game-header shifts the canvas position; force Phaser to recalculate
+        // Delay bounds update to ensure DOM layout is complete
+        requestAnimationFrame(() => {
+            this.scale.updateBounds();
+            console.log('📐 MainMenuScene: Canvas bounds updated after DOM layout');
+        });
+        // Ensure pointer events are polled even when pointer is stationary
+        this.input.setPollAlways();
+        
+        // Debug: Log input state
+        console.log('🎮 MainMenuScene input state:', {
+            inputEnabled: this.input.enabled,
+            managerEnabled: this.input.manager?.enabled,
+            activePointer: this.input.activePointer?.active
+        });
 
         // Sky rendering state - deep night sky so text pops
         this.skyTime = 0.90; // Night sky — dark, text-friendly
@@ -159,6 +182,7 @@ export default class MainMenuScene extends Phaser.Scene {
 
             if (!hitArea) {
                 const zone = this.add.zone(x, y, buttonWidth, buttonHeight).setInteractive({ useHandCursor: true });
+                zone.setDepth(1000);
                 zone.on('pointerup', () => this.continueGame());
                 continueBtn.hitArea = zone;
             }
@@ -207,6 +231,7 @@ export default class MainMenuScene extends Phaser.Scene {
         let hitArea = null;
         if (enabled) {
             hitArea = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+            hitArea.setDepth(1000); // Ensure zone is above all graphics for hit testing
 
             hitArea.on('pointerover', () => {
                 btn.clear();
@@ -224,8 +249,13 @@ export default class MainMenuScene extends Phaser.Scene {
             });
 
             hitArea.on('pointerup', () => {
+                console.log(`🔘 Button "${label}" clicked!`);
                 callback();
             });
+            
+            // Debug: Log when any interaction happens
+            hitArea.on('pointerover', () => console.log(`👆 Hover: ${label}`));
+            hitArea.on('pointerdown', () => console.log(`👇 Press: ${label}`));
 
             btn.postFX.addGlow(borderColor, 1, 0, false, 0.05, 4);
         }

@@ -78,6 +78,9 @@ class GameScene extends Phaser.Scene {
         // Show game UI elements (hidden during splash/menu)
         this.setGameUIVisible(true);
 
+        // Showing game-header shifts the canvas position; force Phaser to recalculate
+        this.scale.updateBounds();
+
         // Check if we should continue from a saved game
         this.shouldContinue = data && data.continueGame === true;
 
@@ -209,6 +212,9 @@ class GameScene extends Phaser.Scene {
 
         // Start periodic auto-save (every 30 seconds)
         this.startAutoSave();
+
+        // Register shutdown handler so timers/listeners are cleaned up on scene.stop()
+        this.events.once('shutdown', this.shutdown, this);
 
         // Telemetry: Track touch/pointer events on canvas with full state
         const canvas = document.querySelector('canvas');
@@ -796,17 +802,10 @@ class GameScene extends Phaser.Scene {
 
     /**
      * Called when scene is stopped/switched - cleanup timers and save
+     * Note: goToMainMenu() already awaits autoSave before scene.stop(),
+     * so this handler just does synchronous cleanup (timers, flags).
      */
-    async shutdown() {
-        // Auto-save before shutting down (ensure world is persisted)
-        if (this.worldSerializer && this.sceneReady) {
-            try {
-                await this.worldSerializer.autoSave();
-                console.log('💾 Auto-saved on scene shutdown');
-            } catch (e) {
-                console.warn('Auto-save on shutdown failed:', e);
-            }
-        }
+    shutdown() {
         this.stopAutoSave();
         this.sceneReady = false;
     }

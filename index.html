@@ -1049,8 +1049,24 @@
                 // Switch to MainMenuScene - stop GameScene first to prevent overlap
                 if (window.__pixelboxGame) {
                     console.log('🎬 Switching to MainMenuScene...');
+
+                    // Hide overlays that sit above the canvas (z-index 20000)
+                    const settingsOv = document.getElementById('settings-overlay');
+                    if (settingsOv) settingsOv.style.display = 'none';
+                    const grimoireOv = document.getElementById('grimoire-overlay');
+                    if (grimoireOv) grimoireOv.style.display = 'none';
+
                     window.__pixelboxGame.scene.stop('GameScene');
                     window.__pixelboxGame.scene.start('MainMenuScene');
+                    
+                    // Re-focus canvas after scene transition (fixes iOS touch issues)
+                    requestAnimationFrame(() => {
+                        const canvas = document.querySelector('canvas');
+                        if (canvas) {
+                            canvas.focus();
+                            console.log('🎯 Canvas refocused after menu transition');
+                        }
+                    });
                 } else {
                     console.warn('⚠️ No game instance found');
                 }
