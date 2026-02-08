@@ -32,7 +32,7 @@ class GrassSeedElement extends Element {
 
         // Check if seed has landed on valid ground
         const below = grid.getElement(x, y + 1);
-        const grassSurfaces = ['sand', 'wet_sand', 'stone', 'wood', 'fossil', 'salt'];
+        const grassSurfaces = ['sand', 'wet_sand', 'stone', 'wall', 'wood', 'fossil', 'salt'];
         const hasValidGround = below && grassSurfaces.includes(below.name);
 
         if (hasValidGround) {

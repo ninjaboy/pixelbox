@@ -45,7 +45,7 @@ class PlantElement extends Element {
         const below = grid.getElement(x, y + 1);
 
         // List of surfaces grass can grow on
-        const grassSurfaces = ['sand', 'wet_sand', 'stone', 'wood', 'fossil', 'salt'];
+        const grassSurfaces = ['sand', 'wet_sand', 'stone', 'wall', 'wood', 'fossil', 'salt'];
 
         // Check if on valid ground
         const hasGround = below && grassSurfaces.includes(below.name);
