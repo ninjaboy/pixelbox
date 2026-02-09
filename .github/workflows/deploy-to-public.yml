@@ -30,8 +30,14 @@ jobs:
           NODE_ENV: production
 
       - name: Clone public repository
+        env:
+          PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          git clone https://ninjaboy:${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/ninjaboy/pixelbox.git public-repo
+          if [ -z "$PUBLIC_REPO_TOKEN" ]; then
+            echo "::error::PUBLIC_REPO_TOKEN secret is not set or empty"
+            exit 1
+          fi
+          git clone https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/ninjaboy/pixelbox.git public-repo
           cd public-repo
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"

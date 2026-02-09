@@ -1,5 +1,6 @@
 import Element from '../Element.js';
 import { STATE, TAG, ELEMENT_TYPE } from '../ElementProperties.js';
+import { TREE_SPECIES } from '../TreeSpecies.js';
 
 class LeafElement extends Element {
     constructor() {
@@ -26,25 +27,34 @@ class LeafElement extends Element {
         const seasonData = grid.seasonData;
         const season = seasonData ? seasonData.season : 'summer';
 
-        // Initialize seasonal color if not set (v4.0.0)
-        // Color stored in cell.data.leafColor and rendered by PixelGrid
+        // Initialize seasonal color if not set
+        // Use species-specific colors when available, otherwise fall back to defaults
         if (!cell.data.leafColor && seasonData) {
-            // Get seasonal color from season system
-            const seasonColors = {
-                spring: [0x90EE90, 0x98FB98, 0x9ACD32],
-                summer: [0x228B22, 0x2E8B57, 0x3CB371],
-                autumn: [0xFFD700, 0xFFA500, 0xFF8C00, 0xFF6347, 0xFF4500, 0xDC143C],
-                winter: [0x8B7355]
-            };
-            const colors = seasonColors[season] || seasonColors.summer;
+            const speciesName = cell.data.speciesName;
+            let colors;
+            if (speciesName && TREE_SPECIES[speciesName]) {
+                const speciesColors = TREE_SPECIES[speciesName].leafColors;
+                colors = speciesColors[season] || speciesColors.summer;
+            } else {
+                const seasonColors = {
+                    spring: [0x90EE90, 0x98FB98, 0x9ACD32],
+                    summer: [0x228B22, 0x2E8B57, 0x3CB371],
+                    autumn: [0xFFD700, 0xFFA500, 0xFF8C00, 0xFF6347, 0xFF4500, 0xDC143C],
+                    winter: [0x8B7355]
+                };
+                colors = seasonColors[season] || seasonColors.summer;
+            }
             cell.data.leafColor = colors[Math.floor(Math.random() * colors.length)];
         }
 
         // Check if leaf is still on the tree or has fallen
         const hasSupport = this.checkSupport(x, y, grid);
 
+        // Evergreen leaves (pine, palm) don't fall in autumn/winter
+        const isEvergreen = cell.data.evergreen === true;
+
         // SEASONAL LEAF FALLING (v4.0.0) - leaves fall in autumn/winter
-        if (hasSupport && seasonData) {
+        if (hasSupport && seasonData && !isEvergreen) {
             // Autumn: leaves fall gradually
             if (season === 'autumn') {
                 const fallRate = 0.002; // 0.2% chance per frame
