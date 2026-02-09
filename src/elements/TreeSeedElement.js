@@ -20,6 +20,9 @@ const TREE_CONFIG = {
     leavesPerTerminal: 3
 };
 
+// Minimum distance between trees (in grid cells)
+const MIN_TREE_SPACING = 12;
+
 class TreeSeedElement extends Element {
     constructor() {
         super(ELEMENT_TYPE.TREE_SEED, 'tree_seed', 0x654321, {
@@ -75,7 +78,6 @@ class TreeSeedElement extends Element {
         // Initialize growth timer if not set
         if (cell.data.growthTimer === undefined) {
             cell.data.growthTimer = 0;
-            cell.data.checkedConditions = false;
         }
 
         // Wait for germination period
@@ -84,25 +86,18 @@ class TreeSeedElement extends Element {
             return false;
         }
 
-        // Check conditions before committing to grow
-        if (!cell.data.checkedConditions) {
-            const minTreeDistance = 12;
-            const hasNearbyTree = this.hasNearbyTree(x, y, grid, minTreeDistance);
-            const allowMultiTrunk = Math.random() < 0.03;
-
-            if (hasNearbyTree && !allowMultiTrunk) {
+        // Check spacing every frame until tree structure is generated.
+        // This prevents seeds that land simultaneously from both growing.
+        if (!cell.data.treeStructure) {
+            if (this.hasNearbyTreeOrSeed(x, y, grid, MIN_TREE_SPACING)) {
+                // Slowly die if blocked by neighbor
                 if (Math.random() < 0.002) {
                     grid.setElement(x, y, grid.registry.get('ash'));
                 }
                 return false;
             }
 
-            cell.data.checkedConditions = true;
-        }
-
-        // Select species and generate tree structure
-        if (!cell.data.treeStructure) {
-            // Pick a random tree species
+            // Pick a random tree species and generate structure with integer coords
             cell.data.species = getRandomSpecies();
             cell.data.treeStructure = this.generateFractalTree(x, y, cell.data.species);
             cell.data.growthFrameCounter = 0;
@@ -131,24 +126,40 @@ class TreeSeedElement extends Element {
         return this.growTreeGradually(x, y, grid, cell);
     }
 
-    hasNearbyTree(x, y, grid, radius) {
+    /**
+     * Check for nearby trees AND other germinating seeds to enforce spacing.
+     */
+    hasNearbyTreeOrSeed(x, y, grid, radius) {
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 if (dx === 0 && dy === 0) continue;
+                // Quick circular-ish check to avoid checking corners far away
+                if (dx * dx + dy * dy > radius * radius) continue;
                 const element = grid.getElement(x + dx, y + dy);
-                if (element && (element.name === 'tree_trunk' || element.name === 'tree_branch')) {
+                if (!element) continue;
+                if (element.name === 'tree_trunk' || element.name === 'tree_branch') {
                     return true;
+                }
+                // Also check for other seeds that have already committed to growing
+                if (element.name === 'tree_seed') {
+                    const otherCell = grid.getCell(x + dx, y + dy);
+                    if (otherCell && otherCell.data.treeStructure) {
+                        return true;
+                    }
                 }
             }
         }
         return false;
     }
 
+    // -------------------------------------------------------
+    // Tree structure generation — all coordinates are integers
+    // -------------------------------------------------------
+
     generateFractalTree(rootX, rootY, species) {
         const sp = species;
 
         if (sp.branchOnlyAtTop) {
-            // Palm-style: long trunk then crown of fronds
             return this.generatePalmTree(rootX, rootY, sp);
         }
 
@@ -177,9 +188,9 @@ class TreeSeedElement extends Element {
         const trunkLength = species.initialLength();
         const trunkAngle = -Math.PI / 2 + (Math.random() - 0.5) * (species.trunkAngleVariation || 0);
 
-        // Single long trunk segment
-        const endX = rootX + trunkLength * Math.cos(trunkAngle);
-        const endY = rootY + trunkLength * Math.sin(trunkAngle);
+        // Compute endpoint and round to integer grid
+        const endX = Math.round(rootX + trunkLength * Math.cos(trunkAngle));
+        const endY = Math.round(rootY + trunkLength * Math.sin(trunkAngle));
 
         segments.push({
             x1: rootX, y1: rootY,
@@ -187,25 +198,20 @@ class TreeSeedElement extends Element {
             thickness: 1,
             depth: 0,
             angle: trunkAngle,
-            length: trunkLength,
             type: 'tree_trunk'
         });
 
-        // Crown of fronds radiating from top
+        // Crown of fronds radiating from the integer endpoint
         const frondCount = species.crownBranchCount || 5;
         const frondLength = trunkLength * (species.lengthReduction());
 
         for (let i = 0; i < frondCount; i++) {
-            // Distribute fronds evenly across an arc, from drooping-left to drooping-right
-            const arcSpread = (species.maxBranchAngle - species.minBranchAngle);
-            const baseAngle = trunkAngle;
-            // Spread fronds in a fan pattern
             const fraction = frondCount === 1 ? 0 : (i / (frondCount - 1)) * 2 - 1; // -1 to 1
-            const frondAngle = baseAngle + fraction * species.maxBranchAngle
+            const frondAngle = trunkAngle + fraction * species.maxBranchAngle
                 + (Math.random() - 0.5) * species.asymmetryVariation;
 
-            const fEndX = endX + frondLength * Math.cos(frondAngle);
-            const fEndY = endY + frondLength * Math.sin(frondAngle);
+            const fEndX = Math.round(endX + frondLength * Math.cos(frondAngle));
+            const fEndY = Math.round(endY + frondLength * Math.sin(frondAngle));
 
             segments.push({
                 x1: endX, y1: endY,
@@ -213,7 +219,6 @@ class TreeSeedElement extends Element {
                 thickness: 1,
                 depth: 1,
                 angle: frondAngle,
-                length: frondLength,
                 type: 'tree_branch'
             });
         }
@@ -227,6 +232,12 @@ class TreeSeedElement extends Element {
         };
     }
 
+    /**
+     * Recursive fractal tree generation.
+     * All coordinates are rounded to integers at creation time so that
+     * child segments start at exactly the same pixel where the parent ends.
+     * This guarantees gap-free connectivity.
+     */
     generateFractalTreeRecursive(startX, startY, angle, length, thickness, depth, maxDepth, species) {
         const segments = [];
 
@@ -240,8 +251,14 @@ class TreeSeedElement extends Element {
             adjustedLength = length * species.depthLengthScale[depth];
         }
 
-        const endX = startX + adjustedLength * Math.cos(angle);
-        const endY = startY + adjustedLength * Math.sin(angle);
+        // Round endpoint to integer — this is the key to gap-free growth
+        const endX = Math.round(startX + adjustedLength * Math.cos(angle));
+        const endY = Math.round(startY + adjustedLength * Math.sin(angle));
+
+        // Skip degenerate zero-length segments
+        if (endX === startX && endY === startY) {
+            return segments;
+        }
 
         segments.push({
             x1: startX, y1: startY,
@@ -249,7 +266,6 @@ class TreeSeedElement extends Element {
             thickness: thickness,
             depth: depth,
             angle: angle,
-            length: adjustedLength,
             type: depth <= 1 ? 'tree_trunk' : 'tree_branch'
         });
 
@@ -268,11 +284,12 @@ class TreeSeedElement extends Element {
             let branchAngle = angle + (i === 0 ? -baseAngleSpread : baseAngleSpread);
             branchAngle += (Math.random() - 0.5) * species.asymmetryVariation;
 
+            // Children start from the parent's integer endpoint
             const childSegments = this.generateFractalTreeRecursive(
                 endX, endY,
                 branchAngle,
                 adjustedLength * lengthReduction,
-                1, // always 1 pixel
+                1,
                 depth + 1,
                 maxDepth,
                 species
@@ -283,6 +300,10 @@ class TreeSeedElement extends Element {
 
         return segments;
     }
+
+    // -------------------------------------------------------
+    // Gradual growth / drawing
+    // -------------------------------------------------------
 
     growTreeGradually(x, y, grid, cell) {
         const structure = cell.data.treeStructure;
@@ -296,16 +317,7 @@ class TreeSeedElement extends Element {
                 }
 
                 const segment = structure.segments[structure.currentSegmentIndex];
-                const blocked = this.drawLineSegmentWithCollision(
-                    segment.x1, segment.y1,
-                    segment.x2, segment.y2,
-                    segment.thickness,
-                    segment.type,
-                    segment.depth,
-                    segment.angle,
-                    grid,
-                    species
-                );
+                const blocked = this.drawSegment(segment, grid, species);
 
                 // If this segment was fully blocked, mark all child segments as skipped
                 if (blocked) {
@@ -328,57 +340,48 @@ class TreeSeedElement extends Element {
     }
 
     /**
-     * Improved collision-aware line drawing.
-     * Returns true if the segment was fully blocked (could not place any cells).
+     * Draw a single segment using Bresenham line.
+     * Coordinates are already integers so no rounding needed.
+     * Returns true if the segment was fully blocked.
      */
-    drawLineSegmentWithCollision(x1, y1, x2, y2, thickness, elementType, depth, angle, grid, species) {
-        const points = this.bresenhamLine(
-            Math.round(x1), Math.round(y1),
-            Math.round(x2), Math.round(y2)
-        );
+    drawSegment(segment, grid, species) {
+        const points = this.bresenhamLine(segment.x1, segment.y1, segment.x2, segment.y2);
 
-        const element = grid.registry.get(elementType);
+        const element = grid.registry.get(segment.type);
         const collisionBehavior = species ? species.collisionBehavior : 'stop';
 
         let placedCount = 0;
         let blockedCount = 0;
 
         for (let pi = 0; pi < points.length; pi++) {
-            const { x, y: py } = points[pi];
+            const { x, y } = points[pi];
 
-            if (grid.isEmpty(x, py)) {
-                grid.setElement(x, py, element);
-                // Store species info in cell data for coloring
-                const cell = grid.getCell(x, py);
+            if (grid.isEmpty(x, y)) {
+                grid.setElement(x, y, element);
+                const cell = grid.getCell(x, y);
                 if (cell && species) {
                     cell.data.speciesName = species.name;
-                    if (elementType === 'tree_trunk') {
-                        cell.data.woodColor = species.trunkColor;
-                    } else {
-                        cell.data.woodColor = species.branchColor;
-                    }
+                    cell.data.woodColor = segment.type === 'tree_trunk'
+                        ? species.trunkColor : species.branchColor;
                 }
                 placedCount++;
             } else {
-                // Cell is occupied — collision!
                 blockedCount++;
 
                 if (collisionBehavior === 'route_around') {
-                    // Try to route around the obstacle by shifting perpendicular to growth direction
-                    const perpX = Math.round(Math.cos(angle + Math.PI / 2));
-                    const perpY = Math.round(Math.sin(angle + Math.PI / 2));
+                    const perpX = Math.round(Math.cos(segment.angle + Math.PI / 2));
+                    const perpY = Math.round(Math.sin(segment.angle + Math.PI / 2));
 
-                    // Try both perpendicular directions
                     let routed = false;
                     for (const dir of [1, -1]) {
                         const altX = x + perpX * dir;
-                        const altY = py + perpY * dir;
+                        const altY = y + perpY * dir;
                         if (grid.isEmpty(altX, altY)) {
                             grid.setElement(altX, altY, element);
                             const cell = grid.getCell(altX, altY);
                             if (cell && species) {
                                 cell.data.speciesName = species.name;
-                                cell.data.woodColor = elementType === 'tree_trunk'
+                                cell.data.woodColor = segment.type === 'tree_trunk'
                                     ? species.trunkColor : species.branchColor;
                             }
                             placedCount++;
@@ -387,25 +390,21 @@ class TreeSeedElement extends Element {
                         }
                     }
 
-                    // If can't route around, stop this segment
                     if (!routed) {
-                        // Stop growing this branch direction
                         break;
                     }
                 } else {
-                    // 'stop' behavior: stop growing this branch at the obstacle
                     break;
                 }
             }
         }
 
-        // Fully blocked if we couldn't place any cells
         return placedCount === 0 && blockedCount > 0;
     }
 
     /**
      * Skip all child segments that branch from a blocked parent segment.
-     * Prevents orphaned branches growing from a blocked point.
+     * Since all coordinates are integers, we use exact equality.
      */
     skipChildSegments(structure, parentIndex) {
         const parent = structure.segments[parentIndex];
@@ -414,12 +413,9 @@ class TreeSeedElement extends Element {
 
         for (let i = parentIndex + 1; i < structure.segments.length; i++) {
             const seg = structure.segments[i];
-            // Child segments start where parent ends
-            if (Math.abs(seg.x1 - parentEndX) < 1.5 && Math.abs(seg.y1 - parentEndY) < 1.5) {
-                // Mark as skipped by setting to zero-length
+            if (seg.x1 === parentEndX && seg.y1 === parentEndY) {
                 seg.x2 = seg.x1;
                 seg.y2 = seg.y1;
-                // Recursively skip grandchildren
                 this.skipChildSegments(structure, i);
             }
         }
@@ -466,12 +462,12 @@ class TreeSeedElement extends Element {
             // Skip zero-length segments (blocked/skipped)
             if (segment.x1 === segment.x2 && segment.y1 === segment.y2) continue;
 
-            const x = Math.round(segment.x2);
-            const y = Math.round(segment.y2);
+            // Coordinates are already integers
+            const x = segment.x2;
+            const y = segment.y2;
 
             const leafCount = 2 + Math.floor(Math.random() * leavesPerTerminal);
 
-            // Build positions based on spread radius
             const positions = [];
             for (let dx = -spreadRadius; dx <= spreadRadius; dx++) {
                 for (let dy = -spreadRadius; dy <= spreadRadius; dy++) {
@@ -487,7 +483,6 @@ class TreeSeedElement extends Element {
                 const [lx, ly] = positions[i];
                 if (grid.isEmpty(lx, ly)) {
                     grid.setElement(lx, ly, leafElement);
-                    // Store species info on the leaf cell for species-specific coloring
                     const cell = grid.getCell(lx, ly);
                     if (cell && species) {
                         cell.data.speciesName = species.name;
