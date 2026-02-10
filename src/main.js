@@ -1398,7 +1398,7 @@ class GameScene extends Phaser.Scene {
 
             if (cell && cell.element.id !== 0) {
                 // Use per-cell color if available (for fish, birds, lights, leaves), otherwise use element color
-                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.data.leafColor || cell.data.woodColor || cell.element.color;
+                const baseColor = cell.data.fishColor || cell.data.birdColor || cell.data.lightColor || cell.data.leafColor || cell.element.color;
 
                 // Check if this is a light element (glowing house light)
                 const isLight = cell.element.name === 'light';
