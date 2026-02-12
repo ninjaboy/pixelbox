@@ -1,6 +1,6 @@
 /**
  * StorageManager.js - Local world persistence using Capacitor Preferences
- * Replaces clipboard-based world sharing with native storage
+ * Supports multiple named save slots with thumbnails and metadata.
  */
 
 import { Preferences } from '@capacitor/preferences';
@@ -10,26 +10,25 @@ class StorageManager {
         this.WORLD_PREFIX = 'pixelbox_world_';
         this.WORLD_LIST_KEY = 'pixelbox_worlds_list';
         this.CURRENT_WORLD_KEY = 'pixelbox_current_world';
-        this.AUTO_SAVE_INTERVAL = 30000; // 30 seconds
-        this.autoSaveTimer = null;
+        this.MAX_SLOTS = 20;
     }
 
     /**
-     * Initialize storage and start auto-save
+     * Initialize storage
      */
     async init() {
-        console.log('📦 StorageManager initialized');
-        // Load list of saved worlds
+        console.log('StorageManager initialized');
         return await this.getWorldList();
     }
 
     /**
-     * Save a world to local storage
+     * Save a world to a named slot with optional thumbnail.
      * @param {string} name - World name
-     * @param {object} worldData - Serialized world data
-     * @returns {Promise<boolean>} Success status
+     * @param {string} worldData - Serialized world data (base64)
+     * @param {string|null} thumbnail - Base64 data URL for thumbnail
+     * @returns {Promise<boolean>}
      */
-    async saveWorld(name, worldData) {
+    async saveWorld(name, worldData, thumbnail = null) {
         try {
             const worldKey = this.WORLD_PREFIX + name;
             const timestamp = Date.now();
@@ -37,11 +36,10 @@ class StorageManager {
             const worldEntry = {
                 name,
                 data: worldData,
+                thumbnail,
                 timestamp,
-                version: '3.17.1' // Track which version created this save
             };
 
-            // Save world data
             await Preferences.set({
                 key: worldKey,
                 value: JSON.stringify(worldEntry)
@@ -49,28 +47,27 @@ class StorageManager {
 
             // Update world list
             const worlds = await this.getWorldList();
-            if (!worlds.find(w => w.name === name)) {
-                worlds.push({ name, timestamp });
-                await this._saveWorldList(worlds);
+            const existing = worlds.find(w => w.name === name);
+            if (existing) {
+                existing.timestamp = timestamp;
+                existing.thumbnail = thumbnail;
             } else {
-                // Update timestamp for existing world
-                const world = worlds.find(w => w.name === name);
-                world.timestamp = timestamp;
-                await this._saveWorldList(worlds);
+                worlds.push({ name, timestamp, thumbnail });
             }
+            await this._saveWorldList(worlds);
 
-            console.log(`💾 World "${name}" saved successfully`);
+            console.log(`World "${name}" saved`);
             return true;
         } catch (error) {
-            console.error('❌ Failed to save world:', error);
+            console.error('Failed to save world:', error);
             return false;
         }
     }
 
     /**
-     * Load a world from local storage
+     * Load a world from a named slot.
      * @param {string} name - World name
-     * @returns {Promise<object|null>} World data or null if not found
+     * @returns {Promise<string|null>} Base64 world data or null
      */
     async loadWorld(name) {
         try {
@@ -79,66 +76,56 @@ class StorageManager {
 
             if (result.value) {
                 const worldEntry = JSON.parse(result.value);
-                console.log(`📂 World "${name}" loaded successfully`);
                 return worldEntry.data;
-            } else {
-                console.warn(`⚠️ World "${name}" not found`);
-                return null;
             }
+            return null;
         } catch (error) {
-            console.error('❌ Failed to load world:', error);
+            console.error('Failed to load world:', error);
             return null;
         }
     }
 
     /**
-     * Delete a world from local storage
+     * Delete a world from storage.
      * @param {string} name - World name
-     * @returns {Promise<boolean>} Success status
+     * @returns {Promise<boolean>}
      */
     async deleteWorld(name) {
         try {
             const worldKey = this.WORLD_PREFIX + name;
-
-            // Remove world data
             await Preferences.remove({ key: worldKey });
 
-            // Update world list
             const worlds = await this.getWorldList();
             const filtered = worlds.filter(w => w.name !== name);
             await this._saveWorldList(filtered);
 
-            console.log(`🗑️ World "${name}" deleted successfully`);
+            console.log(`World "${name}" deleted`);
             return true;
         } catch (error) {
-            console.error('❌ Failed to delete world:', error);
+            console.error('Failed to delete world:', error);
             return false;
         }
     }
 
     /**
-     * Get list of all saved worlds
-     * @returns {Promise<Array>} Array of world metadata {name, timestamp}
+     * Get list of all saved worlds (sorted by timestamp, newest first).
+     * @returns {Promise<Array<{name: string, timestamp: number, thumbnail: string|null}>>}
      */
     async getWorldList() {
         try {
             const result = await Preferences.get({ key: this.WORLD_LIST_KEY });
-
             if (result.value) {
                 const worlds = JSON.parse(result.value);
-                // Sort by timestamp (newest first)
                 return worlds.sort((a, b) => b.timestamp - a.timestamp);
             }
-
             return [];
         } catch (error) {
-            console.error('❌ Failed to get world list:', error);
+            console.error('Failed to get world list:', error);
             return [];
         }
     }
 
     /**
-     * Save the world list to storage
      * @private
      */
     async _saveWorldList(worlds) {
@@ -149,11 +136,16 @@ class StorageManager {
     }
 
     /**
-     * Save current world state (for auto-save)
-     * @param {object} worldData - Current world state
+     * Save current world state for auto-save / continue.
+     * @param {string|null} worldData - Base64 world data, or null to clear
+     * @returns {Promise<boolean>}
      */
     async saveCurrentWorld(worldData) {
         try {
+            if (worldData === null) {
+                await Preferences.remove({ key: this.CURRENT_WORLD_KEY });
+                return true;
+            }
             await Preferences.set({
                 key: this.CURRENT_WORLD_KEY,
                 value: JSON.stringify({
@@ -161,93 +153,59 @@ class StorageManager {
                     timestamp: Date.now()
                 })
             });
-            console.log('💾 Auto-saved current world');
             return true;
         } catch (error) {
-            console.error('❌ Failed to auto-save:', error);
+            console.error('Failed to auto-save:', error);
             return false;
         }
     }
 
     /**
-     * Load the last auto-saved world state
-     * @returns {Promise<object|null>} World data or null
+     * Load the last auto-saved world state.
+     * @returns {Promise<string|null>} Base64 world data or null
      */
     async loadCurrentWorld() {
         try {
             const result = await Preferences.get({ key: this.CURRENT_WORLD_KEY });
-
             if (result.value) {
                 const saved = JSON.parse(result.value);
-                console.log('📂 Loaded auto-saved world');
                 return saved.data;
             }
-
             return null;
         } catch (error) {
-            console.error('❌ Failed to load auto-save:', error);
+            console.error('Failed to load auto-save:', error);
             return null;
         }
     }
 
     /**
-     * Start auto-save timer
-     * @param {Function} getWorldDataFn - Function that returns current world data
+     * Check if max save slots are reached.
+     * @returns {Promise<boolean>}
      */
-    startAutoSave(getWorldDataFn) {
-        if (this.autoSaveTimer) {
-            clearInterval(this.autoSaveTimer);
-        }
-
-        this.autoSaveTimer = setInterval(async () => {
-            const worldData = getWorldDataFn();
-            if (worldData) {
-                await this.saveCurrentWorld(worldData);
-            }
-        }, this.AUTO_SAVE_INTERVAL);
-
-        console.log(`⏰ Auto-save enabled (every ${this.AUTO_SAVE_INTERVAL / 1000}s)`);
+    async isFull() {
+        const worlds = await this.getWorldList();
+        return worlds.length >= this.MAX_SLOTS;
     }
 
     /**
-     * Stop auto-save timer
-     */
-    stopAutoSave() {
-        if (this.autoSaveTimer) {
-            clearInterval(this.autoSaveTimer);
-            this.autoSaveTimer = null;
-            console.log('⏰ Auto-save disabled');
-        }
-    }
-
-    /**
-     * Clear all saved worlds (use with caution!)
-     * @returns {Promise<boolean>} Success status
+     * Clear all saved worlds.
+     * @returns {Promise<boolean>}
      */
     async clearAllWorlds() {
         try {
             const worlds = await this.getWorldList();
-
-            // Delete each world
             for (const world of worlds) {
                 await Preferences.remove({ key: this.WORLD_PREFIX + world.name });
             }
-
-            // Clear world list
             await Preferences.remove({ key: this.WORLD_LIST_KEY });
-
-            // Clear current world
             await Preferences.remove({ key: this.CURRENT_WORLD_KEY });
-
-            console.log('🗑️ All worlds cleared');
             return true;
         } catch (error) {
-            console.error('❌ Failed to clear worlds:', error);
+            console.error('Failed to clear worlds:', error);
             return false;
         }
     }
 }
 
-// Export singleton instance
 const storageManager = new StorageManager();
 export default storageManager;

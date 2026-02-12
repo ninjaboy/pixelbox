@@ -544,6 +544,7 @@
             <button id="speed-up" class="hdr-btn" title="Faster">+</button>
         </div>
         <div class="header-right">
+            <button id="worlds-btn" class="hdr-btn" title="Save/Load Worlds" style="font-size:13px;">💾</button>
             <button id="settings-btn" class="hdr-btn" title="Menu" style="font-size:13px;">☰</button>
         </div>
     </div>
@@ -618,6 +619,10 @@
                     <option value="ocean">Ocean</option>
                     <option value="sky">Sky Only</option>
                 </select>
+            </div>
+            <div class="settings-row">
+                <label>💾 Worlds</label>
+                <button id="worlds-settings-btn" class="settings-toggle">OPEN</button>
             </div>
             <div class="settings-row">
                 <label>📖 Element Guide</label>
@@ -1161,6 +1166,59 @@
             biomeSelect.addEventListener('change', (e) => {
                 if (window.__pixellenceScene && window.__pixellenceScene.backgroundGenerator) {
                     window.__pixellenceScene.backgroundGenerator.setBiome(e.target.value);
+                }
+            });
+
+            // ── Save/Load Worlds ──
+            const openWorldsModal = async () => {
+                // Close settings overlay if open
+                if (settingsOverlay.style.display === 'flex') {
+                    settingsOverlay.style.display = 'none';
+                }
+                const scene = window.__pixellenceScene;
+                if (!scene) return;
+                const { default: saveLoadModal } = await import('./src/SaveLoadModal.js');
+                saveLoadModal.show(scene, () => {
+                    // After loading a world, sync biome dropdown
+                    if (scene.backgroundGenerator) {
+                        const select = document.getElementById('biome-select');
+                        if (select) select.value = scene.backgroundGenerator.biome;
+                    }
+                });
+            };
+
+            // Header save button
+            const worldsBtn = document.getElementById('worlds-btn');
+            if (worldsBtn) {
+                let worldsTouchHandled = false;
+                worldsBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    worldsTouchHandled = true;
+                    openWorldsModal();
+                });
+                worldsBtn.addEventListener('click', () => {
+                    if (worldsTouchHandled) { worldsTouchHandled = false; return; }
+                    openWorldsModal();
+                });
+            }
+
+            // Settings panel worlds button
+            const worldsSettingsBtn = document.getElementById('worlds-settings-btn');
+            if (worldsSettingsBtn) {
+                worldsSettingsBtn.addEventListener('click', openWorldsModal);
+            }
+
+            // ── Auto-save on page hide (mobile tab switch / app background) ──
+            document.addEventListener('visibilitychange', async () => {
+                if (document.hidden && window.__pixellenceScene) {
+                    const scene = window.__pixellenceScene;
+                    if (scene.worldSerializer && scene.sceneReady) {
+                        try {
+                            await scene.worldSerializer.autoSave();
+                        } catch (e) {
+                            console.warn('Visibility-change auto-save failed:', e);
+                        }
+                    }
                 }
             });
         });
