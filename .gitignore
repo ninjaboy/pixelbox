@@ -1,0 +1,50 @@
+# Claude settings
+.claude/
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+
+# Capacitor
+ios/
+!ios/fastlane/             # Keep Fastlane configuration
+!ios/fastlane/Fastfile
+!ios/fastlane/Appfile
+!ios/fastlane/.env.sample
+ios/fastlane/.env          # But ignore actual .env with secrets
+ios/fastlane/report.xml    # Ignore Fastlane reports
+ios/fastlane/README.md
+ios/build/                 # Ignore build outputs
+ios/screenshots/           # Ignore generated screenshots
+android/
+.capacitor/
+
+# Fastlane
+vendor/bundle/             # Bundler gems
+Gemfile.lock
+*.ipa                      # iOS app archives
+*.dSYM.zip                 # Debug symbols
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/test_output
+
+# Vercel
+.vercel
+
+# Environment variables
+.env
+.env.local
+.env*.local
+vendor/
