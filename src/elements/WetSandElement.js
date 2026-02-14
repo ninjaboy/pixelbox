@@ -10,7 +10,9 @@ class WetSandElement extends Element {
             tags: [],
             lifetime: -1, // No automatic decay - controlled by exposure logic
             brushSize: 5,
-            emissionDensity: 1.0
+            emissionDensity: 1.0,
+            temp: 20,
+            category: 'powders'
         });
 
         // REMOVED: WetDryTransitionBehavior - it was interfering with manual moisture logic

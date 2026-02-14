@@ -3,6 +3,7 @@ import { CellState } from './CellState.js';
 import { STATE } from './ElementProperties.js';
 import { ConstructionManager } from './ConstructionManager.js';
 import { LightingManager } from './LightingManager.js';
+import TemperatureSystem from './TemperatureSystem.js';
 
 class PixelGrid {
     constructor(width, height, pixelSize, registry) {
@@ -29,6 +30,9 @@ class PixelGrid {
             [0, -1], [0, 1], [-1, 0], [1, 0],           // Cardinal
             [-1, -1], [1, -1], [-1, 1], [1, 1]          // Diagonal
         ];
+
+        // Temperature system (v5.0.0)
+        this.temperatureSystem = new TemperatureSystem(this);
 
         // Initialize empty grid
         const emptyElement = this.registry.get('empty');
@@ -118,6 +122,14 @@ class PixelGrid {
             this.activeCells.delete(numericKey);
         }
 
+        // Temperature system: unregister old heat source, register new one
+        const oldElement = cell.element;
+        if (this.temperatureSystem) {
+            if (oldElement.heatOutput) {
+                this.temperatureSystem.unregisterHeatSource(x, y);
+            }
+        }
+
         cell.element = element;
         cell.lifetime = element.defaultLifetime;
         cell.updated = false;
@@ -135,11 +147,21 @@ class PixelGrid {
                 this.boulderCache.get(boulderId).add(posKey);
             }
 
+            // Initialize cell temperature from element default
+            if (element.temp != null) {
+                cell.state.setTemperature(element.temp);
+            }
+
             // OPTIMIZATION: Call element's initialization hook if it exists
             // This allows elements (like Fish) to eagerly initialize their state
             if (element.initializeCell && typeof element.initializeCell === 'function') {
                 element.initializeCell(cell.data);
             }
+        }
+
+        // Register new heat source
+        if (this.temperatureSystem && element.heatOutput) {
+            this.temperatureSystem.registerHeatSource(x, y);
         }
     }
 
@@ -269,6 +291,11 @@ class PixelGrid {
             }
         }
 
+        // Temperature diffusion + state transitions (v5.0.0)
+        if (this.temperatureSystem) {
+            this.temperatureSystem.update(this.frameCount);
+        }
+
         // Update all active house constructions
         ConstructionManager.updateConstructions(this);
 
@@ -291,6 +318,10 @@ class PixelGrid {
 
     setSeasonData(seasonData) {
         this.seasonData = seasonData;
+        // Feed seasonal ambient temperature to temperature system
+        if (this.temperatureSystem && seasonData) {
+            this.temperatureSystem.setSeasonalAmbient(seasonData);
+        }
     }
 
     checkInteractions(x, y) {

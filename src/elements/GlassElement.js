@@ -12,7 +12,12 @@ class GlassElement extends Element {
             burnsInto: 'empty', // Glass shatters/melts into nothing when destroyed by fire
             brushSize: 1,
             emissionDensity: 0.8,
-            canInteract: false  // PERFORMANCE: Skip interaction checks
+            canInteract: false, // PERFORMANCE: Skip interaction checks
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 1500,
+            stateHigh: 'lava',
+            category: 'solids'
         });
     }
 

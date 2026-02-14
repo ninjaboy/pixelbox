@@ -1404,7 +1404,21 @@ class GameScene extends Phaser.Scene {
                 const isLight = cell.element.name === 'light';
 
                 // Apply atmospheric lighting to particle colors (but not to lights - they emit light)
-                const tintedColor = isLight ? baseColor : this.applyLighting(baseColor, lightingColor);
+                let tintedColor = isLight ? baseColor : this.applyLighting(baseColor, lightingColor);
+
+                // Temperature visual tinting (v5.0.0) - subtle warm/cold overlay
+                if (!isLight) {
+                    const cellTemp = cell.state.getTemperature();
+                    if (cellTemp > 100) {
+                        // Hot tint: blend toward red/orange
+                        const intensity = Math.min((cellTemp - 100) / 900, 1.0);
+                        tintedColor = this.lerpColor(tintedColor, 0xff4400, intensity * 0.25);
+                    } else if (cellTemp < -10) {
+                        // Cold tint: blend toward blue
+                        const intensity = Math.min((-10 - cellTemp) / 90, 1.0);
+                        tintedColor = this.lerpColor(tintedColor, 0x4488ff, intensity * 0.25);
+                    }
+                }
 
                 // PERFORMANCE: Use cached lava surface flag (set during physics update)
                 const isLavaSurface = cell.data.isLavaSurface === true;

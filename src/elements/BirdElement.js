@@ -12,7 +12,9 @@ class BirdElement extends Element {
             burnsInto: 'ash',
             tags: [TAG.ORGANIC, TAG.COMBUSTIBLE],
             brushSize: 0, // Single pixel placement
-            emissionDensity: 0.2 // 20% chance = 1-2 birds per click
+            emissionDensity: 0.2, // 20% chance = 1-2 birds per click
+            temp: 20,
+            category: 'life'
         });
 
         // Color variants (mostly white shades)

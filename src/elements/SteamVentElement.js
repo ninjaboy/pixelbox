@@ -10,7 +10,11 @@ class SteamVentElement extends Element {
             ignitionResistance: 1.0, // Cannot burn
             tags: [TAG.MINERAL],
             brushSize: 1,
-            emissionDensity: 0.8
+            emissionDensity: 0.8,
+            // Temperature system (v5.0.0)
+            temp: 300,
+            heatOutput: 100,
+            category: 'gases'
         });
     }
 

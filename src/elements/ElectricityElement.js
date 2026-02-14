@@ -9,7 +9,9 @@ class ElectricityElement extends Element {
             movable: true,
             tags: [TAG.HEAT_SOURCE], // Can ignite things
             brushSize: 0, // Single pixel (or don't allow direct placement)
-            emissionDensity: 0.3 // Sparse placement if allowed
+            emissionDensity: 0.3, // Sparse placement if allowed
+            temp: 20,
+            category: 'energy'
         });
     }
 

@@ -11,7 +11,12 @@ class CoalElement extends Element {
             burnsInto: 'burning_coal',
             tags: [TAG.COMBUSTIBLE],
             brushSize: 2,
-            emissionDensity: 0.7
+            emissionDensity: 0.7,
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 400,
+            stateHigh: 'burning_coal',
+            category: 'powders'
         });
     }
 

@@ -13,7 +13,14 @@ class WaterElement extends Element {
             evaporatesInto: 'steam',  // Transforms to steam when heated
             tags: new Set([TAG.EVAPORATES, TAG.SOLIDIFIES_LAVA, TAG.EXTINGUISHES_FIRE, TAG.CONDUCTIVE]),
             brushSize: 5, // Large pour brush
-            emissionDensity: 1.0 // Continuous pour
+            emissionDensity: 1.0, // Continuous pour
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 100,
+            stateHigh: 'steam',
+            tempLow: 0,
+            stateLow: 'ice',
+            category: 'liquids'
         });
 
         // Behavior 1: Surface freezing in winter (v4.0.0)

@@ -11,7 +11,9 @@ class VineElement extends Element {
             burnsInto: 'burning_wood',
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
             brushSize: 1,
-            emissionDensity: 0.5
+            emissionDensity: 0.5,
+            temp: 20,
+            category: 'life'
         });
     }
 

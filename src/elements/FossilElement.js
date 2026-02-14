@@ -10,7 +10,9 @@ class FossilElement extends Element {
             ignitionResistance: 1.0, // Cannot burn (it's rock)
             tags: [TAG.ORGANIC], // Ancient organic matter
             brushSize: 1, // Single pixel brush
-            emissionDensity: 1.0 // Place individual fossils
+            emissionDensity: 1.0, // Place individual fossils
+            temp: 20,
+            category: 'solids'
         });
     }
 

@@ -58,6 +58,21 @@ class Element {
         this.condensesInto = properties.condensesInto || null;   // What it becomes when cooled
         this.meltInto = properties.meltInto || null;       // What it becomes when melted
 
+        // Temperature properties (v5.0.0)
+        this.temp = properties.temp ?? null;               // Default temperature (°C) when placed
+        this.tempHigh = properties.tempHigh ?? null;       // High transition threshold
+        this.stateHigh = properties.stateHigh ?? null;     // Element name to become when heated past tempHigh
+        this.tempLow = properties.tempLow ?? null;         // Low transition threshold
+        this.stateLow = properties.stateLow ?? null;       // Element name to become when cooled past tempLow
+        this.heatOutput = properties.heatOutput ?? 0;      // Heat radiated to neighbors (positive=hot, negative=cold)
+        this.insulate = properties.insulate ?? false;       // Blocks heat transfer
+
+        // Declarative reactions (v5.0.0)
+        this.reactions = properties.reactions || null;
+
+        // UI category (v5.0.0)
+        this.category = properties.category || null;
+
         // Behavior strategies (for composition pattern)
         this.behaviors = [];
     }

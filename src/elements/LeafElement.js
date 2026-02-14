@@ -9,7 +9,9 @@ class LeafElement extends Element {
             movable: true, // Can be displaced
             ignitionResistance: 0.5, // Moderately flammable
             burnsInto: 'fire',
-            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC]
+            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
+            temp: 20,
+            category: 'life'
         });
     }
 

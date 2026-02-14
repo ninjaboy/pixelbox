@@ -10,7 +10,13 @@ class ObsidianElement extends Element {
             ignitionResistance: 1.0, // Cannot burn
             tags: [TAG.MINERAL], // TAG.VERY_HOT added dynamically when hot
             brushSize: 2,
-            emissionDensity: 0.8
+            emissionDensity: 0.8,
+            // Temperature system (v5.0.0)
+            temp: 20,
+            insulate: true,
+            tempHigh: 2000,
+            stateHigh: 'lava',
+            category: 'solids'
         });
     }
 

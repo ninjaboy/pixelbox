@@ -10,7 +10,12 @@ class SteamElement extends Element {
             dispersion: 2,
             lifetime: 240, // Steam dissipates after 4 seconds
             condensesInto: 'cloud',  // Condenses into clouds at atmosphere
-            tags: new Set([TAG.CONDENSES])
+            tags: new Set([TAG.CONDENSES]),
+            // Temperature system (v5.0.0)
+            temp: 100,
+            tempLow: 80,
+            stateLow: 'water',
+            category: 'gases'
         });
 
         // Define atmosphere boundary (upper 40% of screen)

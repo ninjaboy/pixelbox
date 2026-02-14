@@ -10,7 +10,9 @@ class CloudElement extends Element {
             lifetime: 2400, // Clouds last 40 seconds (good balance - visible but not forever)
             tags: [],
             brushSize: 3,
-            emissionDensity: 0.5
+            emissionDensity: 0.5,
+            temp: 10,
+            category: 'gases'
         });
 
         // Define atmosphere boundary (upper 40% of screen)

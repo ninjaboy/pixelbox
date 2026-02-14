@@ -11,7 +11,15 @@ class SlushElement extends Element {
             movable: true,
             tags: new Set([TAG.FREEZING]),
             brushSize: 3,
-            emissionDensity: 0.7
+            emissionDensity: 0.7,
+            // Temperature system (v5.0.0)
+            temp: -2,
+            heatOutput: -30,
+            tempHigh: 5,
+            stateHigh: 'water',
+            tempLow: -10,
+            stateLow: 'ice',
+            category: 'liquids'
         });
 
         // Behavior 1: Melts into water when near heat

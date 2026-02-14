@@ -9,7 +9,9 @@ class TreeTrunkElement extends Element {
             movable: false,
             ignitionResistance: 0.75, // Trunk is hardest to burn but still flammable (living wood core)
             burnsInto: 'burning_wood',
-            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC]
+            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
+            temp: 20,
+            category: 'life'
         });
     }
 

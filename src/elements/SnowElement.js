@@ -10,7 +10,13 @@ class SnowElement extends Element {
             movable: true,
             tags: [TAG.FREEZING],
             brushSize: 3,
-            emissionDensity: 0.6
+            emissionDensity: 0.6,
+            // Temperature system (v5.0.0)
+            temp: -5,
+            heatOutput: -50,
+            tempHigh: 2,
+            stateHigh: 'water',
+            category: 'powders'
         });
 
         // Melts when near heat sources

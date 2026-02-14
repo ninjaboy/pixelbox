@@ -10,7 +10,12 @@ class SandElement extends Element {
             dispersion: 1,
             tags: new Set([TAG.MINERAL]),
             brushSize: 5, // Large pour brush
-            emissionDensity: 1.0 // Continuous pour
+            emissionDensity: 1.0, // Continuous pour
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 1700,
+            stateHigh: 'glass',
+            category: 'powders'
         });
 
         // Use standardized gravity behavior

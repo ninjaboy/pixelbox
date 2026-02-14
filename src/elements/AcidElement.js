@@ -11,7 +11,10 @@ class AcidElement extends Element {
             movable: true,
             tags: new Set([TAG.CORROSIVE]),
             brushSize: 2,
-            emissionDensity: 0.6
+            emissionDensity: 0.6,
+            // Temperature system (v5.0.0)
+            temp: 20,
+            category: 'liquids'
         });
 
         // Behavior 1: Corrosion - dissolves materials using tag-based system

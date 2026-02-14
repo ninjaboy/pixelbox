@@ -10,7 +10,11 @@ class WallElement extends Element {
             tags: [],
             brushSize: 1,
             emissionDensity: 1.0,
-            canInteract: false  // PERFORMANCE: Skip interaction checks
+            canInteract: false,  // PERFORMANCE: Skip interaction checks
+            // Temperature system (v5.0.0)
+            temp: 20,
+            insulate: true,
+            category: 'solids'
         });
     }
 

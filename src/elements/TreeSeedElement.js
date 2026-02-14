@@ -29,7 +29,9 @@ class TreeSeedElement extends Element {
             burnsInto: 'ash',
             tags: [TAG.ORGANIC, TAG.COMBUSTIBLE],
             brushSize: 0,
-            emissionDensity: 1.0
+            emissionDensity: 1.0,
+            temp: 20,
+            category: 'life'
         });
     }
 

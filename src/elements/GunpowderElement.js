@@ -13,7 +13,10 @@ class GunpowderElement extends Element {
             burnsInto: 'fire',
             tags: new Set([TAG.COMBUSTIBLE, TAG.EXPLOSIVE]),
             brushSize: 4, // Medium-large pour brush
-            emissionDensity: 1.0 // Pour like sand
+            emissionDensity: 1.0, // Pour like sand
+            // Temperature system (v5.0.0)
+            temp: 20,
+            category: 'powders'
         });
 
         // Behavior 1: Wet/dry transition

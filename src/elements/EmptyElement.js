@@ -7,7 +7,9 @@ class EmptyElement extends Element {
             density: 0,
             state: STATE.EMPTY,
             movable: false,
-            tags: []
+            tags: [],
+            temp: 20,
+            category: 'special'
         });
     }
 }

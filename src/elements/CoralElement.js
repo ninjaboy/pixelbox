@@ -11,7 +11,9 @@ class CoralElement extends Element {
             burnsInto: 'ash',
             tags: [TAG.ORGANIC, TAG.COMBUSTIBLE],
             brushSize: 1,
-            emissionDensity: 0.5
+            emissionDensity: 0.5,
+            temp: 20,
+            category: 'life'
         });
     }
 

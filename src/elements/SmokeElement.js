@@ -9,7 +9,10 @@ class SmokeElement extends Element {
             state: STATE.GAS,
             dispersion: 3,
             lifetime: 300, // Base lifetime (5 seconds)
-            tags: new Set()
+            tags: new Set(),
+            // Temperature system (v5.0.0)
+            temp: 200,
+            category: 'gases'
         });
 
         // Define atmosphere boundary (upper 40% of screen - same as clouds/steam)

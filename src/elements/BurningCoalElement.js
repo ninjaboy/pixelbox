@@ -10,7 +10,11 @@ class BurningCoalElement extends Element {
             movable: false,
             tags: [TAG.HEAT_SOURCE, TAG.VERY_HOT],
             brushSize: 0, // Don't place directly
-            emissionDensity: 0
+            emissionDensity: 0,
+            // Temperature system (v5.0.0)
+            temp: 500,
+            heatOutput: 250,
+            category: 'energy'
         });
 
         // Behavior 1: Burn longer than wood but not forever (1800 frames = 30 seconds vs 50 for wood)

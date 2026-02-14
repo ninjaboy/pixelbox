@@ -14,7 +14,9 @@ class HouseBuilderSeedElement extends Element {
             ignitionResistance: 0.5, // Fairly flammable (50% resistance)
             burnsInto: 'ash', // Burns into ash when destroyed
             brushSize: 1,
-            emissionDensity: 0.1
+            emissionDensity: 0.1,
+            temp: 20,
+            category: 'life'
         });
     }
 

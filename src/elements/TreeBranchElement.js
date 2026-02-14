@@ -9,7 +9,9 @@ class TreeBranchElement extends Element {
             movable: false,
             ignitionResistance: 0.70, // Moderately flammable (living wood slightly harder than dead wood)
             burnsInto: 'burning_wood',
-            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC]
+            tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
+            temp: 20,
+            category: 'life'
         });
     }
 

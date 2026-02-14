@@ -10,7 +10,9 @@ class GrassSeedElement extends Element {
             movable: true,
             tags: [TAG.ORGANIC],
             brushSize: 0,
-            emissionDensity: 1.0
+            emissionDensity: 1.0,
+            temp: 20,
+            category: 'life'
         });
 
         // Seeds fall like powder

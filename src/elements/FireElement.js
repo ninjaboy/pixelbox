@@ -12,7 +12,13 @@ class FireElement extends Element {
             lifetime: 60, // Ephemeral flames - dissipate after 1 second
             tags: new Set([TAG.HEAT_SOURCE]),
             brushSize: 2, // Small controlled brush
-            emissionDensity: 0.5 // Moderate sparse placement
+            emissionDensity: 0.5, // Moderate sparse placement
+            // Temperature system (v5.0.0)
+            temp: 600,
+            heatOutput: 200,
+            tempLow: 100,
+            stateLow: 'smoke',
+            category: 'energy'
         });
 
         // Fire itself doesn't emit smoke - only burning materials produce smoke

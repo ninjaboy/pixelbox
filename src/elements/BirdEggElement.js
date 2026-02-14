@@ -11,7 +11,9 @@ class BirdEggElement extends Element {
             burnsInto: 'ash',
             tags: [TAG.ORGANIC, TAG.COMBUSTIBLE],
             brushSize: 0,
-            emissionDensity: 0
+            emissionDensity: 0,
+            temp: 20,
+            category: 'life'
         });
     }
 

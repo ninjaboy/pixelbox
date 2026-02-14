@@ -11,7 +11,12 @@ class WoodElement extends Element {
             burnsInto: 'burning_wood',  // Transforms to burning_wood when ignited
             tags: [TAG.COMBUSTIBLE, TAG.ORGANIC],
             brushSize: 1, // Single pixel brush
-            emissionDensity: 1.0 // Solid placement
+            emissionDensity: 1.0, // Solid placement
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 300,
+            stateHigh: 'burning_wood',
+            category: 'solids'
         });
     }
 

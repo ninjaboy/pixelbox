@@ -9,7 +9,12 @@ class StoneElement extends Element {
             movable: true, // Stone can move (falls, sinks through water)
             tags: [],
             brushSize: 1, // Single pixel brush
-            emissionDensity: 1.0 // Solid placement
+            emissionDensity: 1.0, // Solid placement
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 1500,
+            stateHigh: 'lava',
+            category: 'solids'
         });
 
         // Track which boulders have already been processed this frame

@@ -9,7 +9,9 @@ class PlayerElement extends Element {
             movable: false, // Player controls their own movement
             ignitionResistance: 1.0, // Can't burn
             tags: [],
-            brushSize: 0 // Single pixel placement
+            brushSize: 0, // Single pixel placement
+            temp: 37,
+            category: 'special'
         });
     }
 

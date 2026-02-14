@@ -11,7 +11,13 @@ class IceElement extends Element {
             movable: true, // Can float/move in water
             tags: new Set([TAG.FREEZING]), // Ice is freezing, not organic
             brushSize: 1,
-            emissionDensity: 0.8
+            emissionDensity: 0.8,
+            // Temperature system (v5.0.0)
+            temp: -20,
+            heatOutput: -100,
+            tempHigh: 0,
+            stateHigh: 'water',
+            category: 'solids'
         });
 
         // Behavior 1: Melt when near heat sources (season-dependent, v4.0.0)

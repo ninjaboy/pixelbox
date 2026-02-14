@@ -13,7 +13,12 @@ class OilElement extends Element {
             tags: new Set([TAG.COMBUSTIBLE]),   // Will ignite near fire!
             burnsInto: 'fire',         // Becomes fire when ignited (burns fast!)
             brushSize: 5,              // Large pour brush
-            emissionDensity: 1.0       // Continuous pour
+            emissionDensity: 1.0,      // Continuous pour
+            // Temperature system (v5.0.0)
+            temp: 20,
+            tempHigh: 280,
+            stateHigh: 'fire',
+            category: 'liquids'
         });
 
         // Behavior: Proximity ignition - oil ignites from nearby heat

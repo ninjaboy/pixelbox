@@ -13,7 +13,9 @@ class WetGunpowderElement extends Element {
             burnsInto: 'fire',
             tags: [TAG.COMBUSTIBLE],  // Can burn, but slowly
             brushSize: 0,
-            emissionDensity: 0
+            emissionDensity: 0,
+            temp: 20,
+            category: 'powders'
         });
 
         // Behavior 1: Wet/dry transition (shared with regular gunpowder)

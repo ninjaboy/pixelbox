@@ -11,7 +11,11 @@ class BurningWoodElement extends Element {
             lifetime: 1500, // Burns for 1500 frames (25 seconds at 60fps) - slower, closer to coal
             ignitionResistance: 0.95, // Very hard to re-ignite (mostly stays as burning wood)
             burnsInto: 'fire', // If re-ignited, becomes fire (shouldn't happen often)
-            tags: [TAG.HEAT_SOURCE, TAG.COMBUSTIBLE] // Can spread fire AND still burn
+            tags: [TAG.HEAT_SOURCE, TAG.COMBUSTIBLE], // Can spread fire AND still burn
+            // Temperature system (v5.0.0)
+            temp: 400,
+            heatOutput: 150,
+            category: 'energy'
         });
 
         // Behavior 1: Fire spreading to adjacent combustibles

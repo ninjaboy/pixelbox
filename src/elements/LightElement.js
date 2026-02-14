@@ -10,7 +10,9 @@ class LightElement extends Element {
             tags: [],
             brushSize: 0,
             emissionDensity: 1.0,
-            glowing: true // Light glows!
+            glowing: true, // Light glows!
+            temp: 20,
+            category: 'special'
         });
     }
 
