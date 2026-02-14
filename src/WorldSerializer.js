@@ -15,6 +15,8 @@ const SKIP_DATA_KEYS = new Set([
 export default class WorldSerializer {
     constructor(gameScene) {
         this.gameScene = gameScene;
+        this._opLock = false;   // prevents auto-save during manual save/load
+        this._autoSaving = false; // prevents concurrent auto-saves
     }
 
     /**
@@ -401,6 +403,9 @@ export default class WorldSerializer {
      * Called periodically and when navigating to menu.
      */
     async autoSave() {
+        // Skip if a manual save/load is in progress or another auto-save is running
+        if (this._opLock || this._autoSaving) return false;
+        this._autoSaving = true;
         try {
             const worldData = this.serializeWorld();
             const { default: storageManager } = await import('./StorageManager.js');
@@ -412,6 +417,8 @@ export default class WorldSerializer {
         } catch (error) {
             console.error('Auto-save failed:', error);
             return false;
+        } finally {
+            this._autoSaving = false;
         }
     }
 
@@ -421,6 +428,7 @@ export default class WorldSerializer {
      * @returns {Promise<boolean>}
      */
     async saveToSlot(name) {
+        this._opLock = true;
         try {
             const worldData = this.serializeWorld();
             const thumbnail = this.captureThumbnail();
@@ -429,6 +437,8 @@ export default class WorldSerializer {
         } catch (error) {
             console.error('Save to slot failed:', error);
             return false;
+        } finally {
+            this._opLock = false;
         }
     }
 
@@ -438,16 +448,24 @@ export default class WorldSerializer {
      * @returns {Promise<boolean>}
      */
     async loadFromSlot(name) {
+        this._opLock = true;
         try {
             const { default: storageManager } = await import('./StorageManager.js');
             const worldData = await storageManager.loadWorld(name);
             if (worldData) {
-                return this.deserializeWorld(worldData);
+                const success = this.deserializeWorld(worldData);
+                // Immediately persist loaded world as current auto-save
+                if (success) {
+                    await storageManager.saveCurrentWorld(worldData);
+                }
+                return success;
             }
             return false;
         } catch (error) {
             console.error('Load from slot failed:', error);
             return false;
+        } finally {
+            this._opLock = false;
         }
     }
 }

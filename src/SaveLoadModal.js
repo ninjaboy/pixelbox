@@ -332,11 +332,11 @@ class SaveLoadModal {
             await this._handleLoad(world.name);
         });
 
-        const overwriteBtn = this._createActionBtn('SAVE', 'rgba(218, 165, 32, 0.5)', async () => {
+        const overwriteBtn = this._createConfirmBtn('SAVE', 'rgba(218, 165, 32, 0.5)', async () => {
             await this._handleOverwrite(world.name);
         });
 
-        const deleteBtn = this._createActionBtn('\u00d7', 'rgba(255, 80, 80, 0.5)', async () => {
+        const deleteBtn = this._createConfirmBtn('\u00d7', 'rgba(255, 80, 80, 0.5)', async () => {
             await this._handleDelete(world.name);
         });
         deleteBtn.style.width = '24px';
@@ -377,6 +377,34 @@ class SaveLoadModal {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             onClick();
+        });
+        return btn;
+    }
+
+    /**
+     * Create a button that requires two taps to confirm (tap → "OK?" → action).
+     * @private
+     */
+    _createConfirmBtn(label, borderColor, onClick) {
+        let confirmTimer = null;
+        const btn = this._createActionBtn(label, borderColor, () => {
+            if (confirmTimer) {
+                // Second tap — confirmed
+                clearTimeout(confirmTimer);
+                btn.textContent = label;
+                btn.style.borderColor = borderColor;
+                confirmTimer = null;
+                onClick();
+            } else {
+                // First tap — show confirmation state
+                btn.textContent = 'OK?';
+                btn.style.borderColor = 'rgba(255, 80, 80, 0.8)';
+                confirmTimer = setTimeout(() => {
+                    btn.textContent = label;
+                    btn.style.borderColor = borderColor;
+                    confirmTimer = null;
+                }, 2000);
+            }
         });
         return btn;
     }
