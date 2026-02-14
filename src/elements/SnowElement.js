@@ -16,7 +16,12 @@ class SnowElement extends Element {
             heatOutput: -50,
             tempHigh: 2,
             stateHigh: 'water',
-            category: 'powders'
+            category: 'powders',
+            // Declarative reactions (v5.0.0)
+            reactions: {
+                fire: { elem1: 'water', elem2: 'smoke', chance: 0.4 },    // Snow douses fire
+                lava: { elem1: 'steam', chance: 0.5 },                     // Snow vaporizes on lava
+            }
         });
 
         // Melts when near heat sources

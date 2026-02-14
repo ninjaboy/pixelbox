@@ -120,5 +120,9 @@ registry.register(new BurningCoalElement());
 registry.register(new CloudElement());
 registry.register(new SteamVentElement());
 
+// === BUILD REACTION ENGINE (v5.0.0) ===
+// Must be called after all elements are registered
+registry.initReactionEngine();
+
 // Export the initialized registry
 export default registry;

@@ -1,10 +1,12 @@
 import InteractionManager from './InteractionManager.js';
+import ReactionEngine from './ReactionEngine.js';
 
 // Element Registry - manages all available elements and their interactions
 class ElementRegistry {
     constructor() {
         this.elements = new Map();
         this.interactionManager = new InteractionManager();
+        this.reactionEngine = null;
     }
 
     register(element) {
@@ -34,6 +36,16 @@ class ElementRegistry {
     // Register custom interaction rule
     registerInteraction(rule) {
         this.interactionManager.registerInteraction(rule);
+    }
+
+    /**
+     * Initialize the reaction engine after all elements are registered.
+     * Builds the reaction lookup table from element.reactions properties.
+     */
+    initReactionEngine() {
+        this.reactionEngine = new ReactionEngine(this);
+        this.reactionEngine.buildLookup();
+        this.interactionManager.setReactionEngine(this.reactionEngine);
     }
 
     getAllElements() {

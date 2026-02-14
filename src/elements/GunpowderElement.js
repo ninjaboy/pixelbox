@@ -16,7 +16,24 @@ class GunpowderElement extends Element {
             emissionDensity: 1.0, // Pour like sand
             // Temperature system (v5.0.0)
             temp: 20,
-            category: 'powders'
+            category: 'powders',
+            // Declarative reactions (v5.0.0)
+            reactions: {
+                lava: {
+                    chance: 0.8,
+                    func: (grid, sx, sy, tx, ty, reg) => {
+                        // Gunpowder + lava = massive explosion
+                        const gp = grid.getCell(sx, sy);
+                        if (gp && gp.element.explode) {
+                            gp.element.explode(sx, sy, grid);
+                        } else {
+                            grid.setElement(sx, sy, reg.get('fire'));
+                        }
+                        return true;
+                    }
+                },
+                acid: { elem1: 'smoke', elem2: null, chance: 0.1 },
+            }
         });
 
         // Behavior 1: Wet/dry transition

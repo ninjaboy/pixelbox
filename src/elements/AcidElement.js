@@ -14,7 +14,13 @@ class AcidElement extends Element {
             emissionDensity: 0.6,
             // Temperature system (v5.0.0)
             temp: 20,
-            category: 'liquids'
+            category: 'liquids',
+            // Declarative reactions (v5.0.0)
+            reactions: {
+                ice: { elem1: 'water', elem2: 'water', chance: 0.1 },       // Acid melts ice fast
+                glass: { elem1: null, elem2: 'smoke', chance: 0.02 },       // Acid etches glass (slow)
+                obsidian: { elem1: null, elem2: null, chance: 0.005 },      // Barely affects obsidian
+            }
         });
 
         // Behavior 1: Corrosion - dissolves materials using tag-based system

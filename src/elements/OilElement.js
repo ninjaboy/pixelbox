@@ -18,7 +18,11 @@ class OilElement extends Element {
             temp: 20,
             tempHigh: 280,
             stateHigh: 'fire',
-            category: 'liquids'
+            category: 'liquids',
+            // Declarative reactions (v5.0.0)
+            reactions: {
+                acid: { elem1: 'smoke', elem2: null, chance: 0.05 },  // Acid dissolves oil
+            }
         });
 
         // Behavior: Proximity ignition - oil ignites from nearby heat

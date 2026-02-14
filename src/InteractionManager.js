@@ -5,7 +5,12 @@ import { TAG } from './ElementProperties.js';
 class InteractionManager {
     constructor() {
         this.interactions = [];
+        this.reactionEngine = null; // v5.0.0: Set after init
         this.registerDefaultInteractions();
+    }
+
+    setReactionEngine(engine) {
+        this.reactionEngine = engine;
     }
 
     // Register an interaction rule with optional priority (default: 10)
@@ -340,18 +345,21 @@ class InteractionManager {
         const customResult2 = element2.onInteract?.(element1, grid, x2, y2, x1, y1);
         if (customResult2) return true;
 
-        // PERFORMANCE: Skip interaction rules if neither element has tags
-        if (!e1HasTags && !e2HasTags) {
-            return false;
-        }
-
-        // Then check registered interaction rules
-        for (const interaction of this.interactions) {
-            if (interaction.check(element1, element2)) {
-                if (interaction.apply(element1, element2, grid, x1, y1, x2, y2, registry)) {
-                    return true;
+        // PERFORMANCE: Skip tag-based interaction rules if neither element has tags
+        if (e1HasTags || e2HasTags) {
+            // Check registered interaction rules
+            for (const interaction of this.interactions) {
+                if (interaction.check(element1, element2)) {
+                    if (interaction.apply(element1, element2, grid, x1, y1, x2, y2, registry)) {
+                        return true;
+                    }
                 }
             }
+        }
+
+        // v5.0.0: Fall through to reaction engine if no tag interaction matched
+        if (this.reactionEngine) {
+            return this.reactionEngine.checkReaction(element1, element2, grid, x1, y1, x2, y2);
         }
 
         return false;

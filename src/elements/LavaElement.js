@@ -20,7 +20,13 @@ class LavaElement extends Element {
             heatOutput: 400,
             tempLow: 500,
             stateLow: 'stone',
-            category: 'liquids'
+            category: 'liquids',
+            // Declarative reactions (v5.0.0)
+            reactions: {
+                oil: { elem2: 'fire', chance: 0.4 },          // Lava ignites oil instantly
+                snow: { elem1: null, elem2: 'steam', chance: 0.5 }, // Lava vaporizes snow
+                slush: { elem2: 'steam', chance: 0.3 },       // Lava vaporizes slush
+            }
         });
 
         // Behavior 1: Ignite combustible materials nearby
