@@ -405,7 +405,10 @@ class GameScene extends Phaser.Scene {
             { name: 'bird', key: 'L' },
             { name: 'coral', key: 'P' },
             { name: 'house_seed', key: 'A' },
-            { name: 'eraser', key: 'X' }
+            { name: 'eraser', key: 'X' },
+            { name: 'heat_tool', key: 'H' },
+            { name: 'cool_tool', key: 'J' },
+            { name: 'drag_tool', key: 'K' }
         ];
 
         // Element visual configs
@@ -434,17 +437,22 @@ class GameScene extends Phaser.Scene {
             coral: { icon: '🪸', color: '#ff6b9d' },
             steam_vent: { icon: '🌡️', color: '#555555' },
             house_seed: { icon: '🏠', color: '#8b4513' },
-            eraser: { icon: '🧹', color: '#ff3333' }
+            eraser: { icon: '🧹', color: '#ff3333' },
+            heat_tool: { icon: '🔥', color: '#cc4400' },
+            cool_tool: { icon: '❄️', color: '#2266cc' },
+            drag_tool: { icon: '✋', color: '#886644' }
         };
 
         // Group elements by category
         const elementsByCategory = {};
         CATEGORIES.forEach(cat => { elementsByCategory[cat.id] = []; });
 
+        const TOOL_NAMES = new Set(['eraser', 'heat_tool', 'cool_tool', 'drag_tool']);
+
         elements.forEach(elDef => {
             const element = this.elementRegistry.get(elDef.name);
             let category;
-            if (elDef.name === 'eraser') {
+            if (TOOL_NAMES.has(elDef.name)) {
                 category = 'tools';
             } else if (element) {
                 category = getElementCategory(element);
@@ -500,14 +508,15 @@ class GameScene extends Phaser.Scene {
         // Build all element buttons
         elements.forEach(({ name: elementName, key }) => {
             const element = this.elementRegistry.get(elementName);
-            if (!element && elementName !== 'eraser') return;
+            const isTool = TOOL_NAMES.has(elementName);
+            if (!element && !isTool) return;
 
             const config = this.elementConfigs[elementName];
             if (!config) return;
 
             // Determine category
             let category;
-            if (elementName === 'eraser') {
+            if (isTool) {
                 category = 'tools';
             } else {
                 category = getElementCategory(element);
@@ -1116,6 +1125,9 @@ class GameScene extends Phaser.Scene {
         // Only allow drawing in build mode
         if (this.buildMode) {
             this.isDrawing = true;
+            // Reset drag tool tracking
+            this._dragLastX = undefined;
+            this._dragLastY = undefined;
             sentryManager.captureMessage('Drawing start', 'info', {
                 x: Math.round(pointer.x),
                 y: Math.round(pointer.y),
@@ -1146,6 +1158,16 @@ class GameScene extends Phaser.Scene {
 
         const gridX = Math.floor(pointer.x / this.pixelSize);
         const gridY = Math.floor(pointer.y / this.pixelSize);
+
+        // Handle tool selection
+        if (this.selectedElement === 'heat_tool' || this.selectedElement === 'cool_tool') {
+            this.drawTemperatureTool(gridX, gridY);
+            return;
+        }
+        if (this.selectedElement === 'drag_tool') {
+            this.drawDragTool(gridX, gridY, pointer);
+            return;
+        }
 
         const element = this.selectedElement === 'eraser'
             ? this.elementRegistry.get('empty')
@@ -1186,6 +1208,97 @@ class GameScene extends Phaser.Scene {
                         this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
                     }
                 }
+            }
+        }
+    }
+
+    // Heat/Cool tool: modify temperature of existing cells and trigger state transitions
+    drawTemperatureTool(gridX, gridY) {
+        const isHeat = this.selectedElement === 'heat_tool';
+        const tempDelta = isHeat ? 50 : -50; // degrees per frame
+        const brushSize = Math.max(1, Math.round(3 * this.brushMultiplier));
+        const borderSize = 2;
+
+        for (let dy = -brushSize; dy <= brushSize; dy++) {
+            for (let dx = -brushSize; dx <= brushSize; dx++) {
+                if (dx * dx + dy * dy > brushSize * brushSize) continue;
+                const tx = gridX + dx;
+                const ty = gridY + dy;
+                if (tx < borderSize || tx >= this.pixelGrid.width - borderSize ||
+                    ty < borderSize || ty >= this.pixelGrid.height - borderSize) continue;
+
+                const cell = this.pixelGrid.getCell(tx, ty);
+                if (!cell || cell.element.id === 0) continue; // Skip empty
+
+                const currentTemp = cell.state.getTemperature();
+                const newTemp = currentTemp + tempDelta;
+                cell.state.setTemperature(newTemp);
+
+                // Check for state transitions from temperature change
+                const element = cell.element;
+                if (isHeat && element.tempHigh != null && newTemp >= element.tempHigh && element.stateHigh) {
+                    const newElement = this.elementRegistry.get(element.stateHigh);
+                    if (newElement) this.pixelGrid.setElement(tx, ty, newElement);
+                } else if (!isHeat && element.tempLow != null && newTemp <= element.tempLow && element.stateLow) {
+                    const newElement = this.elementRegistry.get(element.stateLow);
+                    if (newElement) this.pixelGrid.setElement(tx, ty, newElement);
+                }
+            }
+        }
+    }
+
+    // Drag tool: move cells in the direction of pointer movement
+    drawDragTool(gridX, gridY, pointer) {
+        // Calculate pointer delta in grid units
+        const prevGridX = this._dragLastX;
+        const prevGridY = this._dragLastY;
+        this._dragLastX = gridX;
+        this._dragLastY = gridY;
+
+        // Skip first frame (no delta yet)
+        if (prevGridX === undefined || prevGridY === undefined) return;
+
+        const deltaX = gridX - prevGridX;
+        const deltaY = gridY - prevGridY;
+        if (deltaX === 0 && deltaY === 0) return;
+
+        const brushSize = Math.max(1, Math.round(2 * this.brushMultiplier));
+        const borderSize = 2;
+
+        // Collect cells to move (process from the direction opposite to movement)
+        const cellsToMove = [];
+        for (let dy = -brushSize; dy <= brushSize; dy++) {
+            for (let dx = -brushSize; dx <= brushSize; dx++) {
+                if (dx * dx + dy * dy > brushSize * brushSize) continue;
+                const sx = prevGridX + dx;
+                const sy = prevGridY + dy;
+                if (sx < borderSize || sx >= this.pixelGrid.width - borderSize ||
+                    sy < borderSize || sy >= this.pixelGrid.height - borderSize) continue;
+
+                const cell = this.pixelGrid.getCell(sx, sy);
+                if (!cell || cell.element.id === 0) continue;
+                if (cell.element.name === 'player') continue;
+                if (!cell.element.movable && cell.element.name !== 'wall') continue;
+
+                cellsToMove.push({ sx, sy, tx: sx + deltaX, ty: sy + deltaY });
+            }
+        }
+
+        // Move cells (swap with target if target is empty or lighter)
+        const emptyElement = this.elementRegistry.get('empty');
+        for (const { sx, sy, tx, ty } of cellsToMove) {
+            if (tx < borderSize || tx >= this.pixelGrid.width - borderSize ||
+                ty < borderSize || ty >= this.pixelGrid.height - borderSize) continue;
+
+            const targetCell = this.pixelGrid.getCell(tx, ty);
+            if (!targetCell) continue;
+
+            if (targetCell.element.id === 0) {
+                // Move into empty space
+                this.pixelGrid.swap(sx, sy, tx, ty);
+            } else if (targetCell.element.movable) {
+                // Swap with movable element
+                this.pixelGrid.swap(sx, sy, tx, ty);
             }
         }
     }
