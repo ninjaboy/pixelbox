@@ -197,9 +197,9 @@ class GameScene extends Phaser.Scene {
         // Add some initial borders (stone walls)
         this.createBorders();
 
-        // If continuing from a saved game, load the world
+        // If continuing from a saved game, load the world (await to prevent auto-save race)
         if (this.shouldContinue) {
-            this.loadSavedWorld();
+            await this.loadSavedWorld();
         }
 
         // Fade in from menu transition

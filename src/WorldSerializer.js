@@ -210,7 +210,7 @@ export default class WorldSerializer {
 
         // Restore player position
         const playerData = saveData.player;
-        if (playerData && playerData.x !== null && playerData.y !== null) {
+        if (playerData && playerData.x != null && playerData.y != null) {
             this.gameScene.playerX = playerData.x;
             this.gameScene.playerY = playerData.y;
         } else {

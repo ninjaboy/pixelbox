@@ -11,6 +11,7 @@ class SaveLoadModal {
     constructor() {
         this.overlay = null;
         this._built = false;
+        this._busy = false;
         this._gameScene = null;
         this._onLoadCallback = null;
     }
@@ -406,6 +407,7 @@ class SaveLoadModal {
      * @private
      */
     async _handleSave() {
+        if (this._busy) return;
         const name = this.nameInput.value.trim();
         if (!name) {
             this.nameInput.style.borderColor = 'rgba(255, 80, 80, 0.6)';
@@ -420,7 +422,7 @@ class SaveLoadModal {
         const exists = worlds.find(w => w.name === name);
 
         if (exists) {
-            // Overwrite existing
+            // Overwrite existing — confirm first
             await this._handleOverwrite(name);
             return;
         }
@@ -431,6 +433,7 @@ class SaveLoadModal {
             return;
         }
 
+        this._busy = true;
         this.saveBtn.textContent = '...';
         this.saveBtn.disabled = true;
 
@@ -446,6 +449,7 @@ class SaveLoadModal {
         } finally {
             this.saveBtn.textContent = 'SAVE';
             this.saveBtn.disabled = false;
+            this._busy = false;
         }
     }
 
@@ -454,6 +458,8 @@ class SaveLoadModal {
      * @private
      */
     async _handleLoad(name) {
+        if (this._busy) return;
+        this._busy = true;
         try {
             const success = await this._gameScene.worldSerializer.loadFromSlot(name);
             if (success) {
@@ -466,6 +472,8 @@ class SaveLoadModal {
         } catch (e) {
             console.error('Load failed:', e);
             this._showNotification('Load failed!');
+        } finally {
+            this._busy = false;
         }
     }
 
@@ -474,6 +482,8 @@ class SaveLoadModal {
      * @private
      */
     async _handleOverwrite(name) {
+        if (this._busy) return;
+        this._busy = true;
         try {
             const success = await this._gameScene.worldSerializer.saveToSlot(name);
             if (success) {
@@ -485,6 +495,8 @@ class SaveLoadModal {
         } catch (e) {
             console.error('Overwrite failed:', e);
             this._showNotification('Save failed!');
+        } finally {
+            this._busy = false;
         }
     }
 
