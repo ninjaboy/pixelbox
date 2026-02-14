@@ -11,6 +11,7 @@ class StorageManager {
         this.WORLD_LIST_KEY = 'pixelbox_worlds_list';
         this.CURRENT_WORLD_KEY = 'pixelbox_current_world';
         this.MAX_SLOTS = 20;
+        this.lastError = null; // 'quota' | 'unknown' | null
     }
 
     /**
@@ -22,30 +23,51 @@ class StorageManager {
     }
 
     /**
+     * Wrapper for Preferences.set that detects quota errors.
+     * @private
+     * @returns {Promise<boolean>} true if successful
+     */
+    async _safeSet(key, value) {
+        try {
+            await Preferences.set({ key, value });
+            return true;
+        } catch (error) {
+            const msg = (error?.message || error?.name || '').toLowerCase();
+            if (msg.includes('quota') || msg.includes('storage')
+                || error?.name === 'QuotaExceededError'
+                || error?.code === 22) {
+                this.lastError = 'quota';
+            } else {
+                this.lastError = 'unknown';
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Save a world to a named slot with optional thumbnail.
+     * Thumbnail is stored only in the world list (not duplicated in world data).
      * @param {string} name - World name
      * @param {string} worldData - Serialized world data (base64)
      * @param {string|null} thumbnail - Base64 data URL for thumbnail
      * @returns {Promise<boolean>}
      */
     async saveWorld(name, worldData, thumbnail = null) {
+        this.lastError = null;
         try {
             const worldKey = this.WORLD_PREFIX + name;
             const timestamp = Date.now();
 
+            // Store world data without thumbnail (thumbnail lives in world list only)
             const worldEntry = {
                 name,
                 data: worldData,
-                thumbnail,
                 timestamp,
             };
 
-            await Preferences.set({
-                key: worldKey,
-                value: JSON.stringify(worldEntry)
-            });
+            await this._safeSet(worldKey, JSON.stringify(worldEntry));
 
-            // Update world list
+            // Update world list (includes thumbnail for display)
             const worlds = await this.getWorldList();
             const existing = worlds.find(w => w.name === name);
             if (existing) {
@@ -87,17 +109,20 @@ class StorageManager {
 
     /**
      * Delete a world from storage.
+     * Updates list first to maintain consistency (list is source of truth).
      * @param {string} name - World name
      * @returns {Promise<boolean>}
      */
     async deleteWorld(name) {
         try {
-            const worldKey = this.WORLD_PREFIX + name;
-            await Preferences.remove({ key: worldKey });
-
+            // Update list first — if this fails, the data is still accessible
             const worlds = await this.getWorldList();
             const filtered = worlds.filter(w => w.name !== name);
             await this._saveWorldList(filtered);
+
+            // Then remove the data
+            const worldKey = this.WORLD_PREFIX + name;
+            await Preferences.remove({ key: worldKey });
 
             console.log(`World "${name}" deleted`);
             return true;
@@ -129,10 +154,7 @@ class StorageManager {
      * @private
      */
     async _saveWorldList(worlds) {
-        await Preferences.set({
-            key: this.WORLD_LIST_KEY,
-            value: JSON.stringify(worlds)
-        });
+        await this._safeSet(this.WORLD_LIST_KEY, JSON.stringify(worlds));
     }
 
     /**
@@ -141,18 +163,16 @@ class StorageManager {
      * @returns {Promise<boolean>}
      */
     async saveCurrentWorld(worldData) {
+        this.lastError = null;
         try {
             if (worldData === null) {
                 await Preferences.remove({ key: this.CURRENT_WORLD_KEY });
                 return true;
             }
-            await Preferences.set({
-                key: this.CURRENT_WORLD_KEY,
-                value: JSON.stringify({
-                    data: worldData,
-                    timestamp: Date.now()
-                })
-            });
+            await this._safeSet(this.CURRENT_WORLD_KEY, JSON.stringify({
+                data: worldData,
+                timestamp: Date.now()
+            }));
             return true;
         } catch (error) {
             console.error('Failed to auto-save:', error);

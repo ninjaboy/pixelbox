@@ -472,7 +472,7 @@ class SaveLoadModal {
                 await this._refreshList();
                 this.nameInput.value = '';
             } else {
-                this._showNotification('Save failed!');
+                this._showNotification(this._saveErrorMessage());
             }
         } finally {
             this.saveBtn.textContent = 'SAVE';
@@ -518,11 +518,11 @@ class SaveLoadModal {
                 this._showNotification(`Saved "${name}"`);
                 await this._refreshList();
             } else {
-                this._showNotification('Save failed!');
+                this._showNotification(this._saveErrorMessage());
             }
         } catch (e) {
             console.error('Overwrite failed:', e);
-            this._showNotification('Save failed!');
+            this._showNotification(this._saveErrorMessage());
         } finally {
             this._busy = false;
         }
@@ -542,6 +542,17 @@ class SaveLoadModal {
         } catch (e) {
             console.error('Delete failed:', e);
         }
+    }
+
+    /**
+     * Return appropriate error message based on storageManager.lastError.
+     * @private
+     */
+    _saveErrorMessage() {
+        if (storageManager.lastError === 'quota') {
+            return 'Storage full! Delete worlds to free space.';
+        }
+        return 'Save failed!';
     }
 
     /**
