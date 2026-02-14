@@ -46,6 +46,7 @@ import MainMenuScene from './scenes/MainMenuScene.js';
 import purchaseManager from './PurchaseManager.js';
 import unlockModal from './UnlockModal.js';
 import BackgroundGenerator from './BackgroundGenerator.js';
+import { CATEGORIES, getElementCategory } from './ElementCategories.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -371,52 +372,43 @@ class GameScene extends Phaser.Scene {
 
     setupElementSelector() {
         const selector = document.getElementById('element-selector');
-        // Clear existing buttons to avoid duplicates on scene restart
+        const categoryTabsContainer = document.getElementById('category-tabs');
+        // Clear existing content to avoid duplicates on scene restart
         selector.innerHTML = '';
+        categoryTabsContainer.innerHTML = '';
         const globalTooltip = document.getElementById('global-tooltip');
         const tooltipName = document.getElementById('tooltip-name');
         const tooltipProps = document.getElementById('tooltip-props');
         const tooltipKey = document.getElementById('tooltip-key');
 
-        // All elements - organized by category
+        // All elements with keybindings
         const elements = [
-            // GASES (rise)
             { name: 'fire', key: '1' },
             { name: 'steam_vent', key: '2' },
-
-            // LIQUIDS (flow)
             { name: 'water', key: '3' },
             { name: 'oil', key: '4' },
             { name: 'lava', key: '5' },
             { name: 'acid', key: '6' },
             { name: 'slush', key: 'Y' },
-
-            // POWDERS (fall, pile)
             { name: 'sand', key: '7' },
             { name: 'gunpowder', key: '8' },
             { name: 'snow', key: '9' },
-
-            // SOLIDS (static)
             { name: 'stone', key: '0' },
             { name: 'wood', key: 'Q' },
             { name: 'ice', key: 'W' },
             { name: 'glass', key: 'E' },
             { name: 'wall', key: 'R' },
             { name: 'coal', key: 'T' },
-
-            // ORGANIC (life)
             { name: 'tree_seed', key: 'U' },
             { name: 'vine', key: 'I' },
             { name: 'fish', key: 'O' },
             { name: 'bird', key: 'L' },
             { name: 'coral', key: 'P' },
             { name: 'house_seed', key: 'A' },
-
-            // TOOLS
             { name: 'eraser', key: 'X' }
         ];
 
-        // Element visual configs - using emojis for better visual clarity
+        // Element visual configs
         this.elementConfigs = {
             sand: { icon: '∙∙', color: '#c2b280' },
             water: { icon: '💧', color: '#4a90e2' },
@@ -445,17 +437,89 @@ class GameScene extends Phaser.Scene {
             eraser: { icon: '🧹', color: '#ff3333' }
         };
 
+        // Group elements by category
+        const elementsByCategory = {};
+        CATEGORIES.forEach(cat => { elementsByCategory[cat.id] = []; });
+
+        elements.forEach(elDef => {
+            const element = this.elementRegistry.get(elDef.name);
+            let category;
+            if (elDef.name === 'eraser') {
+                category = 'tools';
+            } else if (element) {
+                category = getElementCategory(element);
+            } else {
+                return; // Skip unregistered elements
+            }
+            // Skip 'special' category (empty, player, light)
+            if (category === 'special') return;
+            if (!elementsByCategory[category]) elementsByCategory[category] = [];
+            elementsByCategory[category].push(elDef);
+        });
+
+        // Track active category
+        this._activeCategory = null;
+
+        // Build category tabs (skip empty categories)
+        const visibleCategories = CATEGORIES.filter(cat =>
+            elementsByCategory[cat.id] && elementsByCategory[cat.id].length > 0
+        );
+
+        const switchCategory = (categoryId) => {
+            this._activeCategory = categoryId;
+            // Update tab active states
+            categoryTabsContainer.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.category === categoryId);
+            });
+            // Show/hide element buttons
+            selector.querySelectorAll('.element-btn').forEach(btn => {
+                btn.style.display = btn.dataset.category === categoryId ? '' : 'none';
+            });
+        };
+
+        visibleCategories.forEach((cat, index) => {
+            const tab = document.createElement('button');
+            tab.className = 'category-tab';
+            tab.dataset.category = cat.id;
+            tab.innerHTML = `<span>${cat.icon}</span><span class="category-tab-label">${cat.name}</span>`;
+            tab.addEventListener('click', () => switchCategory(cat.id));
+            // Touch support
+            let tabTouchHandled = false;
+            tab.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                tabTouchHandled = true;
+                switchCategory(cat.id);
+            });
+            tab.addEventListener('click', (e) => {
+                if (tabTouchHandled) { tabTouchHandled = false; return; }
+                switchCategory(cat.id);
+            });
+            categoryTabsContainer.appendChild(tab);
+        });
+
         // Build all element buttons
-        elements.forEach(({ name: elementName, key }, index) => {
+        elements.forEach(({ name: elementName, key }) => {
             const element = this.elementRegistry.get(elementName);
             if (!element && elementName !== 'eraser') return;
 
             const config = this.elementConfigs[elementName];
+            if (!config) return;
+
+            // Determine category
+            let category;
+            if (elementName === 'eraser') {
+                category = 'tools';
+            } else {
+                category = getElementCategory(element);
+            }
+            if (category === 'special') return;
+
             const isPremium = purchaseManager.isPremiumElement(elementName);
             const isLocked = isPremium && !purchaseManager.isUnlocked();
 
             const btn = document.createElement('button');
             btn.className = 'element-btn';
+            btn.dataset.category = category;
             if (isPremium) btn.classList.add('premium-element');
             if (isLocked) btn.classList.add('locked');
             if (elementName === 'sand') btn.classList.add('active');
@@ -529,8 +593,6 @@ class GameScene extends Phaser.Scene {
                 // If premium and locked, show unlock modal instead
                 if (purchaseManager.isPremiumElement(elementName) && !purchaseManager.isUnlocked()) {
                     hideTooltip();
-                    // Defer modal show to next frame to avoid breaking iOS touch chain
-                    // Showing overlay during touchend handler corrupts touch state machine
                     requestAnimationFrame(() => {
                         unlockModal.show(elementName, this.elementConfigs, () => {
                             this.refreshElementLocks();
@@ -547,21 +609,19 @@ class GameScene extends Phaser.Scene {
                 document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedElement = elementName;
-                hideTooltip(); // Hide tooltip when selecting
+                hideTooltip();
             };
 
-            // Mobile touch handlers - show tooltip on touch, select on release
+            // Mobile touch handlers
             let touchStartTime = 0;
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 touchStartTime = Date.now();
-                showTooltip(e); // Show tooltip on touch
+                showTooltip(e);
             });
             btn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 const touchDuration = Date.now() - touchStartTime;
-                // If quick tap (< 300ms), select element
-                // If long press, just hide tooltip (they were reading)
                 if (touchDuration < 300) {
                     selectElement();
                 } else {
@@ -573,6 +633,10 @@ class GameScene extends Phaser.Scene {
 
             selector.appendChild(btn);
         });
+
+        // Show the category that contains the default selected element (sand = solids)
+        const defaultCategory = 'solids';
+        switchCategory(defaultCategory);
 
         // Add keyboard shortcuts
         window.addEventListener('keydown', (e) => {
@@ -661,6 +725,11 @@ class GameScene extends Phaser.Scene {
                     });
                     e.preventDefault();
                     return;
+                }
+                // Switch to the element's category tab so it's visible
+                const btnCategory = btn.dataset.category;
+                if (btnCategory && btnCategory !== this._activeCategory) {
+                    switchCategory(btnCategory);
                 }
                 btn.click();
                 e.preventDefault();
