@@ -197,6 +197,8 @@ class PurchaseManager {
      * @returns {boolean}
      */
     isUnlocked() {
+        // On web (non-native), all elements are free — premium only applies on iOS
+        if (!this._isNative) return true;
         return this._unlocked;
     }
 
