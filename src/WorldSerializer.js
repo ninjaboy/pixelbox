@@ -2,7 +2,9 @@
 import { VERSION } from '../version.js';
 
 // Serialization format version - bump when format changes
-const SAVE_FORMAT_VERSION = 3;
+// v4: RLE-compressed element IDs, WebGL-safe thumbnails
+const SAVE_FORMAT_VERSION = 4;
+const MAX_SUPPORTED_FORMAT = 4;
 
 // Cell data keys to skip when serializing (transient/computed each frame)
 const SKIP_DATA_KEYS = new Set([
@@ -56,7 +58,7 @@ export default class WorldSerializer {
             grid: {
                 width,
                 height,
-                elements: elements.join(','),
+                elements: this._rleEncode(elements),
                 cellData // sparse: only cells with meaningful data
             },
             gameState: {
@@ -77,6 +79,45 @@ export default class WorldSerializer {
 
         const json = JSON.stringify(saveData);
         return btoa(json);
+    }
+
+    /**
+     * Run-length encode an array of element IDs.
+     * Format: "id:count,id:count,..." — e.g. "0:500,3:10,0:490"
+     * @private
+     */
+    _rleEncode(ids) {
+        if (ids.length === 0) return '';
+        const runs = [];
+        let currentId = ids[0];
+        let count = 1;
+        for (let i = 1; i < ids.length; i++) {
+            if (ids[i] === currentId) {
+                count++;
+            } else {
+                runs.push(`${currentId}:${count}`);
+                currentId = ids[i];
+                count = 1;
+            }
+        }
+        runs.push(`${currentId}:${count}`);
+        return runs.join(',');
+    }
+
+    /**
+     * Decode RLE string back to flat array of element IDs.
+     * @private
+     */
+    _rleDecode(rleString) {
+        const ids = [];
+        const runs = rleString.split(',');
+        for (const run of runs) {
+            const [id, count] = run.split(':').map(Number);
+            for (let i = 0; i < count; i++) {
+                ids.push(id);
+            }
+        }
+        return ids;
     }
 
     /**
@@ -149,10 +190,17 @@ export default class WorldSerializer {
      * @private
      */
     _loadSaveData(saveData) {
+        const version = saveData.formatVersion || 1;
+        if (version > MAX_SUPPORTED_FORMAT) {
+            throw new Error(`Unsupported save format v${version} (max supported: v${MAX_SUPPORTED_FORMAT}). Update the app.`);
+        }
+
         const grid = this.gameScene.pixelGrid;
         const { width, height, elements } = saveData.grid;
-        const elementIds = elements.split(',').map(Number);
-        const cellDataMap = saveData.grid.cellData || {}; // v3 only
+        // v4+ uses RLE ("id:count,id:count"), v1-v3 uses comma-separated IDs
+        const isRLE = version >= 4;
+        const elementIds = isRLE ? this._rleDecode(elements) : elements.split(',').map(Number);
+        const cellDataMap = saveData.grid.cellData || {}; // v3+ only
 
         // Validate dimensions
         if (width !== grid.width || height !== grid.height) {
@@ -260,15 +308,34 @@ export default class WorldSerializer {
      */
     captureThumbnail(maxWidth = 160, maxHeight = 120) {
         try {
+            const game = this.gameScene.game;
+            // Use Phaser snapshot API for WebGL-safe capture
+            if (game?.renderer?.snapshot) {
+                return new Promise((resolve) => {
+                    game.renderer.snapshot((image) => {
+                        try {
+                            const thumb = document.createElement('canvas');
+                            thumb.width = maxWidth;
+                            thumb.height = maxHeight;
+                            const ctx = thumb.getContext('2d');
+                            ctx.drawImage(image, 0, 0, maxWidth, maxHeight);
+                            resolve(thumb.toDataURL('image/jpeg', 0.5));
+                        } catch (e) {
+                            console.warn('Thumbnail resize failed:', e);
+                            resolve(null);
+                        }
+                    });
+                });
+            }
+            // Fallback: direct canvas capture (Canvas2D renderer)
             const canvas = document.querySelector('#game-container canvas');
             if (!canvas) return null;
-
             const thumb = document.createElement('canvas');
             thumb.width = maxWidth;
             thumb.height = maxHeight;
             const ctx = thumb.getContext('2d');
             ctx.drawImage(canvas, 0, 0, maxWidth, maxHeight);
-            return thumb.toDataURL('image/png', 0.7);
+            return thumb.toDataURL('image/jpeg', 0.5);
         } catch (e) {
             console.warn('Thumbnail capture failed:', e);
             return null;
@@ -431,7 +498,7 @@ export default class WorldSerializer {
         this._opLock = true;
         try {
             const worldData = this.serializeWorld();
-            const thumbnail = this.captureThumbnail();
+            const thumbnail = await this.captureThumbnail();
             const { default: storageManager } = await import('./StorageManager.js');
             return await storageManager.saveWorld(name, worldData, thumbnail);
         } catch (error) {
