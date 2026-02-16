@@ -631,7 +631,7 @@
         </div>
         <div class="header-right">
             <button id="worlds-btn" class="hdr-btn" title="Save/Load Worlds" style="font-size:13px;">💾</button>
-            <button id="settings-btn" class="hdr-btn" title="Menu" style="font-size:13px;">☰</button>
+            <button id="settings-btn" class="hdr-btn" title="Settings" style="font-size:13px;">☰</button>
         </div>
     </div>
 
@@ -712,12 +712,16 @@
                 </select>
             </div>
             <div class="settings-row">
-                <label>💾 Worlds</label>
+                <label>💾 Save / Load</label>
                 <button id="worlds-settings-btn" class="settings-toggle">OPEN</button>
             </div>
             <div class="settings-row">
                 <label>📖 Element Guide</label>
                 <button id="grimoire-btn" class="settings-toggle">OPEN</button>
+            </div>
+            <div class="settings-row" style="margin-top: 12px; border-top: 1px solid rgba(0,204,204,0.2); padding-top: 12px;">
+                <label>🏠 Main Menu</label>
+                <button id="main-menu-btn" class="settings-toggle">GO</button>
             </div>
             <div class="settings-version">v<span id="settings-version">-</span></div>
         </div>
@@ -1119,69 +1123,72 @@
                 }
             });
 
-            // ── Menu Button → Go to MainMenuScene ──
+            // ── Menu Button → Open Settings Overlay (in-game pause menu) ──
             const settingsBtn = document.getElementById('settings-btn');
 
-            const goToMainMenu = async () => {
-                console.log('☰ Menu button pressed');
-                
-                // Save current world state before going to menu
-                if (window.__pixellenceScene && window.__pixellenceScene.worldSerializer) {
-                    try {
-                        console.log('💾 Saving world before menu...');
-                        const saved = await window.__pixellenceScene.worldSerializer.autoSave();
-                        console.log('💾 Save result:', saved);
-                    } catch (e) {
-                        console.warn('Auto-save before menu failed:', e);
-                    }
-                } else {
-                    console.warn('⚠️ No scene or worldSerializer available for save');
-                }
-                
-                // Hide brush control when going to menu
-                const brushControl = document.getElementById('brush-control');
-                if (brushControl) brushControl.style.display = 'none';
-
-                // Switch to MainMenuScene - stop GameScene first to prevent overlap
-                if (window.__pixelboxGame) {
-                    console.log('🎬 Switching to MainMenuScene...');
-
-                    // Hide overlays that sit above the canvas (z-index 20000)
-                    const settingsOv = document.getElementById('settings-overlay');
-                    if (settingsOv) settingsOv.style.display = 'none';
-                    const grimoireOv = document.getElementById('grimoire-overlay');
-                    if (grimoireOv) grimoireOv.style.display = 'none';
-
-                    window.__pixelboxGame.scene.stop('GameScene');
-                    window.__pixelboxGame.scene.start('MainMenuScene');
-                    
-                    // Re-focus canvas after scene transition (fixes iOS touch issues)
-                    requestAnimationFrame(() => {
-                        const canvas = document.querySelector('canvas');
-                        if (canvas) {
-                            canvas.focus();
-                            console.log('🎯 Canvas refocused after menu transition');
-                        }
-                    });
-                } else {
-                    console.warn('⚠️ No game instance found');
-                }
+            const openSettingsOverlay = () => {
+                const overlay = document.getElementById('settings-overlay');
+                if (overlay) overlay.style.display = 'flex';
             };
-            
+
             // Support both click and touch for iOS compatibility
             let menuTouchHandled = false;
             settingsBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 menuTouchHandled = true;
-                goToMainMenu();
+                openSettingsOverlay();
             });
             settingsBtn.addEventListener('click', () => {
                 if (menuTouchHandled) {
                     menuTouchHandled = false;
                     return;
                 }
-                goToMainMenu();
+                openSettingsOverlay();
             });
+
+            // ── Go to Main Menu (used by "Main Menu" button in settings) ──
+            const goToMainMenu = async () => {
+                // Only switch if GameScene is actually active
+                const gameScene = window.__pixelboxGame?.scene?.getScene('GameScene');
+                if (!gameScene || !gameScene.sceneReady) {
+                    // Already on menu or game not ready — just close settings
+                    const settingsOv = document.getElementById('settings-overlay');
+                    if (settingsOv) settingsOv.style.display = 'none';
+                    return;
+                }
+
+                console.log('🏠 Going to Main Menu...');
+
+                // Save current world state before going to menu
+                if (window.__pixellenceScene && window.__pixellenceScene.worldSerializer) {
+                    try {
+                        const saved = await window.__pixellenceScene.worldSerializer.autoSave();
+                        console.log('💾 Save result:', saved);
+                    } catch (e) {
+                        console.warn('Auto-save before menu failed:', e);
+                    }
+                }
+
+                // Hide brush control when going to menu
+                const brushControl = document.getElementById('brush-control');
+                if (brushControl) brushControl.style.display = 'none';
+
+                // Hide overlays
+                const settingsOv = document.getElementById('settings-overlay');
+                if (settingsOv) settingsOv.style.display = 'none';
+                const grimoireOv = document.getElementById('grimoire-overlay');
+                if (grimoireOv) grimoireOv.style.display = 'none';
+
+                // Switch to MainMenuScene
+                window.__pixelboxGame.scene.stop('GameScene');
+                window.__pixelboxGame.scene.start('MainMenuScene');
+
+                // Re-focus canvas after scene transition (fixes iOS touch issues)
+                requestAnimationFrame(() => {
+                    const canvas = document.querySelector('canvas');
+                    if (canvas) canvas.focus();
+                });
+            };
 
             // ── Settings Panel Wiring ──
             const settingsOverlay = document.getElementById('settings-overlay');
@@ -1293,10 +1300,16 @@
                 });
             }
 
-            // Settings panel worlds button
+            // Settings panel worlds button (Save/Load)
             const worldsSettingsBtn = document.getElementById('worlds-settings-btn');
             if (worldsSettingsBtn) {
                 worldsSettingsBtn.addEventListener('click', openWorldsModal);
+            }
+
+            // Settings panel main menu button
+            const mainMenuBtn = document.getElementById('main-menu-btn');
+            if (mainMenuBtn) {
+                mainMenuBtn.addEventListener('click', goToMainMenu);
             }
 
             // ── Auto-save on page hide (mobile tab switch / app background) ──

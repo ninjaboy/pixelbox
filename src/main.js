@@ -73,8 +73,8 @@ class GameScene extends Phaser.Scene {
     async create(data) {
         const { width, height } = this.sys.game.config;
 
-        // Initialize purchase manager
-        await purchaseManager.init();
+        // Initialize purchase manager (non-blocking — already initialized from MainMenuScene)
+        purchaseManager.init().catch(e => console.warn('PurchaseManager init:', e));
 
         // Show game UI elements (hidden during splash/menu)
         this.setGameUIVisible(true);
@@ -647,8 +647,10 @@ class GameScene extends Phaser.Scene {
         const defaultCategory = 'solids';
         switchCategory(defaultCategory);
 
-        // Add keyboard shortcuts
-        window.addEventListener('keydown', (e) => {
+        // Add keyboard shortcuts (remove old handlers to prevent accumulation on scene restart)
+        if (this._keydownHandler) window.removeEventListener('keydown', this._keydownHandler);
+        if (this._keyupHandler) window.removeEventListener('keyup', this._keyupHandler);
+        this._keydownHandler = (e) => {
             const key = e.key.toUpperCase();
 
             // Toggle build mode with B key
@@ -743,14 +745,16 @@ class GameScene extends Phaser.Scene {
                 btn.click();
                 e.preventDefault();
             }
-        });
+        };
+        window.addEventListener('keydown', this._keydownHandler);
 
-        window.addEventListener('keyup', (e) => {
+        this._keyupHandler = (e) => {
             const key = e.key.toUpperCase();
             if (key === 'ARROWLEFT' || key === 'A') this.keys.left = false;
             if (key === 'ARROWRIGHT' || key === 'D') this.keys.right = false;
             if (key === 'ARROWUP' || key === 'W' || key === ' ') this.keys.jump = false;
-        });
+        };
+        window.addEventListener('keyup', this._keyupHandler);
 
         // Profiler panel reference
         this.profilerPanel = document.getElementById('profiler-content');
@@ -886,6 +890,13 @@ class GameScene extends Phaser.Scene {
     shutdown() {
         this.stopAutoSave();
         this.sceneReady = false;
+        // Clean up keyboard listeners to prevent accumulation on scene restart
+        if (this._keydownHandler) {
+            window.removeEventListener('keydown', this._keydownHandler);
+        }
+        if (this._keyupHandler) {
+            window.removeEventListener('keyup', this._keyupHandler);
+        }
     }
 
     spawnPlayer() {

@@ -264,6 +264,8 @@ export default class MainMenuScene extends Phaser.Scene {
     }
 
     startNewGame() {
+        // Clear auto-save so "Continue" won't reload old world after a fresh start
+        storageManager.saveCurrentWorld(null).catch(() => {});
         this.cameras.main.fadeOut(500, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
             this.scene.start('GameScene', { continueGame: false });
