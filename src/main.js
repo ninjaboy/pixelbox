@@ -490,8 +490,7 @@ class GameScene extends Phaser.Scene {
             tab.className = 'category-tab';
             tab.dataset.category = cat.id;
             tab.innerHTML = `<span>${cat.icon}</span><span class="category-tab-label">${cat.name}</span>`;
-            tab.addEventListener('click', () => switchCategory(cat.id));
-            // Touch support
+            // Touch support with dedup
             let tabTouchHandled = false;
             tab.addEventListener('touchend', (e) => {
                 e.preventDefault();
@@ -621,15 +620,17 @@ class GameScene extends Phaser.Scene {
                 hideTooltip();
             };
 
-            // Mobile touch handlers
+            // Mobile touch handlers — avoid preventDefault on touchstart
+            // as it breaks Phaser canvas input on iOS WKWebView
             let touchStartTime = 0;
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
+            let btnTouchHandled = false;
+            btn.addEventListener('touchstart', () => {
                 touchStartTime = Date.now();
-                showTooltip(e);
-            });
+                showTooltip();
+            }, { passive: true });
             btn.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                btnTouchHandled = true;
                 const touchDuration = Date.now() - touchStartTime;
                 if (touchDuration < 300) {
                     selectElement();
@@ -638,7 +639,10 @@ class GameScene extends Phaser.Scene {
                 }
             });
             btn.addEventListener('touchcancel', hideTooltip);
-            btn.addEventListener('click', selectElement);
+            btn.addEventListener('click', () => {
+                if (btnTouchHandled) { btnTouchHandled = false; return; }
+                selectElement();
+            });
 
             selector.appendChild(btn);
         });
