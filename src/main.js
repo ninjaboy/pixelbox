@@ -490,15 +490,9 @@ class GameScene extends Phaser.Scene {
             tab.className = 'category-tab';
             tab.dataset.category = cat.id;
             tab.innerHTML = `<span>${cat.icon}</span><span class="category-tab-label">${cat.name}</span>`;
-            // Touch support with dedup
-            let tabTouchHandled = false;
-            tab.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                tabTouchHandled = true;
-                switchCategory(cat.id);
-            });
+            // Touch support — NO preventDefault on touch events
+            // preventDefault on touchend breaks Phaser pointer routing on iOS WKWebView
             tab.addEventListener('click', (e) => {
-                if (tabTouchHandled) { tabTouchHandled = false; return; }
                 switchCategory(cat.id);
             });
             categoryTabsContainer.appendChild(tab);
@@ -620,28 +614,11 @@ class GameScene extends Phaser.Scene {
                 hideTooltip();
             };
 
-            // Mobile touch handlers — avoid preventDefault on touchstart
-            // as it breaks Phaser canvas input on iOS WKWebView
-            let touchStartTime = 0;
-            let btnTouchHandled = false;
-            btn.addEventListener('touchstart', () => {
-                touchStartTime = Date.now();
-                showTooltip();
-            }, { passive: true });
-            btn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                btnTouchHandled = true;
-                const touchDuration = Date.now() - touchStartTime;
-                if (touchDuration < 300) {
-                    selectElement();
-                } else {
-                    hideTooltip();
-                }
-            });
-            btn.addEventListener('touchcancel', hideTooltip);
+            // Click only — NO touch event handlers with preventDefault
+            // preventDefault on touchend breaks Phaser pointer routing on iOS WKWebView
             btn.addEventListener('click', () => {
-                if (btnTouchHandled) { btnTouchHandled = false; return; }
                 selectElement();
+                hideTooltip();
             });
 
             selector.appendChild(btn);
@@ -1196,6 +1173,23 @@ class GameScene extends Phaser.Scene {
                 type: typeof this.selectedElement
             });
             return;
+        }
+
+        // Debug: log first draw after element switch to verify grid write
+        if (!this._lastDrawElement || this._lastDrawElement !== this.selectedElement) {
+            this._lastDrawElement = this.selectedElement;
+            const testX = gridX, testY = gridY;
+            const beforeCell = this.pixelGrid.getElement(testX, testY);
+            sentryManager.captureMessage('Draw element switch', 'info', {
+                selectedElement: this.selectedElement,
+                elementId: element.id,
+                elementName: element.name,
+                gridX: testX,
+                gridY: testY,
+                beforeElement: beforeCell?.name,
+                brushSize: Math.max(0, Math.round(element.brushSize * this.brushMultiplier)),
+                activeCellsBefore: this.pixelGrid.activeCells.size
+            });
         }
 
         // Use element's brush size scaled by user multiplier
