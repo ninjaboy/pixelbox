@@ -1188,7 +1188,15 @@ class GameScene extends Phaser.Scene {
             ? this.elementRegistry.get('empty')
             : this.elementRegistry.get(this.selectedElement);
 
-        if (!element) return;
+        if (!element) {
+            sentryManager.captureMessage('Draw failed: element not found', 'warning', {
+                selectedElement: this.selectedElement,
+                registrySize: this.elementRegistry.elements?.size,
+                registryHas: this.elementRegistry.elements?.has(this.selectedElement),
+                type: typeof this.selectedElement
+            });
+            return;
+        }
 
         // Use element's brush size scaled by user multiplier
         const baseBrush = element.brushSize;
