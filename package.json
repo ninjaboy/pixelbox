@@ -1,6 +1,6 @@
 {
   "name": "pixellence",
-  "version": "3.17.2",
+  "version": "3.18.0",
   "type": "module",
   "description": "Particle simulation sandbox game with seasons, weather, and living creatures",
   "scripts": {
@@ -16,7 +16,6 @@
     "@capacitor/preferences": "^7.0.2",
     "@capacitor/status-bar": "^7.0.3",
     "@sentry/browser": "^10.38.0",
-    "cordova-plugin-purchase": "^13.12.1",
     "eruda": "^3.4.3",
     "phaser": "^3.86.0"
   },
