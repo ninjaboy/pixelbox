@@ -26,7 +26,7 @@ cd ios && fastlane simulator       # Test in simulator
 
 **PixelBox** is a particle simulation sandbox game (v4.3.0) using:
 - Phaser 3.86.0 for rendering
-- Custom Rust/WASM physics engine with SIMD optimization
+- Custom JavaScript physics engine (WASM build infra exists but is not currently active)
 - Vite 5.0 for building
 - Capacitor 7.4.4 for iOS deployment
 
@@ -46,8 +46,8 @@ Elements interact based on **tags and properties**, not hardcoded pairs:
 | `src/InteractionManager.js` | Tag-based interaction rules |
 | `src/PixelGrid.js` | Core simulation grid engine |
 | `src/config/GameConfig.js` | Tunable parameters (seasons, time, weather, growth rates) |
-| `src/config/FeatureFlags.js` | Runtime toggles (WASM, WebGL, SIMD, debug) |
-| `src/WasmBridge.js` | WASM module loading and JS/Rust bridging |
+| `src/ReactionEngine.js` | Declarative element-pair reactions (v5.0.0) |
+| `src/TemperatureSystem.js` | Heat diffusion and state transitions (v5.0.0) |
 
 ### Manager Pattern
 
@@ -98,7 +98,7 @@ export default NewElement;
 
 - World: `width × height` pixels
 - Grid: `width/pixelSize × height/pixelSize` cells (default pixelSize: 4)
-- X-axis wraps horizontally (infinite world)
+- Out-of-bounds coordinates return null (no wrapping)
 - Grid indexing: numeric keys `(y * width + x)` for performance
 
 ## Density Scale
@@ -113,17 +113,17 @@ export default NewElement;
 
 ## Performance Patterns
 
-- **Chunk-based spatial indexing**: 32x32 chunks for O(visible) updates
-- **Activity levels**: ACTIVE/SEMI_DORMANT/DORMANT chunks
-- **Active cell tracking**: Only update cells that changed
+- **Active cell tracking**: `activeCells` Map in PixelGrid stores only non-empty cells with numeric keys and cached `{x,y}` coordinates, enabling O(active) updates instead of O(grid)
+- **Canvas texture rendering**: Main particles render to offscreen CanvasTexture, uploaded as single GPU texture per frame (avoids per-pixel Phaser Graphics fillRect overhead)
+- **Incremental counters**: Cloud count tracked incrementally in `setElement()` (avoids full grid scan)
+- **Collection reuse**: Per-frame Maps/Arrays reused via `.clear()` and array pooling (reduces GC pressure)
+- **Interaction throttling**: Interactions checked every 2 frames; static elements skip entirely
+- **Temperature throttling**: Diffusion runs every 3 frames, only within radius 6 of heat sources
 - **Probabilistic updates**: Low-chance per-frame checks (e.g., `Math.random() < 0.002`)
 
 ## Feature Flags
 
-Override via URL params (`?useWasm=false`), localStorage, or `FeatureFlags.js`:
-- `useWasm` - Enable Rust/WASM physics
-- `useWebGL` - Enable WebGL2 renderer
-- `useSimd` - Enable SIMD optimizations
+Override via URL params (e.g., `?debugMode=true`) or localStorage (no centralized FeatureFlags.js file — flags are checked inline):
 - `debugMode` - Show debug info
 
 ## Deployment

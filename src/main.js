@@ -89,6 +89,13 @@ class GameScene extends Phaser.Scene {
         this.pixelSize = 4;
         this.pixelGrid = new PixelGrid(width, height, this.pixelSize, this.elementRegistry);
 
+        // PERFORMANCE: Reusable per-frame render collections (avoids GC pressure at 60 FPS)
+        this._particlesByColor = new Map();
+        this._lavaSurfaceParticles = [];
+        this._lightParticles = [];
+        this._lavaSurfaceByColor = new Map();
+        this._lightByColor = new Map();
+
         // DAY/NIGHT CYCLE SYSTEM
         this.dayNightCycle = {
             time: 0.35, // Start at morning (0.25 = sunrise/6AM, 0.35 = 8AM morning)
@@ -121,14 +128,19 @@ class GameScene extends Phaser.Scene {
 
         // BACKGROUND GENERATOR (procedural biome backgrounds)
         // Biomes: 'mountains', 'forest', 'desert', 'ocean', 'sky'
-        this.backgroundGenerator = new BackgroundGenerator(this, 'mountains');
+        this.backgroundGenerator = new BackgroundGenerator(this, 'sky');
         // BackgroundGenerator sets its own depth at -50
 
         this.celestialGraphics = this.add.graphics();
         this.celestialGraphics.setDepth(-40); // Sun/moon above background
 
-        this.graphics = this.add.graphics();
-        this.graphics.setDepth(0); // Main particles
+        // PERFORMANCE: Use CanvasTexture + Image for main particles (single GPU upload per frame)
+        // instead of Phaser Graphics fillRect() per particle (rebuilds WebGL geometry buffer)
+        this.particleCanvas = this.textures.createCanvas('particles', width, height);
+        this.particleCtx = this.particleCanvas.getContext('2d');
+        this.particleImage = this.add.image(0, 0, 'particles');
+        this.particleImage.setOrigin(0, 0);
+        this.particleImage.setDepth(0); // Main particles
 
         this.lavaGlowGraphics = this.add.graphics(); // Separate layer for lava surface glow
         this.lavaGlowGraphics.setDepth(1);
@@ -1482,18 +1494,9 @@ class GameScene extends Phaser.Scene {
         const cloudElement = this.elementRegistry.get('cloud');
         if (!cloudElement) return;
 
-        // Count existing clouds
-        let cloudCount = 0;
+        // PERFORMANCE: Use incremental cloud counter instead of full grid scan
+        const cloudCount = grid.cloudCount;
         const atmosphereHeight = Math.floor(grid.height * 0.4);
-
-        for (let y = 0; y < atmosphereHeight; y++) {
-            for (let x = 0; x < grid.width; x++) {
-                const element = grid.getElement(x, y);
-                if (element && element.name === 'cloud') {
-                    cloudCount++;
-                }
-            }
-        }
 
         // Calculate cloud coverage (0-1)
         const maxClouds = grid.width * atmosphereHeight * 0.02; // Max 2% of atmosphere can be clouds
@@ -1582,15 +1585,18 @@ class GameScene extends Phaser.Scene {
 
         // 3. RENDER PIXEL GRID WITH LIGHTING
         profiler.start('render:particles');
-        this.graphics.clear();
+        this.particleCtx.clearRect(0, 0, width, height);
         this.lavaGlowGraphics.clear();
         this.lightGlowGraphics.clear();
         const lightingColor = this.getLightingColor(time);
 
-        // PERFORMANCE: Render active cells using cached coordinates (no keyToCoord!)
-        const particlesByColor = new Map();
-        const lavaSurfaceParticles = [];
-        const lightParticles = [];
+        // PERFORMANCE: Reuse collections instead of allocating per frame
+        const particlesByColor = this._particlesByColor;
+        for (const [, arr] of particlesByColor) arr.length = 0;
+        const lavaSurfaceParticles = this._lavaSurfaceParticles;
+        lavaSurfaceParticles.length = 0;
+        const lightParticles = this._lightParticles;
+        lightParticles.length = 0;
 
         for (const [numericKey, coords] of this.pixelGrid.activeCells) {
             const cell = this.pixelGrid.grid[coords.y]?.[coords.x];
@@ -1635,11 +1641,11 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Render all normal particles of the same color in one batch
+        // PERFORMANCE: Render all normal particles to offscreen canvas, then upload once
         for (const [color, particles] of particlesByColor) {
-            this.graphics.fillStyle(color, 1);
+            this.particleCtx.fillStyle = '#' + color.toString(16).padStart(6, '0');
             for (const coords of particles) {
-                this.graphics.fillRect(
+                this.particleCtx.fillRect(
                     coords.x * this.pixelSize,
                     coords.y * this.pixelSize,
                     this.pixelSize,
@@ -1647,11 +1653,13 @@ class GameScene extends Phaser.Scene {
                 );
             }
         }
+        this.particleCanvas.refresh(); // Single GPU texture upload
 
         // Render lava surface particles with glow on separate layer
         if (lavaSurfaceParticles.length > 0) {
-            // Group by color for batching
-            const lavaSurfaceByColor = new Map();
+            // PERFORMANCE: Reuse Map, clear arrays
+            const lavaSurfaceByColor = this._lavaSurfaceByColor;
+            for (const [, arr] of lavaSurfaceByColor) arr.length = 0;
             for (const particle of lavaSurfaceParticles) {
                 if (!lavaSurfaceByColor.has(particle.color)) {
                     lavaSurfaceByColor.set(particle.color, []);
@@ -1660,6 +1668,7 @@ class GameScene extends Phaser.Scene {
             }
 
             for (const [color, particles] of lavaSurfaceByColor) {
+                if (particles.length === 0) continue;
                 this.lavaGlowGraphics.fillStyle(color, 1);
                 for (const coords of particles) {
                     this.lavaGlowGraphics.fillRect(
@@ -1674,7 +1683,9 @@ class GameScene extends Phaser.Scene {
 
         // Render light particles with glow on separate layer
         if (lightParticles.length > 0) {
-            const lightByColor = new Map();
+            // PERFORMANCE: Reuse Map, clear arrays
+            const lightByColor = this._lightByColor;
+            for (const [, arr] of lightByColor) arr.length = 0;
             for (const particle of lightParticles) {
                 if (!lightByColor.has(particle.color)) {
                     lightByColor.set(particle.color, []);
@@ -1683,6 +1694,7 @@ class GameScene extends Phaser.Scene {
             }
 
             for (const [color, particles] of lightByColor) {
+                if (particles.length === 0) continue;
                 this.lightGlowGraphics.fillStyle(color, 1);
                 for (const coords of particles) {
                     this.lightGlowGraphics.fillRect(

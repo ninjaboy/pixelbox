@@ -13,8 +13,9 @@ class PixelGrid {
         this.registry = registry;
         this.grid = [];
         this.particleCount = 0;
+        this.cloudCount = 0; // PERFORMANCE: Incremental cloud counter (avoids full grid scan)
         this.frameCount = 0; // Track frames
-        this.boulderCache = new Map(); // boulderId → Set of "x,y" position strings
+        this.boulderCache = new Map(); // boulderId → Set of numeric keys (y * width + x)
 
         // PERFORMANCE: Track active cells with numeric keys and cached coordinates
         // Key formula: y * width + x (avoids expensive string parsing)
@@ -31,6 +32,10 @@ class PixelGrid {
             [-1, -1], [1, -1], [-1, 1], [1, 1]          // Diagonal
         ];
 
+        // PERFORMANCE: Reusable per-frame collections (avoids GC pressure at 60 FPS)
+        this._cellsByRow = new Map();
+        this._rowArrayPool = [];
+
         // Temperature system (v5.0.0)
         this.temperatureSystem = new TemperatureSystem(this);
 
@@ -44,7 +49,7 @@ class PixelGrid {
                     lifetime: -1,
                     updated: false,
                     state: new CellState(), // NEW: Unified state management
-                    data: {} // Legacy support - gradually migrate to state
+                    data: Object.create(null) // Legacy support - gradually migrate to state
                 };
             }
         }
@@ -99,13 +104,12 @@ class PixelGrid {
 
         // PERFORMANCE: Use numeric key instead of string
         const numericKey = this.coordToKey(x, y);
-        const posKey = `${x},${y}`; // Keep for boulder cache (legacy)
 
         // Remove from old boulder cache if this cell had a boulder ID
         if (oldBoulderId !== undefined) {
             const cache = this.boulderCache.get(oldBoulderId);
             if (cache) {
-                cache.delete(posKey);
+                cache.delete(numericKey);
                 if (cache.size === 0) {
                     this.boulderCache.delete(oldBoulderId);
                 }
@@ -122,6 +126,10 @@ class PixelGrid {
             this.activeCells.delete(numericKey);
         }
 
+        // PERFORMANCE: Track cloud count incrementally
+        if (cell.element.name === 'cloud' && element.name !== 'cloud') this.cloudCount--;
+        if (element.name === 'cloud' && cell.element.name !== 'cloud') this.cloudCount++;
+
         // Temperature system: unregister old heat source, register new one
         const oldElement = cell.element;
         if (this.temperatureSystem) {
@@ -137,14 +145,14 @@ class PixelGrid {
         // Reset data unless explicitly preserving it
         if (!preserveData) {
             cell.state = new CellState(); // NEW: Reset state
-            cell.data = {};
+            cell.data = Object.create(null);
             // Store boulder ID and add to cache if provided
             if (boulderId !== null) {
                 cell.data.boulderId = boulderId;
                 if (!this.boulderCache.has(boulderId)) {
                     this.boulderCache.set(boulderId, new Set());
                 }
-                this.boulderCache.get(boulderId).add(posKey);
+                this.boulderCache.get(boulderId).add(numericKey);
             }
 
             // Initialize cell temperature from element default
@@ -241,13 +249,18 @@ class PixelGrid {
             }
         }
 
-        // PERFORMANCE: Group active cells by row using cached coordinates
-        const cellsByRow = new Map();
+        // PERFORMANCE: Reuse cellsByRow map and pool row arrays (avoids GC pressure)
+        const cellsByRow = this._cellsByRow;
+        for (const [, arr] of cellsByRow) {
+            arr.length = 0;
+            this._rowArrayPool.push(arr);
+        }
+        cellsByRow.clear();
         for (const [numericKey, coords] of this.activeCells) {
             const y = coords.y;
             const x = coords.x;
             if (!cellsByRow.has(y)) {
-                cellsByRow.set(y, []);
+                cellsByRow.set(y, this._rowArrayPool.pop() || []);
             }
             cellsByRow.get(y).push(x);
         }
@@ -258,15 +271,11 @@ class PixelGrid {
         for (const y of sortedRows) {
             const xPositions = cellsByRow.get(y);
 
-            // Randomize scan direction for even spreading
+            // PERFORMANCE: Iterate forward or backward randomly (avoids O(n log n) sort)
+            const len = xPositions.length;
             const startLeft = Math.random() > 0.5;
-            if (startLeft) {
-                xPositions.sort((a, b) => a - b);
-            } else {
-                xPositions.sort((a, b) => b - a);
-            }
-
-            for (const x of xPositions) {
+            for (let i = startLeft ? 0 : len - 1; startLeft ? i < len : i >= 0; startLeft ? i++ : i--) {
+                const x = xPositions[i];
                 const cell = this.grid[y][x];
 
                 if (cell.updated || cell.element.id === 0) continue;
@@ -349,9 +358,9 @@ class PixelGrid {
         if (!cache) return [];
 
         const pixels = [];
-        for (const posKey of cache) {
-            const [x, y] = posKey.split(',').map(Number);
-            pixels.push({ x, y, cell: this.grid[y][x] });
+        for (const numericKey of cache) {
+            const coords = this.keyToCoord(numericKey);
+            pixels.push({ x: coords.x, y: coords.y, cell: this.grid[coords.y][coords.x] });
         }
         return pixels;
     }
@@ -441,14 +450,14 @@ class PixelGrid {
                     element: emptyElement,
                     lifetime: -1,
                     updated: false,
-                    data: {}
+                    data: Object.create(null)
                 };
             }
 
             // Update cache
             if (cache) {
-                cache.delete(`${x},${y}`);
-                cache.add(`${x},${y + 1}`);
+                cache.delete(this.coordToKey(x, y));
+                cache.add(this.coordToKey(x, y + 1));
             }
         }
     }

@@ -6,7 +6,7 @@
 
 export class CellState {
     constructor() {
-        this.data = {};
+        this.data = Object.create(null);
     }
 
     /**
@@ -143,7 +143,7 @@ export class CellState {
      * Clear all data
      */
     clear() {
-        this.data = {};
+        this.data = Object.create(null);
     }
 
     /**
@@ -159,6 +159,7 @@ export class CellState {
      * @param {Object} data - Serialized data
      */
     deserialize(data) {
-        this.data = { ...data };
+        this.data = Object.create(null);
+        Object.assign(this.data, data);
     }
 }
