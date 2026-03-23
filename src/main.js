@@ -47,6 +47,7 @@ import purchaseManager from './PurchaseManager.js';
 import unlockModal from './UnlockModal.js';
 import BackgroundGenerator from './BackgroundGenerator.js';
 import { CATEGORIES, getElementCategory } from './ElementCategories.js';
+import { STATE } from './ElementProperties.js';
 
 // Main Game Scene
 class GameScene extends Phaser.Scene {
@@ -137,7 +138,10 @@ class GameScene extends Phaser.Scene {
         // PERFORMANCE: Use CanvasTexture + Image for main particles (single GPU upload per frame)
         // instead of Phaser Graphics fillRect() per particle (rebuilds WebGL geometry buffer)
         this.particleCanvas = this.textures.createCanvas('particles', width, height);
-        this.particleCtx = this.particleCanvas.getContext('2d');
+        if (!this.particleCanvas) {
+            console.error('Failed to create particleCanvas');
+        }
+        this.particleCtx = this.particleCanvas ? this.particleCanvas.getContext('2d') : null;
         this.particleImage = this.add.image(0, 0, 'particles');
         this.particleImage.setOrigin(0, 0);
         this.particleImage.setDepth(0); // Main particles
@@ -201,11 +205,8 @@ class GameScene extends Phaser.Scene {
             speedUpBtn.addEventListener('click', () => this.increaseTimeSpeed());
         }
 
-        // Brush size multiplier (1x = default, scales element's brushSize)
-        this.brushMultiplier = 1;
-        this.brushMultiplierLevels = [0.5, 1, 2, 3, 5];
-        this.brushMultiplierIndex = 1; // start at 1x
-        this.setupBrushControl();
+        // Brush size multiplier (fixed small brush)
+        this.brushMultiplier = 0.25;
 
         // Add some initial borders (stone walls)
         this.createBorders();
@@ -388,6 +389,11 @@ class GameScene extends Phaser.Scene {
         // Clear existing content to avoid duplicates on scene restart
         selector.innerHTML = '';
         categoryTabsContainer.innerHTML = '';
+        // Remove old filter popup close handler if present
+        if (this._filterPopupCloseHandler) {
+            document.removeEventListener('click', this._filterPopupCloseHandler, true);
+            document.removeEventListener('touchend', this._filterPopupCloseHandler, true);
+        }
         const globalTooltip = document.getElementById('global-tooltip');
         const tooltipName = document.getElementById('tooltip-name');
         const tooltipProps = document.getElementById('tooltip-props');
@@ -477,38 +483,235 @@ class GameScene extends Phaser.Scene {
             elementsByCategory[category].push(elDef);
         });
 
-        // Track active category
-        this._activeCategory = null;
+        // Track active category filters (Set of category IDs, empty = show all)
+        this._activeCategories = new Set();
 
-        // Build category tabs (skip empty categories)
+        // Build category filter popup (skip empty categories)
         const visibleCategories = CATEGORIES.filter(cat =>
             elementsByCategory[cat.id] && elementsByCategory[cat.id].length > 0
         );
 
-        const switchCategory = (categoryId) => {
-            this._activeCategory = categoryId;
-            // Update tab active states
-            categoryTabsContainer.querySelectorAll('.category-tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.category === categoryId);
-            });
-            // Show/hide element buttons
+        // Create filter button
+        const filterBtn = document.createElement('button');
+        filterBtn.id = 'filter-btn';
+        filterBtn.innerHTML = '<span class="filter-icon"></span>';
+        categoryTabsContainer.appendChild(filterBtn);
+
+        // Create popup
+        const filterPopup = document.createElement('div');
+        filterPopup.id = 'filter-popup';
+        categoryTabsContainer.appendChild(filterPopup);
+
+        // Apply current filter to element buttons
+        const applyFilter = () => {
+            const showAll = this._activeCategories.size === 0;
             selector.querySelectorAll('.element-btn').forEach(btn => {
-                btn.style.display = btn.dataset.category === categoryId ? '' : 'none';
+                btn.style.display = (showAll || this._activeCategories.has(btn.dataset.category)) ? '' : 'none';
+            });
+            // Update filter button indicator
+            filterBtn.classList.toggle('has-filter', !showAll);
+            // Update "All" checkbox state
+            const allOpt = filterPopup.querySelector('.filter-option[data-category="all"]');
+            if (allOpt) allOpt.classList.toggle('checked', showAll);
+            // Update individual category checkboxes
+            filterPopup.querySelectorAll('.filter-option[data-category]:not([data-category="all"])').forEach(opt => {
+                opt.classList.toggle('checked', showAll || this._activeCategories.has(opt.dataset.category));
             });
         };
 
-        visibleCategories.forEach((cat, index) => {
-            const tab = document.createElement('button');
-            tab.className = 'category-tab';
-            tab.dataset.category = cat.id;
-            tab.innerHTML = `<span>${cat.icon}</span><span class="category-tab-label">${cat.name}</span>`;
-            // Touch support — NO preventDefault on touch events
-            // preventDefault on touchend breaks Phaser pointer routing on iOS WKWebView
-            tab.addEventListener('click', (e) => {
-                switchCategory(cat.id);
-            });
-            categoryTabsContainer.appendChild(tab);
+        // Category colors for filter popup
+        const categoryColors = {
+            all:     '#ffffff',
+            solids:  '#888888',
+            powders: '#c2b280',
+            liquids: '#4a90e2',
+            gases:   '#aabbcc',
+            energy:  '#ff6b35',
+            life:    '#44bb44',
+            tools:   '#ccaa44'
+        };
+
+        // Build "All" option
+        const allOption = document.createElement('button');
+        allOption.className = 'filter-option checked';
+        allOption.dataset.category = 'all';
+        allOption.innerHTML = `<span class="px-checkbox"></span><span class="filter-cat-icon" style="color:${categoryColors.all}">✦</span> All`;
+        allOption.addEventListener('click', () => {
+            // Toggle: if currently showing all, do nothing special; if filtering, reset to all
+            this._activeCategories.clear();
+            applyFilter();
         });
+        filterPopup.appendChild(allOption);
+
+        // Separator
+        const sep = document.createElement('div');
+        sep.className = 'filter-separator';
+        filterPopup.appendChild(sep);
+
+        // Build category options
+        visibleCategories.forEach(cat => {
+            const opt = document.createElement('button');
+            opt.className = 'filter-option checked'; // All checked by default (show all)
+            opt.dataset.category = cat.id;
+            const catColor = categoryColors[cat.id] || '#aaa';
+            opt.innerHTML = `<span class="px-checkbox"></span><span class="filter-cat-icon" style="color:${catColor}">${cat.icon}</span> <span style="color:${catColor}">${cat.name}</span>`;
+            // NO preventDefault on touch events — breaks iOS Phaser input
+            opt.addEventListener('click', () => {
+                if (this._activeCategories.size === 0) {
+                    // Currently showing all — switch to showing only this category
+                    this._activeCategories.clear();
+                    this._activeCategories.add(cat.id);
+                } else if (this._activeCategories.has(cat.id)) {
+                    // Uncheck this category
+                    this._activeCategories.delete(cat.id);
+                    // If none left, revert to show all
+                    // (empty set = all shown)
+                } else {
+                    // Check this category
+                    this._activeCategories.add(cat.id);
+                }
+                // If all categories manually selected, revert to "all" mode
+                if (this._activeCategories.size === visibleCategories.length) {
+                    this._activeCategories.clear();
+                }
+                applyFilter();
+            });
+            filterPopup.appendChild(opt);
+        });
+
+        // Toggle popup open/close
+        const togglePopup = () => {
+            const isOpen = filterPopup.classList.contains('open');
+            filterPopup.classList.toggle('open', !isOpen);
+            filterBtn.classList.toggle('active', !isOpen);
+        };
+
+        filterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePopup();
+        });
+
+        // Close popup when clicking outside — use capture phase
+        // NO preventDefault — breaks iOS Phaser input
+        this._filterPopupCloseHandler = (e) => {
+            if (!filterPopup.classList.contains('open')) return;
+            if (filterPopup.contains(e.target) || filterBtn.contains(e.target)) return;
+            filterPopup.classList.remove('open');
+            filterBtn.classList.remove('active');
+        };
+        document.addEventListener('click', this._filterPopupCloseHandler, true);
+        document.addEventListener('touchend', this._filterPopupCloseHandler, { passive: true, capture: true });
+
+        // Show all elements by default (no filter active)
+        applyFilter();
+
+        // ── Long-press detail popup infrastructure ──
+        const detailPopup = document.getElementById('element-detail-popup');
+        const detailIcon = document.getElementById('detail-icon');
+        const detailName = document.getElementById('detail-name');
+        const detailProps = document.getElementById('detail-props');
+        const detailDesc = document.getElementById('detail-desc');
+        let longPressTimer = null;
+        let longPressFired = false;
+        let longPressStartX = 0;
+        let longPressStartY = 0;
+
+        const showDetailPopup = (btnEl, elementName, element, config) => {
+            // Header: icon + name
+            detailIcon.textContent = config.icon;
+            detailIcon.style.background = config.color;
+            detailName.textContent = elementName.replace(/_/g, ' ');
+
+            // Property tags (state, density, element tags)
+            detailProps.innerHTML = '';
+            if (element) {
+                const stateTag = document.createElement('span');
+                stateTag.className = 'detail-prop-tag state-tag';
+                stateTag.textContent = (element.state || 'unknown').toUpperCase();
+                detailProps.appendChild(stateTag);
+
+                const densityTag = document.createElement('span');
+                densityTag.className = 'detail-prop-tag density-tag';
+                densityTag.textContent = 'DENSITY: ' + (element.density ?? '?');
+                detailProps.appendChild(densityTag);
+
+                if (element.tags && element.tags.size > 0) {
+                    element.tags.forEach(tag => {
+                        const t = document.createElement('span');
+                        t.className = 'detail-prop-tag';
+                        t.textContent = String(tag).toUpperCase();
+                        detailProps.appendChild(t);
+                    });
+                }
+            } else {
+                // Tools have no element object
+                const toolTag = document.createElement('span');
+                toolTag.className = 'detail-prop-tag state-tag';
+                toolTag.textContent = 'TOOL';
+                detailProps.appendChild(toolTag);
+            }
+
+            // Description
+            const isPremium = purchaseManager.isPremiumElement(elementName);
+            if (isPremium && !purchaseManager.isUnlocked()) {
+                detailDesc.innerHTML = '<span style="color:#ffcc66;">PREMIUM ELEMENT</span> — tap to unlock';
+            } else {
+                const rawDesc = element
+                    ? (this.generateElementDescription(element) || 'No description available.')
+                    : this._getToolDescription(elementName);
+                // Format bullet points from the description string
+                const bullets = rawDesc.split(' • ');
+                detailDesc.innerHTML = bullets.map(b =>
+                    `<span class="desc-bullet">></span> ${b}`
+                ).join('<br>');
+            }
+
+            // Position above the button
+            detailPopup.style.display = 'block';
+            const rect = btnEl.getBoundingClientRect();
+            const popupRect = detailPopup.getBoundingClientRect();
+            const popupWidth = popupRect.width;
+
+            let leftPos = rect.left + rect.width / 2 - popupWidth / 2;
+            // Clamp to viewport
+            if (leftPos < 8) leftPos = 8;
+            if (leftPos + popupWidth > window.innerWidth - 8) {
+                leftPos = window.innerWidth - 8 - popupWidth;
+            }
+
+            let topPos = rect.top - popupRect.height - 12;
+            // If no room above, show below
+            if (topPos < 8) {
+                topPos = rect.bottom + 12;
+                // Flip arrow
+                detailPopup.style.setProperty('--arrow-dir', 'below');
+            } else {
+                detailPopup.style.setProperty('--arrow-dir', 'above');
+            }
+
+            detailPopup.style.left = `${leftPos}px`;
+            detailPopup.style.top = `${topPos}px`;
+        };
+
+        const hideDetailPopup = () => {
+            detailPopup.style.display = 'none';
+        };
+
+        const startLongPress = (btnEl, elementName, element, config) => {
+            cancelLongPress();
+            longPressFired = false;
+            longPressTimer = setTimeout(() => {
+                longPressFired = true;
+                showDetailPopup(btnEl, elementName, element, config);
+            }, 500);
+        };
+
+        const cancelLongPress = () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        };
 
         // Build all element buttons
         elements.forEach(({ name: elementName, key }) => {
@@ -541,6 +744,7 @@ class GameScene extends Phaser.Scene {
             btn.dataset.key = key;
             btn.style.background = config.color;
             btn.textContent = config.icon;
+            btn.setAttribute('aria-label', elementName);
 
             // Add lock overlay for premium elements when locked
             if (isPremium) {
@@ -626,19 +830,75 @@ class GameScene extends Phaser.Scene {
                 hideTooltip();
             };
 
-            // Click only — NO touch event handlers with preventDefault
+            // Click handler — only fire if long-press did NOT trigger
             // preventDefault on touchend breaks Phaser pointer routing on iOS WKWebView
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                if (longPressFired) {
+                    // Long-press just ended, suppress the click
+                    longPressFired = false;
+                    return;
+                }
                 selectElement();
                 hideTooltip();
+            });
+
+            // ── Long-press: touch events (mobile) ──
+            // NO preventDefault — that breaks iOS Phaser input
+            btn.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                longPressStartX = touch.clientX;
+                longPressStartY = touch.clientY;
+                startLongPress(btn, elementName, element, config);
+            }, { passive: true });
+
+            btn.addEventListener('touchend', () => {
+                cancelLongPress();
+                if (longPressFired) {
+                    hideDetailPopup();
+                    // Reset flag here — on iOS click may not fire after touchend
+                    longPressFired = false;
+                }
+            }, { passive: true });
+
+            btn.addEventListener('touchcancel', () => {
+                cancelLongPress();
+                hideDetailPopup();
+                longPressFired = false;
+            }, { passive: true });
+
+            btn.addEventListener('touchmove', (e) => {
+                // Only cancel if finger moved more than 10px (iOS fires touchmove on tiny jitters)
+                const touch = e.touches[0];
+                const dx = touch.clientX - longPressStartX;
+                const dy = touch.clientY - longPressStartY;
+                if (dx * dx + dy * dy > 100) { // 10px threshold squared
+                    cancelLongPress();
+                    hideDetailPopup();
+                    longPressFired = false;
+                }
+            }, { passive: true });
+
+            // ── Long-press: mouse events (desktop) ──
+            btn.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // left button only
+                    startLongPress(btn, elementName, element, config);
+                }
+            });
+
+            btn.addEventListener('mouseup', () => {
+                cancelLongPress();
+                hideDetailPopup();
+            });
+
+            btn.addEventListener('mouseleave', () => {
+                cancelLongPress();
+                hideDetailPopup();
             });
 
             selector.appendChild(btn);
         });
 
-        // Show the category that contains the default selected element (sand = solids)
-        const defaultCategory = 'solids';
-        switchCategory(defaultCategory);
+        // All elements visible by default (no category filtering)
 
         // Add keyboard shortcuts (remove old handlers to prevent accumulation on scene restart)
         if (this._keydownHandler) window.removeEventListener('keydown', this._keydownHandler);
@@ -730,10 +990,10 @@ class GameScene extends Phaser.Scene {
                     e.preventDefault();
                     return;
                 }
-                // Switch to the element's category tab so it's visible
-                const btnCategory = btn.dataset.category;
-                if (btnCategory && btnCategory !== this._activeCategory) {
-                    switchCategory(btnCategory);
+                // If element is hidden by filter, clear the filter so it becomes visible
+                if (btn.style.display === 'none') {
+                    this._activeCategories.clear();
+                    applyFilter();
                 }
                 btn.click();
                 e.preventDefault();
@@ -906,54 +1166,6 @@ class GameScene extends Phaser.Scene {
         return this.timeControl.speedLevels[this.timeControl.currentSpeedIndex];
     }
 
-    setupBrushControl() {
-        const control = document.getElementById('brush-control');
-        const downBtn = document.getElementById('brush-down');
-        const upBtn = document.getElementById('brush-up');
-        const label = document.getElementById('brush-size-label');
-        const preview = document.getElementById('brush-preview');
-
-        if (control) control.style.display = 'flex';
-
-        const updateBrush = () => {
-            this.brushMultiplier = this.brushMultiplierLevels[this.brushMultiplierIndex];
-            if (label) {
-                const m = this.brushMultiplier;
-                label.textContent = m < 1 ? '½x' : `${m}x`;
-            }
-            // Draw preview dot
-            if (preview) {
-                const ctx = preview.getContext('2d');
-                ctx.clearRect(0, 0, 40, 40);
-                const radius = Math.min(18, 3 + this.brushMultiplier * 4);
-                ctx.fillStyle = '#00cccc';
-                ctx.beginPath();
-                ctx.arc(20, 20, radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(0,204,204,0.4)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-        };
-
-        if (downBtn) downBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (this.brushMultiplierIndex > 0) {
-                this.brushMultiplierIndex--;
-                updateBrush();
-            }
-        });
-
-        if (upBtn) upBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (this.brushMultiplierIndex < this.brushMultiplierLevels.length - 1) {
-                this.brushMultiplierIndex++;
-                updateBrush();
-            }
-        });
-
-        updateBrush();
-    }
 
     increaseTimeSpeed() {
         if (this.timeControl.currentSpeedIndex < this.timeControl.speedLevels.length - 1) {
@@ -1109,6 +1321,16 @@ class GameScene extends Phaser.Scene {
         return parts.join(' • ') || 'Unknown element';
     }
 
+    _getToolDescription(toolName) {
+        const toolDescs = {
+            eraser: 'Tool • Removes elements and creates empty space • Use to clear unwanted materials',
+            heat_tool: 'Tool • Applies heat to elements • Ignites combustibles • Melts ice and snow • Evaporates water',
+            cool_tool: 'Tool • Applies cold to elements • Freezes water to ice • Cools lava to stone • Slows reactions',
+            drag_tool: 'Tool • Click and drag to push elements around • Move particles without placing or removing'
+        };
+        return toolDescs[toolName] || 'Tool';
+    }
+
     startDrawing(pointer) {
         // Debug: log every startDrawing call to diagnose post-modal issue
         const msSinceModalClose = unlockModal._lastHideTime
@@ -1232,6 +1454,12 @@ class GameScene extends Phaser.Scene {
                         const existingElement = this.pixelGrid.getElement(targetX, targetY);
                         if (existingElement && existingElement.name === 'player') {
                             continue; // Skip this cell, don't affect player
+                        }
+
+                        // Gas elements (fire, smoke, steam) should not overwrite solids/liquids/powders
+                        // — place only in empty cells or replace other gases
+                        if (element.state === STATE.GAS && existingElement && existingElement.id !== 0 && existingElement.state !== STATE.GAS) {
+                            continue;
                         }
 
                         this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
@@ -1455,6 +1683,27 @@ class GameScene extends Phaser.Scene {
         this.fpsText.textContent = Math.round(this.game.loop.actualFps);
         this.particlesText.textContent = this.pixelGrid.particleCount;
 
+        // XCUITest introspection: update hidden element with game state (throttled to every 30 frames)
+        if (this._xctestFrame === undefined) this._xctestFrame = 0;
+        if (++this._xctestFrame % 30 === 0) {
+            const xctestEl = document.getElementById('xctest-state');
+            if (xctestEl) {
+                const counts = {};
+                this.pixelGrid.activeCells.forEach((cellData) => {
+                    const cell = this.pixelGrid.getElement(cellData.x, cellData.y);
+                    if (cell && cell.name) {
+                        counts[cell.name] = (counts[cell.name] || 0) + 1;
+                    }
+                });
+                xctestEl.value = JSON.stringify({
+                    scene: 'GameScene',
+                    particleCount: this.pixelGrid.particleCount || 0,
+                    elements: counts,
+                    selectedElement: this.selectedElement || 'sand',
+                });
+            }
+        }
+
         // Update Sentry context with current game state
         sentryManager.setContext({
             selectedElement: this.selectedElement,
@@ -1653,7 +1902,7 @@ class GameScene extends Phaser.Scene {
                 );
             }
         }
-        this.particleCanvas.refresh(); // Single GPU texture upload
+        if (this.particleCanvas) this.particleCanvas.refresh(); // Single GPU texture upload
 
         // Render lava surface particles with glow on separate layer
         if (lavaSurfaceParticles.length > 0) {

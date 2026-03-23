@@ -40,6 +40,9 @@ Gemfile.lock
 **/fastlane/Preview.html
 **/fastlane/test_output
 
+# Test results
+test-results/
+
 # Vercel
 .vercel
 

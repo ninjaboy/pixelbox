@@ -50,13 +50,13 @@ final class ElementDrawingUITest: XCTestCase {
         
         // Tap "Liquids" tab (roughly second position)
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: tabY)).tap()
-        sleep(0.5)
+        usleep(500_000)
         takeScreenshot(name: "04-LiquidsTab")
         
         // Tap the first element in liquids (Water) - element buttons are just above tabs
         let btnY = 0.87 // Element buttons area
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: btnY)).tap()
-        sleep(0.5)
+        usleep(500_000)
         takeScreenshot(name: "05-WaterSelected")
         
         // Draw water above the sand
@@ -67,11 +67,11 @@ final class ElementDrawingUITest: XCTestCase {
         // === PHASE 3: Switch to Fire (in gases/energy category) ===
         // Tap gases category tab
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: tabY)).tap()
-        sleep(0.5)
-        
+        usleep(500_000)
+
         // Tap first element (likely Fire)
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: btnY)).tap()
-        sleep(0.5)
+        usleep(500_000)
         takeScreenshot(name: "07-FireSelected")
         
         // Draw fire
@@ -82,11 +82,11 @@ final class ElementDrawingUITest: XCTestCase {
         // === PHASE 4: Switch back to Solids and draw Stone ===
         // Tap solids tab (first tab)
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: tabY)).tap()
-        sleep(0.5)
-        
+        usleep(500_000)
+
         // Tap Stone (second element after Sand)
         webView.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: btnY)).tap()
-        sleep(0.5)
+        usleep(500_000)
         takeScreenshot(name: "09-StoneSelected")
         
         // Draw a stone platform
