@@ -16,9 +16,11 @@
   "dependencies": {
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
+    "@capacitor/filesystem": "^8.1.2",
     "@capacitor/haptics": "^7.0.2",
     "@capacitor/ios": "^7.4.4",
     "@capacitor/preferences": "^7.0.2",
+    "@capacitor/share": "^8.0.1",
     "@capacitor/status-bar": "^7.0.3",
     "@sentry/browser": "^10.38.0",
     "eruda": "^3.4.3",

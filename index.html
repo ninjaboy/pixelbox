@@ -549,6 +549,15 @@
             background: rgba(218, 165, 32, 0.25);
             border-color: rgba(218, 165, 32, 0.7);
         }
+        #game-header .hdr-btn.recording {
+            background: rgba(255, 50, 50, 0.35);
+            border-color: rgba(255, 50, 50, 0.8);
+            animation: record-pulse 1s ease-in-out infinite;
+        }
+        @keyframes record-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         #game-header #season-display {
             font-size: 11px;
             letter-spacing: 0.5px;
@@ -820,6 +829,7 @@
             <button id="speed-up" class="hdr-btn" title="Faster">+</button>
         </div>
         <div class="header-right">
+            <button id="record-btn" class="hdr-btn" title="Record Video" style="font-size:13px; display:none;">⏺</button>
             <button id="worlds-btn" class="hdr-btn" title="Save/Load Worlds" style="font-size:13px;">💾</button>
             <button id="settings-btn" class="hdr-btn" title="Settings" style="font-size:13px;">☰</button>
         </div>
@@ -1586,6 +1596,43 @@
                 if (e.key === 'Escape' && grimoireOverlay.style.display === 'flex') {
                     grimoireOverlay.style.display = 'none';
                 }
+            });
+        });
+    </script>
+
+    <!-- Video Recording -->
+    <script type="module">
+        import videoRecordingManager from './src/VideoRecordingManager.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const recordBtn = document.getElementById('record-btn');
+            if (!recordBtn) return;
+
+            if (!videoRecordingManager.isSupported()) return;
+            recordBtn.style.display = '';
+
+            const toggleRecording = () => {
+                if (videoRecordingManager.isRecording()) {
+                    videoRecordingManager.stop();
+                } else {
+                    videoRecordingManager.start();
+                }
+            };
+
+            let recordTouchHandled = false;
+            recordBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                recordTouchHandled = true;
+                toggleRecording();
+            });
+            recordBtn.addEventListener('click', () => {
+                if (recordTouchHandled) { recordTouchHandled = false; return; }
+                toggleRecording();
+            });
+
+            videoRecordingManager.onStateChange((recording) => {
+                recordBtn.textContent = recording ? '⏹' : '⏺';
+                recordBtn.classList.toggle('recording', recording);
             });
         });
     </script>
