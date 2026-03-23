@@ -59,10 +59,10 @@ class WaterElement extends Element {
                 let evapMultiplier = 1.0;
                 if (seasonData) {
                     const season = seasonData.season;
-                    // Seasonal evaporation rates: summer is 50x to balance winter snow
+                    // Seasonal evaporation rates (balanced v4.3.1)
                     const evapRates = {
                         spring: 2.0,
-                        summer: 50.0,  // Aggressive evaporation to balance winter snow
+                        summer: 6.0,   // Was 50x — now 6x, water persists in summer
                         autumn: 1.0,
                         winter: 0.1
                     };
@@ -70,7 +70,7 @@ class WaterElement extends Element {
 
                     // Additional boost in hot temperatures
                     if (seasonData.temperature > 0.7) {
-                        evapMultiplier *= 1.5;
+                        evapMultiplier *= 1.3;
                     }
                 }
 

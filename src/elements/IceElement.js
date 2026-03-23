@@ -53,8 +53,8 @@ class IceElement extends Element {
                 // Melt increases through spring: 0.02% at start → 0.08% at end
                 meltChance = 0.0002 + (seasonProgress * 0.0006);
             } else if (season === 'summer') {
-                // RAPID melting in summer - ice should disappear quickly
-                meltChance = 0.01; // 1% per frame - ice melts very fast
+                // Ice melts noticeably in summer but persists for several seconds
+                meltChance = 0.0015; // 0.15% per frame (~11s to melt, balanced v4.3.1)
             }
 
             if (meltChance > 0 && Math.random() < meltChance) {

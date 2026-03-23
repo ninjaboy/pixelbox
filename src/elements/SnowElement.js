@@ -51,8 +51,8 @@ class SnowElement extends Element {
                 // Melt increases through spring: 0% at start → 2% at end
                 meltChance = 0.0001 + (seasonProgress * 0.0002); // 0.01% to 0.03%
             } else if (season === 'summer') {
-                // Rapid melting in summer
-                meltChance = 0.005; // 0.5% per frame - snow gone quickly
+                // Snow melts faster than ice but still lingers briefly
+                meltChance = 0.001; // 0.1% per frame (~17s to melt, balanced v4.3.1)
             }
 
             if (meltChance > 0 && Math.random() < meltChance) {

@@ -25,7 +25,7 @@ export const GAME_CONFIG = {
     // Affects freezing, melting, snow spawning, etc.
     TEMPERATURE: {
         spring: { min: 0.3, max: 0.6 },   // Mild, warming
-        summer: { min: 0.7, max: 1.0 },   // Hot
+        summer: { min: 0.6, max: 0.85 },  // Hot (balanced v4.3.1)
         autumn: { min: 0.3, max: 0.5 },   // Mild, cooling
         winter: { min: -0.5, max: 0.2 },  // Cold, below freezing
     },
@@ -110,7 +110,7 @@ export const GAME_CONFIG = {
     // Ice melting rates (multiplier on base melt chance)
     ICE_MELT_MULTIPLIER: {
         spring: 1.5,    // 1.5x faster melting
-        summer: 3.0,    // 3x faster melting
+        summer: 2.0,    // 2x faster melting (balanced v4.3.1)
         autumn: 1.0,    // normal melting
         winter: 0.0,    // no melting (unless very strong heat)
     },
@@ -120,7 +120,7 @@ export const GAME_CONFIG = {
     // Designed to balance water input from winter snow
     WATER_EVAPORATION_MULTIPLIER: {
         spring: 2.0,    // 2x evaporation (helps reduce snowmelt)
-        summer: 50.0,   // 50x evaporation (aggressive - balances winter snow)
+        summer: 6.0,    // 6x evaporation (balanced v4.3.1 — was 50x)
         autumn: 1.0,    // normal evaporation
         winter: 0.1,    // 0.1x evaporation (very slow, water mostly freezes)
     },
