@@ -549,6 +549,10 @@
             background: rgba(218, 165, 32, 0.25);
             border-color: rgba(218, 165, 32, 0.7);
         }
+        /* Prevent header buttons from stealing focus from Phaser canvas */
+        #game-header .hdr-btn:focus {
+            outline: none;
+        }
         #game-header .hdr-btn.recording {
             background: rgba(255, 50, 50, 0.35);
             border-color: rgba(255, 50, 50, 0.8);
@@ -1340,6 +1344,15 @@
                 }
                 openSettingsOverlay();
             });
+
+            // ── Prevent header buttons from stealing focus from Phaser canvas ──
+            // When a <button> retains focus, Phaser's input manager stops
+            // receiving pointer events on the canvas. Blur after every click.
+            document.getElementById('game-header').addEventListener('click', (e) => {
+                if (e.target.closest('.hdr-btn')) {
+                    e.target.closest('.hdr-btn').blur();
+                }
+            }, true);
 
             // ── Go to Main Menu (used by "Main Menu" button in settings) ──
             const goToMainMenu = async () => {

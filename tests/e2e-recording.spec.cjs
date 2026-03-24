@@ -1,37 +1,36 @@
 /**
- * E2E Tests: Video Recording Button
+ * E2E Tests: Video Recording & Header Button Focus
  *
- * Tests that the record button appears, toggles recording state,
- * and shows correct icons during the recording cycle.
+ * Tests that the record button works, recording produces output,
+ * and header buttons don't break Phaser canvas drawing.
  *
  * Run: npx playwright test tests/e2e-recording.spec.cjs
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateToGame } = require('./helpers.cjs');
+const { navigateToGame, drawLine, getParticleCount } = require('./helpers.cjs');
+
+/** Check if record button is visible (MediaRecorder supported) */
+async function isRecordingSupported(page) {
+    const recordBtn = page.locator('#record-btn');
+    const isVisible = await recordBtn.evaluate(el => {
+        return window.getComputedStyle(el).display !== 'none';
+    });
+    return isVisible;
+}
 
 test.describe('Video Recording', () => {
 
     test.beforeEach(async ({ page }) => {
-        // Full reload ensures clean Phaser state between tests
         await page.goto('about:blank');
         await navigateToGame(page);
     });
 
     test('record button is visible after game loads', async ({ page }) => {
         const recordBtn = page.locator('#record-btn');
-
-        // The button exists in DOM
         await expect(recordBtn).toBeAttached();
 
-        // Force recording support so button becomes visible
-        // (MediaRecorder may not be available in headless Chromium)
-        const isVisible = await recordBtn.evaluate(el => {
-            return window.getComputedStyle(el).display !== 'none';
-        });
-
-        if (!isVisible) {
-            // If MediaRecorder isn't supported in test env, skip gracefully
+        if (!await isRecordingSupported(page)) {
             test.skip(true, 'MediaRecorder not supported in this browser environment');
             return;
         }
@@ -41,46 +40,32 @@ test.describe('Video Recording', () => {
     });
 
     test('clicking record button starts recording', async ({ page }) => {
-        const recordBtn = page.locator('#record-btn');
-
-        // Wait for button to be visible (recording supported)
-        const isVisible = await recordBtn.evaluate(el => {
-            return window.getComputedStyle(el).display !== 'none';
-        });
-        if (!isVisible) {
-            test.skip(true, 'MediaRecorder not supported in this browser environment');
+        if (!await isRecordingSupported(page)) {
+            test.skip(true, 'MediaRecorder not supported');
             return;
         }
 
-        // Button should not have .recording class initially
+        const recordBtn = page.locator('#record-btn');
         await expect(recordBtn).not.toHaveClass(/recording/);
 
-        // Button should show record icon (⏺) initially
         const initialText = await recordBtn.textContent();
         expect(initialText).toContain('⏺');
 
-        // Click to start recording
         await recordBtn.click();
         await page.waitForTimeout(500);
 
-        // Button should now have .recording class
         await expect(recordBtn).toHaveClass(/recording/);
-
-        // Button should show stop icon (⏹)
         const recordingText = await recordBtn.textContent();
         expect(recordingText).toContain('⏹');
     });
 
     test('clicking record button again stops recording', async ({ page }) => {
-        const recordBtn = page.locator('#record-btn');
-
-        const isVisible = await recordBtn.evaluate(el => {
-            return window.getComputedStyle(el).display !== 'none';
-        });
-        if (!isVisible) {
-            test.skip(true, 'MediaRecorder not supported in this browser environment');
+        if (!await isRecordingSupported(page)) {
+            test.skip(true, 'MediaRecorder not supported');
             return;
         }
+
+        const recordBtn = page.locator('#record-btn');
 
         // Start recording
         await recordBtn.click();
@@ -91,10 +76,7 @@ test.describe('Video Recording', () => {
         await recordBtn.click();
         await page.waitForTimeout(500);
 
-        // Button should lose .recording class
         await expect(recordBtn).not.toHaveClass(/recording/);
-
-        // Button should show record icon (⏺) again
         const stoppedText = await recordBtn.textContent();
         expect(stoppedText).toContain('⏺');
     });
@@ -103,25 +85,17 @@ test.describe('Video Recording', () => {
         const errors = [];
         page.on('pageerror', err => errors.push(err.message));
 
-        const recordBtn = page.locator('#record-btn');
-
-        const isVisible = await recordBtn.evaluate(el => {
-            return window.getComputedStyle(el).display !== 'none';
-        });
-        if (!isVisible) {
-            test.skip(true, 'MediaRecorder not supported in this browser environment');
+        if (!await isRecordingSupported(page)) {
+            test.skip(true, 'MediaRecorder not supported');
             return;
         }
 
-        // Start recording
+        const recordBtn = page.locator('#record-btn');
+        await recordBtn.click();
+        await page.waitForTimeout(1000);
         await recordBtn.click();
         await page.waitForTimeout(1000);
 
-        // Stop recording
-        await recordBtn.click();
-        await page.waitForTimeout(1000);
-
-        // Filter out non-critical errors (Phaser warnings, etc.)
         const criticalErrors = errors.filter(e =>
             !e.includes('DevTools') &&
             !e.includes('favicon') &&
@@ -129,5 +103,136 @@ test.describe('Video Recording', () => {
         );
 
         expect(criticalErrors).toEqual([]);
+    });
+
+    test('recording produces a non-empty video blob', async ({ page }) => {
+        if (!await isRecordingSupported(page)) {
+            test.skip(true, 'MediaRecorder not supported');
+            return;
+        }
+
+        // Draw some content so the recording has visible frames
+        await drawLine(page, 0.3, 0.4, 0.7, 0.4);
+        await page.waitForTimeout(300);
+
+        // Intercept the download to capture the blob size
+        const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+
+        const recordBtn = page.locator('#record-btn');
+
+        // Start recording
+        await recordBtn.click();
+        await page.waitForTimeout(2000); // Record for 2 seconds
+
+        // Stop recording
+        await recordBtn.click();
+
+        // Wait for the download to be triggered
+        const download = await downloadPromise;
+
+        // Verify the file has a video extension
+        const filename = download.suggestedFilename();
+        expect(filename).toMatch(/pixellence-\d+\.(mp4|webm)$/);
+
+        // Save and check file size (should be > 0 bytes for a real recording)
+        const path = await download.path();
+        const fs = require('fs');
+        const stats = fs.statSync(path);
+        expect(stats.size).toBeGreaterThan(0);
+    });
+});
+
+test.describe('Header Button Focus (drawing regression)', () => {
+
+    test.beforeEach(async ({ page }) => {
+        await page.goto('about:blank');
+        await navigateToGame(page);
+    });
+
+    test('drawing works after clicking settings button', async ({ page }) => {
+        // First verify drawing works normally
+        await drawLine(page, 0.3, 0.3, 0.5, 0.3);
+        await page.waitForTimeout(300);
+        const beforeClick = await getParticleCount(page);
+        expect(beforeClick).toBeGreaterThan(0);
+
+        // Click the settings button (this used to steal focus and break drawing)
+        const settingsBtn = page.locator('#settings-btn');
+        await settingsBtn.click();
+        await page.waitForTimeout(300);
+
+        // Close settings overlay
+        const closeBtn = page.locator('#settings-close');
+        if (await closeBtn.isVisible()) {
+            await closeBtn.click();
+            await page.waitForTimeout(300);
+        }
+
+        // Drawing should still work after closing settings
+        await drawLine(page, 0.3, 0.6, 0.5, 0.6);
+        await page.waitForTimeout(300);
+        const afterClick = await getParticleCount(page);
+        expect(afterClick).toBeGreaterThan(beforeClick);
+    });
+
+    test('drawing works after clicking speed buttons', async ({ page }) => {
+        // Draw initial content
+        await drawLine(page, 0.3, 0.3, 0.5, 0.3);
+        await page.waitForTimeout(300);
+        const beforeClick = await getParticleCount(page);
+        expect(beforeClick).toBeGreaterThan(0);
+
+        // Click speed up, then speed down
+        const speedUp = page.locator('#speed-up');
+        const speedDown = page.locator('#speed-down');
+        await speedUp.click();
+        await page.waitForTimeout(200);
+        await speedDown.click();
+        await page.waitForTimeout(200);
+
+        // Drawing should still work
+        await drawLine(page, 0.3, 0.6, 0.5, 0.6);
+        await page.waitForTimeout(300);
+        const afterClick = await getParticleCount(page);
+        expect(afterClick).toBeGreaterThan(beforeClick);
+    });
+
+    test('drawing works after clicking record button', async ({ page }) => {
+        if (!await isRecordingSupported(page)) {
+            test.skip(true, 'MediaRecorder not supported');
+            return;
+        }
+
+        // Draw initial content
+        await drawLine(page, 0.3, 0.3, 0.5, 0.3);
+        await page.waitForTimeout(300);
+        const beforeClick = await getParticleCount(page);
+        expect(beforeClick).toBeGreaterThan(0);
+
+        // Click record button (start), then click again (stop)
+        const recordBtn = page.locator('#record-btn');
+        await recordBtn.click();
+        await page.waitForTimeout(500);
+        await recordBtn.click();
+        await page.waitForTimeout(500);
+
+        // Drawing should still work after recording toggle
+        await drawLine(page, 0.3, 0.6, 0.5, 0.6);
+        await page.waitForTimeout(300);
+        const afterClick = await getParticleCount(page);
+        expect(afterClick).toBeGreaterThan(beforeClick);
+    });
+
+    test('header buttons lose focus after click', async ({ page }) => {
+        // Click settings button
+        const settingsBtn = page.locator('#settings-btn');
+        await settingsBtn.click();
+        await page.waitForTimeout(200);
+
+        // Verify the button is NOT the active element (focus was released)
+        const activeTagName = await page.evaluate(() => document.activeElement?.tagName);
+        const activeId = await page.evaluate(() => document.activeElement?.id);
+        // Active element should NOT be settings-btn
+        expect(activeId).not.toBe('settings-btn');
     });
 });

@@ -2372,7 +2372,8 @@ const config = {
     },
     render: {
         pixelArt: true,
-        antialias: false
+        antialias: false,
+        preserveDrawingBuffer: true  // Required for canvas.captureStream() video recording
     },
     fps: {
         target: 60,
