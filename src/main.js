@@ -424,8 +424,6 @@ class GameScene extends Phaser.Scene {
             { name: 'coral', key: 'P' },
             { name: 'house_seed', key: 'A' },
             { name: 'eraser', key: 'X' },
-            { name: 'heat_tool', key: 'H' },
-            { name: 'cool_tool', key: 'J' },
             { name: 'drag_tool', key: 'K' }
         ];
 
@@ -456,8 +454,6 @@ class GameScene extends Phaser.Scene {
             steam_vent: { icon: '🌡️', color: '#555555' },
             house_seed: { icon: '🏠', color: '#8b4513' },
             eraser: { icon: '🧹', color: '#ff3333' },
-            heat_tool: { icon: '🔥', color: '#cc4400' },
-            cool_tool: { icon: '❄️', color: '#2266cc' },
             drag_tool: { icon: '✋', color: '#886644' }
         };
 
@@ -465,7 +461,7 @@ class GameScene extends Phaser.Scene {
         const elementsByCategory = {};
         CATEGORIES.forEach(cat => { elementsByCategory[cat.id] = []; });
 
-        const TOOL_NAMES = new Set(['eraser', 'heat_tool', 'cool_tool', 'drag_tool']);
+        const TOOL_NAMES = new Set(['eraser', 'drag_tool']);
 
         elements.forEach(elDef => {
             const element = this.elementRegistry.get(elDef.name);
@@ -1324,8 +1320,6 @@ class GameScene extends Phaser.Scene {
     _getToolDescription(toolName) {
         const toolDescs = {
             eraser: 'Tool • Removes elements and creates empty space • Use to clear unwanted materials',
-            heat_tool: 'Tool • Applies heat to elements • Ignites combustibles • Melts ice and snow • Evaporates water',
-            cool_tool: 'Tool • Applies cold to elements • Freezes water to ice • Cools lava to stone • Slows reactions',
             drag_tool: 'Tool • Click and drag to push elements around • Move particles without placing or removing'
         };
         return toolDescs[toolName] || 'Tool';
@@ -1386,10 +1380,6 @@ class GameScene extends Phaser.Scene {
         const gridY = Math.floor(pointer.y / this.pixelSize);
 
         // Handle tool selection
-        if (this.selectedElement === 'heat_tool' || this.selectedElement === 'cool_tool') {
-            this.drawTemperatureTool(gridX, gridY);
-            return;
-        }
         if (this.selectedElement === 'drag_tool') {
             this.drawDragTool(gridX, gridY, pointer);
             return;
@@ -1464,41 +1454,6 @@ class GameScene extends Phaser.Scene {
 
                         this.pixelGrid.setElement(targetX, targetY, element, false, boulderId);
                     }
-                }
-            }
-        }
-    }
-
-    // Heat/Cool tool: modify temperature of existing cells and trigger state transitions
-    drawTemperatureTool(gridX, gridY) {
-        const isHeat = this.selectedElement === 'heat_tool';
-        const tempDelta = isHeat ? 50 : -50; // degrees per frame
-        const brushSize = Math.max(1, Math.round(3 * this.brushMultiplier));
-        const borderSize = 2;
-
-        for (let dy = -brushSize; dy <= brushSize; dy++) {
-            for (let dx = -brushSize; dx <= brushSize; dx++) {
-                if (dx * dx + dy * dy > brushSize * brushSize) continue;
-                const tx = gridX + dx;
-                const ty = gridY + dy;
-                if (tx < borderSize || tx >= this.pixelGrid.width - borderSize ||
-                    ty < borderSize || ty >= this.pixelGrid.height - borderSize) continue;
-
-                const cell = this.pixelGrid.getCell(tx, ty);
-                if (!cell || cell.element.id === 0) continue; // Skip empty
-
-                const currentTemp = cell.state.getTemperature();
-                const newTemp = currentTemp + tempDelta;
-                cell.state.setTemperature(newTemp);
-
-                // Check for state transitions from temperature change
-                const element = cell.element;
-                if (isHeat && element.tempHigh != null && newTemp >= element.tempHigh && element.stateHigh) {
-                    const newElement = this.elementRegistry.get(element.stateHigh);
-                    if (newElement) this.pixelGrid.setElement(tx, ty, newElement);
-                } else if (!isHeat && element.tempLow != null && newTemp <= element.tempLow && element.stateLow) {
-                    const newElement = this.elementRegistry.get(element.stateLow);
-                    if (newElement) this.pixelGrid.setElement(tx, ty, newElement);
                 }
             }
         }

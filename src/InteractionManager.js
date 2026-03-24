@@ -87,31 +87,29 @@ class InteractionManager {
             }
         });
 
-        // PRIORITY 7: FIRE EXTINGUISHING - water + fire → smoke/steam
+        // PRIORITY 7: FIRE + WATER — fire evaporates water, sometimes gets extinguished
         this.registerInteraction({
-            name: 'fire_extinguishing',
+            name: 'fire_water',
             priority: 7,
             check: (element1, element2) => {
                 return (element1.hasTag(TAG.EXTINGUISHES_FIRE) && element2.name === 'fire') ||
                        (element2.hasTag(TAG.EXTINGUISHES_FIRE) && element1.name === 'fire');
             },
             apply: (element1, element2, grid, x1, y1, x2, y2, registry) => {
-                // Determine which is fire and which is water
                 const [fireX, fireY] = element1.name === 'fire' ? [x1, y1] : [x2, y2];
                 const [waterX, waterY] = element1.name === 'fire' ? [x2, y2] : [x1, y1];
 
-                // Extinguish fire (90% chance - water is very effective)
-                if (Math.random() < 0.9) {
-                    // Fire is extinguished - becomes steam or empty (no smoke)
-                    grid.setElement(fireX, fireY, Math.random() < 0.3 ? registry.get('steam') : registry.get('empty'));
-
-                    // Water becomes steam (50% chance)
-                    if (Math.random() < 0.5) {
-                        grid.setElement(waterX, waterY, registry.get('steam'));
-                    }
-                    return true;
+                // Fire evaporates water → steam (70% chance)
+                if (Math.random() < 0.7) {
+                    grid.setElement(waterX, waterY, registry.get('steam'));
                 }
-                return false;
+
+                // Fire gets extinguished only 20% of the time
+                if (Math.random() < 0.2) {
+                    grid.setElement(fireX, fireY, registry.get('steam'));
+                }
+
+                return true;
             }
         });
 

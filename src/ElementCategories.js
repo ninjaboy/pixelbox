@@ -48,8 +48,6 @@ export const ELEMENT_CATEGORY_MAP = {
 
     // Tools
     eraser: 'tools',
-    heat_tool: 'tools',
-    cool_tool: 'tools',
     drag_tool: 'tools',
 };
 
