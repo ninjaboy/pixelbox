@@ -601,7 +601,7 @@ class GameScene extends Phaser.Scene {
         // Show all elements by default (no filter active)
         applyFilter();
 
-        // ── Long-press detail popup infrastructure ──
+        // ── Detail popup infrastructure ──
         const detailPopup = document.getElementById('element-detail-popup');
         const detailIcon = document.getElementById('detail-icon');
         const detailName = document.getElementById('detail-name');
@@ -827,10 +827,8 @@ class GameScene extends Phaser.Scene {
             };
 
             // Click handler — only fire if long-press did NOT trigger
-            // preventDefault on touchend breaks Phaser pointer routing on iOS WKWebView
             btn.addEventListener('click', (e) => {
                 if (longPressFired) {
-                    // Long-press just ended, suppress the click
                     longPressFired = false;
                     return;
                 }
@@ -839,7 +837,6 @@ class GameScene extends Phaser.Scene {
             });
 
             // ── Long-press: touch events (mobile) ──
-            // NO preventDefault — that breaks iOS Phaser input
             btn.addEventListener('touchstart', (e) => {
                 const touch = e.touches[0];
                 longPressStartX = touch.clientX;
@@ -851,7 +848,6 @@ class GameScene extends Phaser.Scene {
                 cancelLongPress();
                 if (longPressFired) {
                     hideDetailPopup();
-                    // Reset flag here — on iOS click may not fire after touchend
                     longPressFired = false;
                 }
             }, { passive: true });
@@ -863,11 +859,10 @@ class GameScene extends Phaser.Scene {
             }, { passive: true });
 
             btn.addEventListener('touchmove', (e) => {
-                // Only cancel if finger moved more than 10px (iOS fires touchmove on tiny jitters)
                 const touch = e.touches[0];
                 const dx = touch.clientX - longPressStartX;
                 const dy = touch.clientY - longPressStartY;
-                if (dx * dx + dy * dy > 100) { // 10px threshold squared
+                if (dx * dx + dy * dy > 100) {
                     cancelLongPress();
                     hideDetailPopup();
                     longPressFired = false;
@@ -876,7 +871,7 @@ class GameScene extends Phaser.Scene {
 
             // ── Long-press: mouse events (desktop) ──
             btn.addEventListener('mousedown', (e) => {
-                if (e.button === 0) { // left button only
+                if (e.button === 0) {
                     startLongPress(btn, elementName, element, config);
                 }
             });
