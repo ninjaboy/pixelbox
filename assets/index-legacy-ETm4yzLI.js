@@ -1,0 +1,1 @@
+System.register(["./index-legacy-DD_cqqXJ.js","./phaser-legacy-DwBw_K64.js"],function(e,r){"use strict";var t,s;return{setters:[e=>{t=e.r,s=e._},null],execute:function(){e("Share",t("Share",{web:()=>s(()=>r.import("./web-legacy-E3C674J7.js"),void 0).then(e=>new e.ShareWeb)}))}}});
